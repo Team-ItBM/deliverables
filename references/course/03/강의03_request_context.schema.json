@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "RequestContext",
+  "description": "단골: 사용자 자연어 발화를 파싱한 구조화 결과 (강의 3 산출물)",
+  "type": "object",
+  "properties": {
+    "area": {"type": ["string", "null"], "description": "지역명. 모르면 null"},
+    "party_size": {"type": ["integer", "null"], "minimum": 1},
+    "vibe": {"type": "array", "items": {"type": "string"}, "description": "분위기 태그"},
+    "dietary": {
+      "type": "array",
+      "items": {"type": "string", "enum": ["vegan", "vegetarian", "halal", "gluten_free"]},
+      "description": "식이제약. 허용값만 — 환각 방지"
+    },
+    "occasion": {"type": "string"},
+    "budget": {"type": ["integer", "null"], "description": "1인 예산(원). 모르면 null"},
+    "time": {"type": "string", "description": "HH:MM, 24h"}
+  },
+  "required": ["area", "party_size"],
+  "additionalProperties": false
+}

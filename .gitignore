@@ -1,0 +1,20 @@
+# OS / local work
+.DS_Store
+.local-work/
+.tmp/
+.work/
+
+# Secrets / local environment
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+node_modules/
+
+# Raw recordings: keep separately; use de-identified text records
+*.m4a
+*.wav
+*.mp3
