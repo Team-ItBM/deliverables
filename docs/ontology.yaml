@@ -1,0 +1,202 @@
+# 여행 갈등 조율의 미니 온톨로지 (강의 2)
+# 기준: references/course/02/강의02_도메인발견_온톨로지_작성지침.md E절,
+# 스키마·필수값·enum은 아직 정하지 않는다.
+# evidence는 research/interviews.md B절 로그 번호이며, 아래 색인으로 세부 기록을 찾는다.
+# 관찰 기록은 아직 없다. 참여자의 회고·동행에 대한 추측을 직접 관찰로 취급하지 않는다.
+# 사전 갈등 체험에 재사용할 현실의 개념을 정리한다.
+version: 1
+
+evidence_sources:
+  로그 1: {path: research/records/log-01.md, sections: ["3. 사건 흐름", "7. 확인할 내용"], note: "인천 귀가 요청, 유럽 체력 충돌, 유럽 일 분담 불만을 별개로 읽는다."}
+  로그 2: {path: research/records/log-02.md, sections: ["3. 사건 흐름", "4. 부담과 결과"], note: "20분은 합의 조건. 서운함은 예상이며 실제 다툼이 있었다는 뜻이 아니다."}
+  로그 4: {path: research/records/log-04.md, sections: ["3. 사건 흐름", "7. 확인할 내용"], note: "따로 식사하고 만나자는 제안. 재합류의 실제 시각·과정은 미확인."}
+  로그 6: {path: research/records/log-06.md, sections: ["3. 사건 흐름", "4. 부담과 결과"], note: "편의성과 바다 수영 선호의 차이. 체력 갈등으로 재해석하지 않는다."}
+  로그 9: {path: research/records/log-09.md, sections: ["3. 사건 흐름", "4. 부담과 결과", "7. 확인할 내용"], note: "루지 취소 이후 여러 사건이 이어짐. 상대의 의도와 감정은 독립 확인되지 않았다."}
+  로그 12: {path: research/records/log-12.md, sections: ["3. 사건 흐름", "4. 부담과 결과"], note: "트러블이 없었다는 진술과 모든 선택에 만족했다는 진술을 구분한다."}
+
+# 명사·동사 추출과 대표어 통합
+# - 친구·동행·일행 -> Traveler(동행자): 조율에 참여하는 사람. 고정 성향 점수는 정의하지 않는다.
+# - 그때·다음에 무엇을 할지 정한 장면 -> TravelSituation(여행 상황).
+# - 원하는 것·피곤함·이유·실제로 한 말 -> ParticipantPosition(상황별 입장)의 속성.
+# - 루지 타기·쇼핑·노을 보기·쉬기·귀가 -> Activity(활동). 장소 자체와 구분한다.
+# - 귀가 제안·20분 쇼핑 후 해변·따로 식사 -> AdjustmentOption(조정안).
+# - 수락·다수결로 결정·최종 선택 -> Decision(결정).
+# - 제안함/포함함/선택함/참여함 -> 클래스 사이의 관계.
+# '조율 방식'은 Decision.method, '분리 행동'은 AdjustmentOption.participation으로 표현한다.
+# ParticipantPosition은 같은 사람도 상황에 따라 달라져 Traveler와 별도로 둔다.
+# AdjustmentOption은 여러 활동·대상자를 묶을 수 있고, 제안과 실제 결정이 달라 별도로 둔다.
+
+classes:
+  Traveler:
+    description: 한 여행 상황의 조율에 참여하는 동행자
+    evidence: [로그 1, 로그 2, 로그 6, 로그 9]
+    attributes:
+      role_in_trip:
+        type: string
+        description: 해당 여행에서 맡았다고 설명된 준비·예약 등의 역할
+        examples: [일정 준비, 항공권과 렌터카 예약, 계획 총괄]
+        note: 역할 집중만으로 부담이나 불공정을 추정하지 않는다.
+        evidence: [로그 1, 로그 2, 로그 6, 로그 9]
+    relations:
+      - participates_in: TravelSituation
+        evidence: [로그 1, 로그 2, 로그 6, 로그 9]
+
+  TravelSituation:
+    description: 동행자들이 다음 활동이나 기존 일정의 변경을 결정해야 하는 특정 장면
+    evidence: [로그 1, 로그 2, 로그 6, 로그 9]
+    attributes:
+      trigger:
+        type: string
+        description: 조율이 필요해진 계기
+        examples: [피로로 귀가 요청, 비로 미뤄진 일정, 루지 취소 제안]
+        evidence: [로그 1, 로그 2, 로그 9]
+      constraints:
+        type: list
+        description: 해당 장면에서 선택 범위를 제한한다고 설명된 조건
+        examples: [노을까지 남은 시간, 렌터카 한 대, 다음 일정]
+        note: 참여자가 어렵다고 판단한 조건과 객관적으로 불가능한 조건을 구분한다.
+        evidence: [로그 2, 로그 6]
+    relations:
+      - originally_planned: Activity
+        evidence: [로그 1, 로그 2, 로그 9]
+      - has_position: ParticipantPosition
+        evidence: [로그 1, 로그 2, 로그 6, 로그 9]
+      - has_option: AdjustmentOption
+        evidence: [로그 1, 로그 2, 로그 6, 로그 9]
+      - has_decision: Decision
+        evidence: [로그 1, 로그 2, 로그 6, 로그 9]
+
+  ParticipantPosition:
+    description: 특정 동행자가 특정 상황에서 원하는 것·컨디션·이유·표현을 묶은 입장
+    evidence: [로그 1, 로그 2, 로그 6, 로그 9]
+    attributes:
+      condition:
+        type: string
+        description: 그 순간의 피로·컨디션에 관한 설명
+        examples: [피곤해서 귀가하고 싶음, 더위로 지침]
+        note: 측정된 체력 점수가 아니다. 활동을 계속 원한다고 체력이 남았다고 추정하지 않는다.
+        evidence: [로그 1, 로그 9]
+      desired_action:
+        type: string
+        description: 그 순간 하고 싶거나 바꾸고 싶은 행동
+        examples: [점심 후 귀가, 소품숍 쇼핑, 노을 사진 촬영, 카페에서 쉬기]
+        evidence: [로그 1, 로그 2, 로그 9]
+      reason:
+        type: string
+        description: 그 선택을 원하는 이유나 중요하게 여기는 것
+        examples: [피로, 놓친 활동에 대한 아쉬움, 뒷정리와 다음 일정의 편리함, 함께 추억을 만들고 싶은 기대]
+        evidence: [로그 1, 로그 2, 로그 6, 로그 9]
+      expressed_content:
+        type: string
+        description: 동행에게 실제로 전달했다고 기록된 말이나 요청
+        note: 속으로 원한 것과 구분한다. 침묵을 동의나 선호 없음으로 채우지 않는다.
+        evidence: [로그 1, 로그 6, 로그 9]
+    relations:
+      - belongs_to: Traveler
+        evidence: [로그 1, 로그 2, 로그 6, 로그 9]
+      - in_situation: TravelSituation
+        evidence: [로그 1, 로그 2, 로그 6, 로그 9]
+      - concerns: Activity
+        evidence: [로그 1, 로그 2, 로그 6, 로그 9]
+
+  Activity:
+    description: 원래 계획·희망·조정안에 포함되는 관광·식사·휴식·귀가 등의 행동 단위
+    evidence: [로그 1, 로그 2, 로그 4, 로그 6, 로그 9]
+    attributes:
+      name:
+        type: string
+        description: 무엇을 하는 활동인지 나타내는 이름
+        examples: [루지 타기, 소품숍 쇼핑, 노을 사진 촬영, 카페에서 쉬기, 귀가]
+        evidence: [로그 1, 로그 2, 로그 9]
+      place:
+        type: string
+        description: 활동을 하는 장소
+        examples: [소품숍, 해변, 펜션 수영장, 카페]
+        note: 장소 정보는 활동을 설명하는 값이다. 실시간 영업·예약 정보까지 관리하는 장소 클래스는 두지 않는다.
+        evidence: [로그 2, 로그 6, 로그 9]
+    relations: []
+
+  AdjustmentOption:
+    description: 특정 상황에서 기존 일정을 유지·변경하기 위해 검토하거나 제안한 행동 묶음
+    evidence: [로그 1, 로그 2, 로그 4, 로그 9]
+    attributes:
+      summary:
+        type: string
+        description: 활동의 유지·취소·대체·순서를 포함한 제안 내용
+        examples: [남은 일정 대신 귀가, 쇼핑 후 해변 이동, 루지 대신 카페 방문]
+        evidence: [로그 1, 로그 2, 로그 9]
+      conditions:
+        type: list
+        description: 조정안을 받아들이기 위해 제시한 조건
+        examples: [쇼핑을 20분으로 제한, 따로 식사한 뒤 만나기]
+        note: TravelSituation.constraints는 주어진 제약이고, 이 속성은 제안한 약속이다. 실행 여부는 Decision.reported_result와 구분한다.
+        evidence: [로그 2, 로그 4]
+      participation:
+        type: string
+        description: 함께 이동하거나 잠시 따로 행동하는 등 제안된 참여 방식
+        examples: [함께 행동, 따로 식사 후 만나기]
+        note: 예시는 고정 enum이 아니다. 따로 행동했다고 갈등이나 관계 악화를 뜻하지 않는다.
+        evidence: [로그 2, 로그 4, 로그 12]
+    relations:
+      - for_situation: TravelSituation
+        evidence: [로그 1, 로그 2, 로그 4, 로그 9]
+      - proposed_by: Traveler
+        evidence: [로그 1, 로그 2, 로그 4, 로그 9]
+      - includes: Activity
+        evidence: [로그 1, 로그 2, 로그 4, 로그 9]
+      - applies_to: Traveler
+        evidence: [로그 1, 로그 2, 로그 4, 로그 9]
+
+  Decision:
+    description: 상황에서 실제로 선택된 조정안과 결정 방식·실행 결과에 대한 기록
+    evidence: [로그 1, 로그 2, 로그 6, 로그 9, 로그 12]
+    attributes:
+      method:
+        type: string
+        description: 선택에 이른 조율 방식
+        examples: [변경 제안 수락, 시간 제한에 동의, 다수결]
+        note: 다수결·수락 자체를 전원 만족이나 자발적 동의의 증거로 삼지 않는다.
+        evidence: [로그 1, 로그 2, 로그 6, 로그 9]
+      reported_result:
+        type: string
+        description: 결정 후 실제로 했거나 하지 못했다고 전해진 행동
+        examples: [쇼핑 후 해변 방문, 루지 취소 후 카페 방문, 두 팀으로 나눠 식사]
+        evidence: [로그 2, 로그 9, 로그 12]
+      respondent_evaluation:
+        type: string
+        description: 이 결정을 전한 참여자 본인의 만족·아쉬움에 대한 회고
+        note: reported_by의 평가만 담는다. 선택 만족과 과정 만족을 구분하고, 동행 전원의 평가로 확대하지 않는다.
+        evidence: [로그 1, 로그 2, 로그 6, 로그 9, 로그 12]
+    relations:
+      - for_situation: TravelSituation
+        evidence: [로그 1, 로그 2, 로그 6, 로그 9]
+      - selects: AdjustmentOption
+        evidence: [로그 1, 로그 2, 로그 6, 로그 9]
+      - reported_by: Traveler
+        evidence: [로그 1, 로그 2, 로그 6, 로그 9, 로그 12]
+
+# 기록 규칙
+# - 각 사례의 값·관계에도 로그 번호와 세부 장면/발언 위치를 연결한다.
+#   위 evidence는 개념을 둔 근거이며 모든 참여자의 상태가 확인됐다는 뜻은 아니다.
+# - ParticipantPosition에는 본인 진술/참여자가 전한 동행 발언/참여자의 추측을 구분해 남긴다.
+#   근거 없는 동행의 피로·선호·감정은 채우지 않는다. 상태 수치화와 성향 유형 분류는 하지 않는다.
+# - 사례별로 모르는 값은 미확인으로 남긴다. 입력 스키마의 null·필수 필드 규칙은 후속 설계에서 정한다.
+# - 제안자·대상자가 불명확한 경우 관계를 추정해서 추가하지 않는다.
+# - Decision.reported_by는 회고를 제공한 사람이며 결정권자·그룹 대표를 뜻하지 않는다.
+# - 결정은 전원 만족을 뜻하지 않는다. respondent_evaluation의 발언 맥락과 이후 관계 변화는 인터뷰 원문을 참조한다.
+# - 실제 경험을 사전 체험 장면으로 각색할 때 추가한 설정은 인터뷰 사실과 구분한다.
+#
+# 모델링 범위
+# 범위 안: 특정 상황의 동행자별 입장, 활동, 조정안과 조건, 실제 결정·실행 결과.
+# 외부 참조: 지도·이동 경로(로그 2), 예약·티켓 정보(로그 9). 직접 예약·취소하지 않는다.
+# 범위 밖: 실시간 최적 동선 계산, 결제·정산, 걸음 수 기반 피로 측정, 성격·궁합 판정,
+#          게임 점수·AI 판정 규칙. 핵심 Job Story 설명에 불필요하거나 인터뷰 근거가 없다.
+# 추가 검토: 사전 체험의 입력·출력과 피드백, 개인별 만족·양보 기록을 독립 개념으로 둘지 여부.
+#
+# 핵심 흐름:
+# TravelSituation --has_position--> ParticipantPosition --belongs_to--> Traveler
+# ParticipantPosition --concerns--> Activity <--includes-- AdjustmentOption
+# TravelSituation --has_option--> AdjustmentOption <--selects-- Decision
+# TravelSituation --has_decision--> Decision
+# Job Story로 읽기: 상황의 동행자별 컨디션·희망·이유를 확인하고,
+# 활동을 조합한 조정안을 비교해 결정을 내린다. 일방적 포기·불만을 줄이는지는 별도 검증한다.
