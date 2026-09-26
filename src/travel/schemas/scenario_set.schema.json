@@ -1,0 +1,97 @@
+{
+  "type": "object",
+  "properties": {
+    "status": {
+      "enum": [
+        "ready",
+        "needs_information",
+        "unsupported",
+        "invalid_input"
+      ],
+      "type": "string"
+    },
+    "scenarios": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "#/definitions/Scenario"
+      },
+      "minItems": 6,
+      "maxItems": 8,
+      "description": "ready이면 요청한 6~8개 문항, 나머지 상태이면 null."
+    },
+    "clarification_questions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "message": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "status",
+    "scenarios"
+  ],
+  "additionalProperties": false,
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ScenarioSet",
+  "description": "여행 전 상황 문항 선정·각색의 출력 계약. 3주차 검토용 초안.",
+  "definitions": {
+    "Scenario": {
+      "type": "object",
+      "properties": {
+        "template_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scene": {
+          "type": "string",
+          "minLength": 1
+        },
+        "question": {
+          "type": "string",
+          "minLength": 1
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ScenarioOption"
+          },
+          "minItems": 2
+        }
+      },
+      "required": [
+        "template_id",
+        "scene",
+        "question",
+        "options"
+      ],
+      "additionalProperties": false
+    },
+    "ScenarioOption": {
+      "type": "object",
+      "properties": {
+        "option_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "option_id",
+        "label"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
