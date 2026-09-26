@@ -1,0 +1,223 @@
+{
+  "type": "object",
+  "properties": {
+    "status": {
+      "enum": [
+        "proposed",
+        "conditional_only",
+        "needs_information",
+        "unresolved",
+        "unsupported",
+        "invalid_input"
+      ],
+      "type": "string"
+    },
+    "clauses": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "#/definitions/PactClause"
+      },
+      "minItems": 1,
+      "description": "proposed이면 원래 조건을 지키는 조항, 나머지 상태이면 null."
+    },
+    "conditional_alternatives": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/ConditionalAlternative"
+      },
+      "minItems": 1
+    },
+    "unresolved_conditions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/UnresolvedCondition"
+      },
+      "minItems": 1
+    },
+    "clarification_questions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "message": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "status",
+    "clauses"
+  ],
+  "additionalProperties": false,
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PactRecommendation",
+  "description": "가상 상황 응답에서 도출한 여행 조율 규칙의 추천. 실제 합의·예약·일정 확정이 아니다.",
+  "definitions": {
+    "PactClause": {
+      "type": "object",
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "근거가 된 가상 문항 ID."
+        },
+        "action": {
+          "type": "string",
+          "minLength": 1,
+          "description": "비슷한 상황에서 누구의 바람을 어떻게 조율할지 제안한다. 가상 일정의 실행 지시를 쓰지 않는다."
+        },
+        "participant_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "source_response_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "proposed_conditions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0,
+          "description": "응답에 없고 AI가 제안한 조율 절차·약속. 없으면 빈 배열."
+        }
+      },
+      "required": [
+        "scenario_id",
+        "action",
+        "participant_ids",
+        "source_response_ids",
+        "proposed_conditions"
+      ],
+      "additionalProperties": false
+    },
+    "ConditionalAlternative": {
+      "type": "object",
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "근거가 된 가상 문항 ID."
+        },
+        "action": {
+          "type": "string",
+          "minLength": 1,
+          "description": "비슷한 상황에서 누구의 바람을 어떻게 조율할지 제안한다. 가상 일정의 실행 지시를 쓰지 않는다."
+        },
+        "participant_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "source_response_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "proposed_conditions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0,
+          "description": "응답에 없고 AI가 제안한 조율 절차·약속. 없으면 빈 배열."
+        },
+        "required_changes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ConditionChange"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "scenario_id",
+        "action",
+        "participant_ids",
+        "source_response_ids",
+        "proposed_conditions",
+        "required_changes"
+      ],
+      "additionalProperties": false
+    },
+    "ConditionChange": {
+      "type": "object",
+      "properties": {
+        "source_response_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "original_condition": {
+          "type": "string",
+          "minLength": 1,
+          "description": "해당 응답의 선택지 문구 또는 메모에서 인용한 조건. 메모가 수정한 선택지 조건은 사용하지 않는다."
+        },
+        "proposed_change": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "source_response_id",
+        "original_condition",
+        "proposed_change"
+      ],
+      "additionalProperties": false
+    },
+    "UnresolvedCondition": {
+      "type": "object",
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_response_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "scenario_id",
+        "source_response_ids",
+        "description"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
