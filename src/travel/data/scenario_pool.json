@@ -1,5 +1,5 @@
 {
-  "pool_version": 1,
+  "pool_version": 2,
   "scenario_pool": [
     {
       "template_id": "paid_activity",
@@ -7,32 +7,32 @@
       "topic": "비용·참여",
       "title": "추가 요금이 있는 체험",
       "purpose": "공동 일정에 추가 비용이 생겼을 때 참여 여부와 부담 가능한 조건을 확인한다.",
-      "scene": "오후 자유 시간에 1인 3만 원짜리 체험을 할 수 있다. 예약은 아직 하지 않았고, 신청하지 않으면 같은 구역에서 무료로 산책할 수 있다. 체험은 1시간이며 이후의 공동 일정은 그대로다.",
-      "question": "나는 이 시간에 어떻게 하고 싶어?",
+      "scene": "오후 자유 시간에 1인 3만 원짜리 체험을 할 수 있어요. 아직 예약하지 않았고, 신청하지 않으면 같은 구역에서 무료로 산책할 수 있어요. 체험은 1시간이고, 이후 공동 일정은 그대로예요.",
+      "question": "이 시간에 어떻게 하고 싶어요?",
       "options": [
         {
           "option_id": "paid_activity_1",
-          "label": "3만 원을 내고 체험하고 싶다"
+          "label": "3만 원을 내고 체험하고 싶어요"
         },
         {
           "option_id": "paid_activity_2",
-          "label": "체험을 하지 않고 무료 산책을 하고 싶다"
+          "label": "체험 대신 무료 산책을 하고 싶어요"
         },
         {
           "option_id": "paid_activity_3",
-          "label": "유료 체험 대신 모두 함께할 무료 활동을 찾아보고 싶다"
+          "label": "유료 체험 대신 모두 함께할 무료 활동을 찾아보고 싶어요"
         },
         {
           "option_id": "paid_activity_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "paid_activity_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "paid_activity_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -48,32 +48,32 @@
       "topic": "일정 구성",
       "title": "각자 꼭 하고 싶은 일 하나",
       "purpose": "모두의 우선 활동을 함께 경험할지, 개인 일정으로 둘지 확인한다.",
-      "scene": "일행이 각자 가장 하고 싶은 활동 하나씩을 골랐다. 모두 함께하면 자유 시간이 거의 남지 않지만, 활동 일부를 각자 하면 공통으로 보낼 시간은 줄어든다. 유료 예약은 아직 없다.",
-      "question": "이 활동들을 일정에 어떻게 넣고 싶어?",
+      "scene": "일행이 각자 가장 하고 싶은 활동을 하나씩 골랐어요. 모두 함께하면 자유 시간이 거의 남지 않지만, 일부 활동을 각자 하면 함께 보낼 시간이 줄어들어요. 유료 예약은 아직 없어요.",
+      "question": "이 활동들을 일정에 어떻게 넣고 싶어요?",
       "options": [
         {
           "option_id": "priority_round_1",
-          "label": "각자 고른 활동을 모두 공동 일정에 넣고 싶다"
+          "label": "각자 고른 활동을 모두 공동 일정에 넣고 싶어요"
         },
         {
           "option_id": "priority_round_2",
-          "label": "모두가 원하는 활동만 함께하고 나머지는 각자 하고 싶다"
+          "label": "모두가 원하는 활동만 함께하고 나머지는 각자 하고 싶어요"
         },
         {
           "option_id": "priority_round_3",
-          "label": "공동 활동을 하나만 정하고 나머지 시간은 자유롭게 쓰고 싶다"
+          "label": "공동 활동을 하나만 정하고 나머지 시간은 자유롭게 쓰고 싶어요"
         },
         {
           "option_id": "priority_round_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "priority_round_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "priority_round_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -89,32 +89,32 @@
       "topic": "분리 행동",
       "title": "따로 다니는 날의 만남",
       "purpose": "별도 행동을 하는 날 어느 정도 함께 만나고 싶은지 확인한다.",
-      "scene": "오늘은 각자 원하는 곳을 다니기로 했다. 같은 지역 안에서 이동하며 각자 교통편을 이용할 수 있다. 점심과 저녁은 예약하지 않았고, 만나서 먹거나 따로 먹을 수 있다.",
-      "question": "나는 오늘 어느 때 함께 만나고 싶어?",
+      "scene": "오늘은 각자 원하는 곳을 다니기로 했어요. 같은 지역 안에서 이동하고, 각자 교통편을 이용할 수 있어요. 점심과 저녁은 예약하지 않았고, 만나서 먹거나 따로 먹을 수 있어요.",
+      "question": "오늘 언제 함께 만나고 싶어요?",
       "options": [
         {
           "option_id": "daily_reunion_1",
-          "label": "점심과 저녁을 함께 먹고 싶다"
+          "label": "점심과 저녁을 함께 먹고 싶어요"
         },
         {
           "option_id": "daily_reunion_2",
-          "label": "저녁에만 만나고 낮에는 자유롭게 다니고 싶다"
+          "label": "저녁에만 만나고 낮에는 자유롭게 다니고 싶어요"
         },
         {
           "option_id": "daily_reunion_3",
-          "label": "오늘은 식사도 따로 하고 다음 공동 일정에서 만나고 싶다"
+          "label": "오늘은 식사도 따로 하고 다음 공동 일정에서 만나고 싶어요"
         },
         {
           "option_id": "daily_reunion_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "daily_reunion_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "daily_reunion_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -130,32 +130,32 @@
       "topic": "숙소",
       "title": "같은 침대를 써도 될까",
       "purpose": "침대 공유와 추가 숙박비 사이에서 원하는 선택을 확인한다.",
-      "scene": "숙소를 예약하려고 한다. 침대를 둘이 나눠 쓰면 1인당 4만 원이고, 모두 개인 침대를 쓰면 1인당 6만 원이다. 위치와 객실 시설은 같고, 아직 결제하지 않았다.",
-      "question": "나는 어떤 잠자리를 선택하고 싶어?",
+      "scene": "숙소를 예약하려고 해요. 침대를 둘이 나눠 쓰면 1인당 4만 원이고, 모두 개인 침대를 쓰면 1인당 6만 원이에요. 위치와 객실 시설은 같고, 아직 결제하지 않았어요.",
+      "question": "어떤 잠자리를 선택하고 싶어요?",
       "options": [
         {
           "option_id": "shared_bed_1",
-          "label": "침대를 나눠 쓰고 4만 원을 내고 싶다"
+          "label": "침대를 나눠 쓰고 4만 원을 내고 싶어요"
         },
         {
           "option_id": "shared_bed_2",
-          "label": "개인 침대를 쓰고 6만 원을 내고 싶다"
+          "label": "개인 침대를 쓰고 6만 원을 내고 싶어요"
         },
         {
           "option_id": "shared_bed_3",
-          "label": "다른 숙소를 더 찾아본 뒤 고르고 싶다"
+          "label": "다른 숙소를 더 찾아본 뒤 고르고 싶어요"
         },
         {
           "option_id": "shared_bed_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "shared_bed_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "shared_bed_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -171,32 +171,32 @@
       "topic": "숙소",
       "title": "각자 쉴 방이 필요할까",
       "purpose": "개인 침대가 있어도 객실 자체를 분리하고 싶은지 확인한다.",
-      "scene": "모든 숙소 후보에는 개인 침대가 있다. 한 객실을 함께 쓰면 1인 5만 원, 같은 건물의 별도 객실을 쓰면 1인 8만 원이다. 함께 이야기할 공용 공간은 두 경우 모두 이용할 수 있다.",
-      "question": "나는 밤에 어디서 쉬고 싶어?",
+      "scene": "모든 숙소 후보에는 개인 침대가 있어요. 한 객실을 함께 쓰면 1인 5만 원이고, 같은 건물의 별도 객실을 쓰면 1인 8만 원이에요. 함께 이야기할 공용 공간은 두 경우 모두 이용할 수 있어요.",
+      "question": "밤에 어디서 쉬고 싶어요?",
       "options": [
         {
           "option_id": "private_room_1",
-          "label": "같은 객실에서 지내고 싶다"
+          "label": "같은 객실에서 지내고 싶어요"
         },
         {
           "option_id": "private_room_2",
-          "label": "비용을 더 내고 별도 객실에서 쉬고 싶다"
+          "label": "비용을 더 내고 별도 객실에서 쉬고 싶어요"
         },
         {
           "option_id": "private_room_3",
-          "label": "잠자는 방은 나누되 더 저렴한 숙소를 찾아보고 싶다"
+          "label": "잠자는 방은 나누되 더 저렴한 숙소를 찾아보고 싶어요"
         },
         {
           "option_id": "private_room_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "private_room_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "private_room_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -211,32 +211,32 @@
       "topic": "숙소",
       "title": "잠을 설친 다음 날",
       "purpose": "공동 객실의 수면 방해가 생긴 뒤 원하는 조정을 확인한다.",
-      "scene": "공동 객실에서 소리가 들려 잠을 설친 상황이다. 오늘 밤도 이 숙소에 머문다. 침대를 옮기거나 귀마개를 써볼 수 있고, 1인 3만 원을 더 내면 별도 방을 이용할 수 있다.",
-      "question": "이 상황이라면 오늘 밤 어떻게 하고 싶어?",
+      "scene": "함께 쓰는 객실에서 소리가 들려 잠을 설친 상황이에요. 오늘 밤도 이 숙소에 머물러요. 침대를 옮기거나 귀마개를 써볼 수 있고, 1인 3만 원을 더 내면 별도 방을 이용할 수 있어요.",
+      "question": "이 상황이라면 오늘 밤 어떻게 하고 싶어요?",
       "options": [
         {
           "option_id": "sleep_noise_1",
-          "label": "같은 방에서 침대 위치나 귀마개를 바꿔보고 싶다"
+          "label": "같은 방에서 침대 위치나 귀마개를 바꿔보고 싶어요"
         },
         {
           "option_id": "sleep_noise_2",
-          "label": "3만 원을 더 내고 별도 방을 쓰고 싶다"
+          "label": "3만 원을 더 내고 별도 방을 쓰고 싶어요"
         },
         {
           "option_id": "sleep_noise_3",
-          "label": "방을 바꾸기 전에 어떤 소리였는지와 조정 방법을 함께 이야기하고 싶다"
+          "label": "방을 바꾸기 전에 어떤 소리였는지와 조정 방법을 함께 이야기하고 싶어요"
         },
         {
           "option_id": "sleep_noise_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "sleep_noise_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "sleep_noise_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -252,32 +252,32 @@
       "topic": "식사·비용",
       "title": "특별한 식사는 몇 번",
       "purpose": "여행 중 비싼 식사에 쓰고 싶은 빈도를 확인한다.",
-      "scene": "여행 중 외식 세 끼를 정하고 있다. 한 끼 1인 1만 5천 원인 식당들과 4만 원인 식당들이 후보에 있다. 이동 거리와 영업 시간은 일정에 무리가 없고, 아직 예약하지 않았다.",
-      "question": "나는 세 끼를 어떻게 먹고 싶어?",
+      "scene": "여행 중 외식할 세 끼를 정하고 있어요. 한 끼에 1인 1만 5천 원인 식당들과 4만 원인 식당들이 후보예요. 이동 거리와 영업시간은 일정에 무리가 없고, 아직 예약하지 않았어요.",
+      "question": "세 끼를 어떻게 먹고 싶어요?",
       "options": [
         {
           "option_id": "meal_splurge_1",
-          "label": "세 끼 모두 1만 5천 원 정도로 먹고 싶다"
+          "label": "세 끼 모두 1만 5천 원 정도로 먹고 싶어요"
         },
         {
           "option_id": "meal_splurge_2",
-          "label": "한 끼만 4만 원 식당을 이용하고 싶다"
+          "label": "한 끼만 4만 원 식당을 이용하고 싶어요"
         },
         {
           "option_id": "meal_splurge_3",
-          "label": "세 끼 모두 4만 원 식당을 이용하고 싶다"
+          "label": "세 끼 모두 4만 원 식당을 이용하고 싶어요"
         },
         {
           "option_id": "meal_splurge_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "meal_splurge_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "meal_splurge_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -293,28 +293,28 @@
       "topic": "비용 분담",
       "title": "주문한 양이 다른 계산서",
       "purpose": "식사와 음료 소비가 다를 때 원하는 정산 방식을 확인한다.",
-      "scene": "식사 메뉴는 모두 같은 가격이지만 술과 음료 주문 금액은 사람마다 다르다. 주문 내역을 확인할 수 있고 계산은 한 사람이 한 뒤 일행끼리 정산할 수 있다. 나눌 방식은 아직 정하지 않았다.",
-      "question": "나는 이 비용을 어떻게 나누고 싶어?",
+      "scene": "식사 메뉴는 모두 같은 가격이지만 술과 음료 주문 금액은 사람마다 달라요. 주문 내역을 확인할 수 있고, 한 사람이 계산한 뒤 일행끼리 정산할 수 있어요. 비용을 나눌 방식은 아직 정하지 않았어요.",
+      "question": "이 비용을 어떻게 나누고 싶어요?",
       "options": [
         {
           "option_id": "drink_bill_1",
-          "label": "전체 금액을 인원수대로 똑같이 나누고 싶다"
+          "label": "전체 금액을 인원수대로 똑같이 나누고 싶어요"
         },
         {
           "option_id": "drink_bill_2",
-          "label": "식사는 똑같이 나누고 술·음료는 주문한 사람이 내고 싶다"
+          "label": "식사는 똑같이 나누고 술·음료는 주문한 사람이 냈으면 좋겠어요"
         },
         {
           "option_id": "drink_bill_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "drink_bill_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "drink_bill_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -330,32 +330,32 @@
       "topic": "이동",
       "title": "걸어서 갈까, 차를 탈까",
       "purpose": "추가 교통비와 도보 이동 사이의 선택을 확인한다.",
-      "scene": "다음 장소까지 걸으면 25분이다. 차량을 이용하면 10분이며 1인 부담금은 7천 원이다. 보행 가능한 길이고 짐은 가볍다. 예약 시간에 쫓기는 상황은 아니다.",
-      "question": "나는 어떻게 이동하고 싶어?",
+      "scene": "다음 장소까지 걸으면 25분이에요. 차량을 이용하면 10분이 걸리고, 1인 부담금은 7천 원이에요. 걸어갈 수 있는 길이고 짐은 가벼워요. 예약 시간에 쫓기는 상황은 아니에요.",
+      "question": "어떻게 이동하고 싶어요?",
       "options": [
         {
           "option_id": "walk_or_ride_1",
-          "label": "25분 걸어가고 싶다"
+          "label": "25분 걸어가고 싶어요"
         },
         {
           "option_id": "walk_or_ride_2",
-          "label": "7천 원을 내고 차량으로 가고 싶다"
+          "label": "7천 원을 내고 차량으로 가고 싶어요"
         },
         {
           "option_id": "walk_or_ride_3",
-          "label": "각자 이동 수단을 고르고 도착해서 만나고 싶다"
+          "label": "각자 이동 수단을 고르고 도착해서 만나고 싶어요"
         },
         {
           "option_id": "walk_or_ride_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "walk_or_ride_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "walk_or_ride_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -372,32 +372,32 @@
       "topic": "준비·확정",
       "title": "계속 바뀌는 숙소 후보",
       "purpose": "예약 후보가 반복해서 바뀔 때 언제 선택을 마무리하고 싶은지 확인한다.",
-      "scene": "여행지는 정했지만 숙소 후보가 계속 바뀌고 있다. 현재 두 후보는 모두 예산 안이고 무료 취소가 가능하다. 오늘 바로 예약할 수도 있고 하루 더 비교할 수도 있지만, 남은 객실 수는 모른다.",
-      "question": "나는 지금 어떻게 결정하고 싶어?",
+      "scene": "여행지는 정했지만 숙소 후보가 계속 바뀌고 있어요. 현재 두 후보는 모두 예산 안이고 무료 취소가 가능해요. 오늘 바로 예약하거나 하루 더 비교할 수 있지만, 남은 객실 수는 몰라요.",
+      "question": "지금 어떻게 결정하고 싶어요?",
       "options": [
         {
           "option_id": "booking_deadline_1",
-          "label": "현재 후보 중 하나를 오늘 정해 예약하고 싶다"
+          "label": "현재 후보 중 하나를 오늘 정해 예약하고 싶어요"
         },
         {
           "option_id": "booking_deadline_2",
-          "label": "내일까지 다른 후보도 비교한 뒤 정하고 싶다"
+          "label": "내일까지 다른 후보도 비교한 뒤 정하고 싶어요"
         },
         {
           "option_id": "booking_deadline_3",
-          "label": "먼저 반드시 필요한 조건을 정리한 뒤 후보를 다시 좁히고 싶다"
+          "label": "먼저 반드시 필요한 조건을 정리한 뒤 후보를 다시 좁히고 싶어요"
         },
         {
           "option_id": "booking_deadline_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "booking_deadline_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "booking_deadline_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -413,32 +413,32 @@
       "topic": "일정 밀도",
       "title": "여러 곳을 짧게, 한 곳을 길게",
       "purpose": "같은 시간 안에서 방문 수와 체류 시간을 어떻게 나누고 싶은지 확인한다.",
-      "scene": "오후에 쓸 수 있는 시간은 3시간이다. 가까운 장소 세 곳을 짧게 둘러보거나 한 곳에서 오래 머물 수 있다. 이동 시간을 포함해 두 방식 모두 3시간 안에 끝난다.",
-      "question": "나는 어떤 방식으로 시간을 쓰고 싶어?",
+      "scene": "오후에 쓸 수 있는 시간은 3시간이에요. 가까운 장소 세 곳을 짧게 둘러보거나 한 곳에서 오래 머물 수 있어요. 이동 시간을 포함해 두 방식 모두 3시간 안에 끝나요.",
+      "question": "어떤 방식으로 시간을 쓰고 싶어요?",
       "options": [
         {
           "option_id": "route_depth_1",
-          "label": "세 곳을 짧게 둘러보고 싶다"
+          "label": "세 곳을 짧게 둘러보고 싶어요"
         },
         {
           "option_id": "route_depth_2",
-          "label": "한 곳에서 오래 머물고 싶다"
+          "label": "한 곳에서 오래 머물고 싶어요"
         },
         {
           "option_id": "route_depth_3",
-          "label": "두 곳을 고르고 남는 시간을 자유롭게 쓰고 싶다"
+          "label": "두 곳을 고르고 남는 시간을 자유롭게 쓰고 싶어요"
         },
         {
           "option_id": "route_depth_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "route_depth_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "route_depth_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -454,32 +454,32 @@
       "topic": "식사",
       "title": "가려던 식당이 만석이라면",
       "purpose": "원하는 식당에 못 들어갈 때 탐색을 계속할지 먼저 식사할지 확인한다.",
-      "scene": "가려던 식당이 만석이고 언제 자리가 날지 모른다. 근처에 바로 식사할 수 있는 다른 식당이 있다. 각자 먹고 다시 만날 수 있으며 다음 예약까지는 1시간이 남았다.",
-      "question": "나는 지금 어떻게 하고 싶어?",
+      "scene": "가려던 식당이 만석이고 언제 자리가 날지 몰라요. 근처에 바로 식사할 수 있는 다른 식당이 있어요. 각자 먹고 다시 만날 수 있고, 다음 예약까지는 1시간이 남았어요.",
+      "question": "지금 어떻게 하고 싶어요?",
       "options": [
         {
           "option_id": "restaurant_full_1",
-          "label": "바로 들어갈 수 있는 식당에서 먹고 싶다"
+          "label": "바로 들어갈 수 있는 식당에서 먹고 싶어요"
         },
         {
           "option_id": "restaurant_full_2",
-          "label": "1시간 안에서 다른 후보를 더 찾아보고 싶다"
+          "label": "1시간 안에서 다른 후보를 더 찾아보고 싶어요"
         },
         {
           "option_id": "restaurant_full_3",
-          "label": "원하는 사람끼리 나눠 먹고 다시 만나고 싶다"
+          "label": "원하는 사람끼리 따로 먹고 다시 만나고 싶어요"
         },
         {
           "option_id": "restaurant_full_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "restaurant_full_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "restaurant_full_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -495,32 +495,32 @@
       "topic": "외부 변수",
       "title": "탐방로가 통제된 날",
       "purpose": "이용할 수 없는 활동을 제외한 뒤 어떤 대안을 원하는지 확인한다.",
-      "scene": "가려던 탐방로가 기상 문제로 오늘 통제되었다. 통제 구역에는 들어갈 수 없다. 운영 중인 실내 전시를 보거나, 개방된 방문자센터에서 쉬거나, 다른 지역으로 이동할 수 있다. 남은 시간은 2시간이다.",
-      "question": "나는 남은 시간을 어떻게 쓰고 싶어?",
+      "scene": "가려던 탐방로가 기상 문제로 오늘 통제됐어요. 통제 구역에는 들어갈 수 없어요. 운영 중인 실내 전시를 보거나, 개방된 방문자센터에서 쉬거나, 다른 지역으로 이동할 수 있어요. 남은 시간은 2시간이에요.",
+      "question": "남은 시간을 어떻게 쓰고 싶어요?",
       "options": [
         {
           "option_id": "trail_closed_1",
-          "label": "실내 전시를 보고 싶다"
+          "label": "실내 전시를 보고 싶어요"
         },
         {
           "option_id": "trail_closed_2",
-          "label": "방문자센터에서 쉬고 싶다"
+          "label": "방문자센터에서 쉬고 싶어요"
         },
         {
           "option_id": "trail_closed_3",
-          "label": "2시간 안에 다녀올 수 있는 다른 지역으로 이동하고 싶다"
+          "label": "2시간 안에 다녀올 수 있는 다른 지역으로 이동하고 싶어요"
         },
         {
           "option_id": "trail_closed_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "trail_closed_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "trail_closed_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -536,32 +536,32 @@
       "topic": "숙소",
       "title": "조용히 해야 하는 밤",
       "purpose": "숙소의 소음 제한 안에서 저녁 시간을 보내는 방식을 확인한다.",
-      "scene": "숙소에서는 밤 10시부터 소리를 줄여야 한다. 지금은 밤 9시이고 공용실도 같은 규칙이 적용된다. 근처에는 늦게까지 이용할 수 있는 실내 모임 공간이 있으며 이용료는 1인 8천 원이다.",
-      "question": "나는 밤 10시 이후 어떻게 보내고 싶어?",
+      "scene": "숙소에서는 밤 10시부터 소리를 줄여야 해요. 지금은 밤 9시이고 공용실에도 같은 규칙이 적용돼요. 근처에는 늦게까지 이용할 수 있는 실내 모임 공간이 있고, 이용료는 1인 8천 원이에요.",
+      "question": "밤 10시 이후에는 어떻게 시간을 보내고 싶어요?",
       "options": [
         {
           "option_id": "quiet_evening_1",
-          "label": "숙소에서 조용히 이야기하거나 책을 보며 쉬고 싶다"
+          "label": "숙소에서 조용히 이야기하거나 책을 보며 쉬고 싶어요"
         },
         {
           "option_id": "quiet_evening_2",
-          "label": "8천 원을 내고 외부 모임 공간으로 이동하고 싶다"
+          "label": "8천 원을 내고 외부 모임 공간으로 이동하고 싶어요"
         },
         {
           "option_id": "quiet_evening_3",
-          "label": "각자 원하는 방식으로 쉬고 다음 날 만나고 싶다"
+          "label": "각자 원하는 방식으로 쉬고 다음 날 만나고 싶어요"
         },
         {
           "option_id": "quiet_evening_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "quiet_evening_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "quiet_evening_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -577,32 +577,32 @@
       "topic": "숙소·마감",
       "title": "퇴실 전 남은 한 시간",
       "purpose": "퇴실 마감 전 짐 정리와 외부 활동 순서를 확인한다.",
-      "scene": "숙소 퇴실은 오전 11시이고 지금은 10시다. 짐 정리는 아직 끝나지 않았고 20분이면 마칠 수 있다. 근처 카페에 다녀오는 데는 30분이 걸린다. 늦은 퇴실은 허용되지 않는다.",
-      "question": "나는 무엇부터 하고 싶어?",
+      "scene": "숙소 퇴실은 오전 11시이고 지금은 10시예요. 짐 정리는 아직 끝나지 않았고 20분이면 마칠 수 있어요. 근처 카페에 다녀오는 데는 30분이 걸려요. 늦게 퇴실할 수는 없어요.",
+      "question": "무엇부터 하고 싶어요?",
       "options": [
         {
           "option_id": "checkout_buffer_1",
-          "label": "짐을 먼저 정리하고 여유가 있으면 카페에 가고 싶다"
+          "label": "짐을 먼저 정리하고 여유가 있으면 카페에 가고 싶어요"
         },
         {
           "option_id": "checkout_buffer_2",
-          "label": "카페에 먼저 다녀온 뒤 짐을 정리하고 싶다"
+          "label": "카페에 먼저 다녀온 뒤 짐을 정리하고 싶어요"
         },
         {
           "option_id": "checkout_buffer_3",
-          "label": "카페는 건너뛰고 정리한 뒤 바로 다음 장소로 가고 싶다"
+          "label": "카페는 건너뛰고 정리한 뒤 바로 다음 장소로 가고 싶어요"
         },
         {
           "option_id": "checkout_buffer_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "checkout_buffer_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "checkout_buffer_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -617,32 +617,32 @@
       "topic": "활동·휴식",
       "title": "점심 뒤 남은 일정",
       "purpose": "오후 활동을 계속할지 쉬거나 일찍 마칠지 확인한다.",
-      "scene": "점심을 먹고 나니 오후 관광과 저녁 식사가 남아 있다. 유료 예약은 없고 근처에서 쉬었다 다시 합류할 수 있다. 각자 귀가할 교통편도 이용할 수 있다.",
-      "question": "나는 이후 일정을 어떻게 보내고 싶어?",
+      "scene": "점심을 먹고 나니 오후 관광과 저녁 식사가 남아 있어요. 유료 예약은 없고, 근처에서 쉬었다가 다시 합류할 수 있어요. 각자 귀가할 교통편도 이용할 수 있어요.",
+      "question": "이후 일정을 어떻게 보내고 싶어요?",
       "options": [
         {
           "option_id": "afternoon_rest_1",
-          "label": "관광과 저녁 식사까지 계속 함께하고 싶다"
+          "label": "관광과 저녁 식사까지 계속 함께하고 싶어요"
         },
         {
           "option_id": "afternoon_rest_2",
-          "label": "오후에는 쉬고 저녁에 다시 합류하고 싶다"
+          "label": "오후에는 쉬고 저녁에 다시 합류하고 싶어요"
         },
         {
           "option_id": "afternoon_rest_3",
-          "label": "오늘 일정은 여기서 마치고 먼저 돌아가고 싶다"
+          "label": "오늘 일정은 여기서 마치고 먼저 돌아가고 싶어요"
         },
         {
           "option_id": "afternoon_rest_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "afternoon_rest_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "afternoon_rest_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -657,32 +657,32 @@
       "topic": "준비·역할",
       "title": "예약과 조사는 누가 할까",
       "purpose": "여행 준비 업무를 나누는 방식을 확인한다.",
-      "scene": "숙소 예약, 교통편 확인, 식당 후보 조사가 남아 있다. 한 사람이 전부 맡을 수도 있고 나눌 수도 있다. 아직 담당자는 없고 필요한 정보는 모두 함께 볼 수 있다.",
-      "question": "나는 준비를 어떻게 나누고 싶어?",
+      "scene": "숙소 예약, 교통편 확인, 식당 후보 조사가 남아 있어요. 한 사람이 전부 맡거나 나눠 맡을 수 있어요. 아직 담당자는 없고 필요한 정보는 모두 함께 볼 수 있어요.",
+      "question": "준비를 어떻게 나누고 싶어요?",
       "options": [
         {
           "option_id": "planning_roles_1",
-          "label": "각자 맡을 업무를 나누되 남는 업무도 함께 배정하고 싶다"
+          "label": "각자 맡을 업무를 나누되 남는 업무도 함께 배정하고 싶어요"
         },
         {
           "option_id": "planning_roles_2",
-          "label": "한 사람이 취합하고 나머지는 후보와 조건을 보내는 방식이 좋다"
+          "label": "한 사람이 취합하고 나머지는 후보와 조건을 보내면 좋겠어요"
         },
         {
           "option_id": "planning_roles_3",
-          "label": "같은 시간에 모여 함께 조사하고 결정하고 싶다"
+          "label": "같은 시간에 모여 함께 조사하고 결정하고 싶어요"
         },
         {
           "option_id": "planning_roles_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "planning_roles_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "planning_roles_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -698,32 +698,32 @@
       "topic": "시간 제한",
       "title": "노을 전에 잠깐 들를까",
       "purpose": "시각이 정해진 경험과 시간을 조절할 수 있는 활동의 우선순위를 확인한다.",
-      "scene": "노을을 볼 수 있는 시각까지 40분 남았다. 지금은 소품숍 앞이고, 여기서 해변까지 이동하는 데 15분이 걸린다. 차량 한 대로 함께 이동하며 오늘 두 곳을 다시 찾을 시간은 없다.",
-      "question": "나는 남은 시간을 어떻게 쓰고 싶어?",
+      "scene": "노을을 볼 수 있는 시각까지 40분 남았어요. 지금은 소품숍 앞이고, 여기서 해변까지 이동하는 데 15분이 걸려요. 차량 한 대로 함께 이동하고, 오늘 두 곳을 다시 찾을 시간은 없어요.",
+      "question": "남은 시간을 어떻게 쓰고 싶어요?",
       "options": [
         {
           "option_id": "sunset_window_1",
-          "label": "바로 해변에 가서 노을을 기다리고 싶다"
+          "label": "바로 해변에 가서 노을을 기다리고 싶어요"
         },
         {
           "option_id": "sunset_window_2",
-          "label": "소품숍을 20분 보고 해변으로 가고 싶다"
+          "label": "소품숍을 20분 보고 해변으로 가고 싶어요"
         },
         {
           "option_id": "sunset_window_3",
-          "label": "오늘은 노을 대신 소품숍을 여유롭게 보고 싶다"
+          "label": "오늘은 노을 대신 소품숍을 여유롭게 보고 싶어요"
         },
         {
           "option_id": "sunset_window_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "sunset_window_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "sunset_window_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -740,32 +740,32 @@
       "topic": "식사·분리",
       "title": "먹고 싶은 메뉴가 다를 때",
       "purpose": "식사 선호가 다를 때 공동 식사와 별도 식사 중 원하는 방식을 확인한다.",
-      "scene": "점심 후보로 생선 요리 식당과 면 요리 식당이 나왔다. 두 곳은 도보 5분 거리이며 대기 시간과 가격대가 비슷하다. 식사 뒤에는 같은 장소에서 만날 수 있다.",
-      "question": "나는 점심을 어떻게 먹고 싶어?",
+      "scene": "점심 후보로 생선 요리 식당과 면 요리 식당이 나왔어요. 두 곳은 걸어서 5분 거리이고 대기 시간과 가격대가 비슷해요. 식사 뒤에는 같은 장소에서 만날 수 있어요.",
+      "question": "점심을 어떻게 먹고 싶어요?",
       "options": [
         {
           "option_id": "separate_menu_1",
-          "label": "생선 요리 식당에서 함께 먹고 싶다"
+          "label": "생선 요리 식당에서 함께 먹고 싶어요"
         },
         {
           "option_id": "separate_menu_2",
-          "label": "면 요리 식당에서 함께 먹고 싶다"
+          "label": "면 요리 식당에서 함께 먹고 싶어요"
         },
         {
           "option_id": "separate_menu_3",
-          "label": "각자 원하는 식당에서 먹고 다시 만나고 싶다"
+          "label": "각자 원하는 식당에서 먹고 다시 만나고 싶어요"
         },
         {
           "option_id": "separate_menu_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "separate_menu_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "separate_menu_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -780,32 +780,32 @@
       "topic": "활동·참여",
       "title": "같이 갔다고 모두 타야 할까",
       "purpose": "장소에 함께 가는 것과 개별 체험 참여 범위를 구분한다.",
-      "scene": "일행과 놀이공원에 들어왔다. 빠른 놀이기구와 잔잔한 놀이기구가 모두 있고, 타지 않아도 쉴 공간이 있다. 일행이 전부 같은 기구를 타야 하는 규칙은 없다.",
-      "question": "나는 어떤 방식으로 시간을 보내고 싶어?",
+      "scene": "일행과 놀이공원에 들어왔어요. 빠른 놀이기구와 잔잔한 놀이기구가 모두 있고, 타지 않아도 쉴 공간이 있어요. 일행이 전부 같은 기구를 타야 하는 규칙은 없어요.",
+      "question": "어떤 방식으로 시간을 보내고 싶어요?",
       "options": [
         {
           "option_id": "ride_participation_1",
-          "label": "빠른 놀이기구도 함께 타고 싶다"
+          "label": "빠른 놀이기구도 함께 타고 싶어요"
         },
         {
           "option_id": "ride_participation_2",
-          "label": "잔잔한 놀이기구만 골라 타고 싶다"
+          "label": "잔잔한 놀이기구만 골라 타고 싶어요"
         },
         {
           "option_id": "ride_participation_3",
-          "label": "놀이기구는 타지 않고 구경하거나 쉬고 싶다"
+          "label": "놀이기구는 타지 않고 구경하거나 쉬고 싶어요"
         },
         {
           "option_id": "ride_participation_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "ride_participation_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "ride_participation_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -820,32 +820,32 @@
       "topic": "활동·편의",
       "title": "물놀이 뒤 정리까지 생각하면",
       "purpose": "활동 장소의 경험과 정리·이동 편의 사이의 선택을 확인한다.",
-      "scene": "물놀이를 하려 한다. 숙소 수영장은 바로 씻을 수 있고, 해변은 더 넓지만 왕복 이동과 씻는 데 40분이 더 든다. 두 곳 모두 이용 가능하며 저녁 준비 전까지 어느 쪽도 다녀올 수 있다.",
-      "question": "나는 어디서 물놀이하고 싶어?",
+      "scene": "물놀이를 하려고 해요. 숙소 수영장은 바로 씻을 수 있고, 해변은 더 넓지만 왕복 이동과 씻는 데 40분이 더 들어요. 두 곳 모두 이용할 수 있고, 저녁 준비 전까지 어느 쪽이든 다녀올 수 있어요.",
+      "question": "어디서 물놀이하고 싶어요?",
       "options": [
         {
           "option_id": "swim_cleanup_1",
-          "label": "정리가 편한 숙소 수영장에서 놀고 싶다"
+          "label": "정리가 편한 숙소 수영장에서 놀고 싶어요"
         },
         {
           "option_id": "swim_cleanup_2",
-          "label": "40분을 더 써도 해변에 가고 싶다"
+          "label": "40분을 더 써도 해변에 가고 싶어요"
         },
         {
           "option_id": "swim_cleanup_3",
-          "label": "물놀이 대신 근처에서 쉬고 싶다"
+          "label": "물놀이 대신 근처에서 쉬고 싶어요"
         },
         {
           "option_id": "swim_cleanup_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "swim_cleanup_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "swim_cleanup_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -860,32 +860,32 @@
       "topic": "식사·외부 변수",
       "title": "준비한 저녁을 못 하게 됐다면",
       "purpose": "공동 조리 장소를 쓸 수 없을 때 식사 준비 부담을 어떻게 조정할지 확인한다.",
-      "scene": "저녁에 쓰려던 바비큐 시설을 숙소 사정으로 이용할 수 없게 됐다. 식재료는 아직 사지 않았다. 공용 주방에서 간단히 요리하거나 근처 식당에 가거나 포장해 올 수 있다.",
-      "question": "나는 저녁을 어떻게 해결하고 싶어?",
+      "scene": "저녁에 쓰려던 바비큐 시설을 숙소 사정으로 이용할 수 없게 됐어요. 식재료는 아직 사지 않았어요. 공용 주방에서 간단히 요리하거나 근처 식당에 가거나 포장해 올 수 있어요.",
+      "question": "저녁을 어떻게 해결하고 싶어요?",
       "options": [
         {
           "option_id": "barbecue_cancelled_1",
-          "label": "공용 주방에서 함께 요리하고 싶다"
+          "label": "공용 주방에서 함께 요리하고 싶어요"
         },
         {
           "option_id": "barbecue_cancelled_2",
-          "label": "근처 식당에서 먹고 싶다"
+          "label": "근처 식당에서 먹고 싶어요"
         },
         {
           "option_id": "barbecue_cancelled_3",
-          "label": "포장 음식을 가져와 숙소에서 먹고 싶다"
+          "label": "포장 음식을 가져와 숙소에서 먹고 싶어요"
         },
         {
           "option_id": "barbecue_cancelled_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "barbecue_cancelled_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "barbecue_cancelled_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -900,32 +900,32 @@
       "topic": "비용 관리",
       "title": "여행비는 언제 정산할까",
       "purpose": "공동 지출을 기록하고 정산하는 주기를 확인한다.",
-      "scene": "여러 날 이어지는 여행에서 교통비와 공동 식비를 여러 사람이 번갈아 결제하게 됐다. 영수증은 공유할 수 있고 개인 쇼핑은 공동 비용에서 뺀다. 아직 정산 시점은 정하지 않았다.",
-      "question": "나는 언제 정산하고 싶어?",
+      "scene": "여러 날 이어지는 여행에서 교통비와 공동 식비를 여러 사람이 번갈아 결제하게 됐어요. 영수증은 공유할 수 있고, 개인 쇼핑은 공동 비용에서 빼요. 아직 정산 시점은 정하지 않았어요.",
+      "question": "언제 정산하고 싶어요?",
       "options": [
         {
           "option_id": "settlement_timing_1",
-          "label": "결제할 때마다 바로 나누고 싶다"
+          "label": "결제할 때마다 바로 나누고 싶어요"
         },
         {
           "option_id": "settlement_timing_2",
-          "label": "하루가 끝날 때 모아 정산하고 싶다"
+          "label": "하루가 끝날 때 모아 정산하고 싶어요"
         },
         {
           "option_id": "settlement_timing_3",
-          "label": "여행이 끝난 뒤 한 번에 정산하고 싶다"
+          "label": "여행이 끝난 뒤 한 번에 정산하고 싶어요"
         },
         {
           "option_id": "settlement_timing_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "settlement_timing_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "settlement_timing_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -942,32 +942,32 @@
       "topic": "식사·경험",
       "title": "평소 안 먹던 메뉴",
       "purpose": "익숙하지 않거나 평소 고르지 않는 음식을 시도할 의향을 확인한다.",
-      "scene": "현지 메뉴를 파는 식당에 왔다. 평소 고르지 않던 메뉴와 익숙한 메뉴를 각각 주문할 수 있다. 두 메뉴의 가격은 같고 재료를 확인할 수 있다. 건강상 먹을 수 없는 음식이 있다면 따로 말할 수 있다.",
-      "question": "나는 무엇을 주문하고 싶어?",
+      "scene": "현지 메뉴를 파는 식당에 왔어요. 평소 고르지 않던 메뉴와 익숙한 메뉴를 각각 주문할 수 있어요. 두 메뉴의 가격은 같고 재료를 확인할 수 있어요. 건강상 먹을 수 없는 음식이 있다면 따로 말할 수 있어요.",
+      "question": "무엇을 주문하고 싶어요?",
       "options": [
         {
           "option_id": "unfamiliar_food_1",
-          "label": "평소 고르지 않던 현지 메뉴를 먹어보고 싶다"
+          "label": "평소 고르지 않던 현지 메뉴를 먹어보고 싶어요"
         },
         {
           "option_id": "unfamiliar_food_2",
-          "label": "익숙한 메뉴를 주문하고 싶다"
+          "label": "익숙한 메뉴를 주문하고 싶어요"
         },
         {
           "option_id": "unfamiliar_food_3",
-          "label": "재료와 조리법을 더 확인한 뒤 고르고 싶다"
+          "label": "재료와 조리법을 더 확인한 뒤 고르고 싶어요"
         },
         {
           "option_id": "unfamiliar_food_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "unfamiliar_food_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "unfamiliar_food_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -983,32 +983,32 @@
       "topic": "일정 준비",
       "title": "내일 일정은 언제 정할까",
       "purpose": "다음 날 계획을 확정하는 시점과 범위를 확인한다.",
-      "scene": "숙소에서 쉬는 중이고 내일 일정은 아직 비어 있다. 당장 마감되는 예약은 없다. 지금 20분 정도 이야기할 수 있고, 내일 아침에 정해도 가능한 후보가 있다.",
-      "question": "나는 내일 일정을 언제 정하고 싶어?",
+      "scene": "숙소에서 쉬는 중이고 내일 일정은 아직 비어 있어요. 당장 마감되는 예약은 없어요. 지금 20분 정도 이야기할 수 있고, 내일 아침에 정해도 가능한 후보가 있어요.",
+      "question": "내일 일정을 언제 정하고 싶어요?",
       "options": [
         {
           "option_id": "night_planning_1",
-          "label": "오늘 밤에 내일의 주요 일정을 정하고 싶다"
+          "label": "오늘 밤에 내일의 주요 일정을 정하고 싶어요"
         },
         {
           "option_id": "night_planning_2",
-          "label": "내일 첫 활동만 정하고 나머지는 현장에서 고르고 싶다"
+          "label": "내일 첫 활동만 정하고 나머지는 현장에서 고르고 싶어요"
         },
         {
           "option_id": "night_planning_3",
-          "label": "지금은 쉬고 내일 아침에 정하고 싶다"
+          "label": "지금은 쉬고 내일 아침에 정하고 싶어요"
         },
         {
           "option_id": "night_planning_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "night_planning_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "night_planning_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -1024,32 +1024,32 @@
       "topic": "예약·유연성",
       "title": "예약해야 볼 수 있는 전시",
       "purpose": "사전 예약의 확실성과 일정 변경의 자유 사이에서 원하는 선택을 확인한다.",
-      "scene": "가고 싶은 전시는 시간 지정 예약이 필요하다. 지금 예약하면 자리를 확보하지만 다른 시각으로 바꿀 수 없다. 현장에서 표를 구할 수 있을지는 모른다. 전시 대신 무료로 둘러볼 거리도 있다.",
-      "question": "나는 어떻게 하고 싶어?",
+      "scene": "가고 싶은 전시는 시간 지정 예약이 필요해요. 지금 예약하면 자리를 확보할 수 있지만 다른 시각으로 바꿀 수 없어요. 현장에서 표를 구할 수 있을지는 몰라요. 전시 대신 무료로 둘러볼 거리도 있어요.",
+      "question": "어떻게 하고 싶어요?",
       "options": [
         {
           "option_id": "advance_ticket_1",
-          "label": "시간을 정해 지금 예약하고 싶다"
+          "label": "시간을 정해 지금 예약하고 싶어요"
         },
         {
           "option_id": "advance_ticket_2",
-          "label": "예약하지 않고 현장에서 표가 있으면 보고 싶다"
+          "label": "예약하지 않고 현장에서 표가 있으면 보고 싶어요"
         },
         {
           "option_id": "advance_ticket_3",
-          "label": "전시는 빼고 자유롭게 둘러보고 싶다"
+          "label": "전시는 빼고 자유롭게 둘러보고 싶어요"
         },
         {
           "option_id": "advance_ticket_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "advance_ticket_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "advance_ticket_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -1065,32 +1065,32 @@
       "topic": "예약·현장",
       "title": "예약했지만 바로 탈 수 없다면",
       "purpose": "이미 예약한 체험에 추가 절차가 생겼을 때 계속할지 바꿀지 확인한다.",
-      "scene": "예약한 체험을 하려면 현장에서 티켓을 교환해야 한다. 교환과 입장까지 30분을 더 기다려야 하고 체험에는 40분이 걸린다. 지금 취소하면 전액 환불되며 근처에서 쉴 수도 있다. 이후 고정 일정까지는 2시간이 남았다.",
-      "question": "나는 지금 어떻게 하고 싶어?",
+      "scene": "예약한 체험을 하려면 현장에서 티켓을 교환해야 해요. 교환과 입장까지 30분을 더 기다려야 하고, 체험에는 40분이 걸려요. 지금 취소하면 전액 환불되고 근처에서 쉴 수도 있어요. 이후 고정 일정까지는 2시간이 남았어요.",
+      "question": "지금 어떻게 하고 싶어요?",
       "options": [
         {
           "option_id": "ticket_exchange_1",
-          "label": "30분 기다린 뒤 예약한 체험을 하고 싶다"
+          "label": "30분 기다린 뒤 예약한 체험을 하고 싶어요"
         },
         {
           "option_id": "ticket_exchange_2",
-          "label": "취소하고 근처에서 쉬고 싶다"
+          "label": "취소하고 근처에서 쉬고 싶어요"
         },
         {
           "option_id": "ticket_exchange_3",
-          "label": "취소하고 다른 활동을 찾아보고 싶다"
+          "label": "취소하고 다른 활동을 찾아보고 싶어요"
         },
         {
           "option_id": "ticket_exchange_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "ticket_exchange_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "ticket_exchange_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -1106,32 +1106,32 @@
       "topic": "이동·분리",
       "title": "차가 한 대뿐인 오후",
       "purpose": "이동 자원이 공유될 때 별도 행동을 위해 감수할 조건을 확인한다.",
-      "scene": "오후에 가볼 후보 두 곳이 서로 반대 방향에 있다. 일행의 차는 한 대라 두 곳을 동시에 갈 수 없다. 한쪽은 차로 가고 다른 쪽은 별도 차량을 이용하면 나눠 갈 수 있지만, 별도 차량 이용자는 1인 2만 원을 더 내야 한다.",
-      "question": "나는 어떤 방식을 원해?",
+      "scene": "오후에 가볼 후보 두 곳이 서로 반대 방향에 있어요. 일행의 차는 한 대라 두 곳을 동시에 갈 수 없어요. 한쪽은 차로 가고 다른 쪽은 별도 차량을 이용하면 나눠 갈 수 있지만, 별도 차량 이용자는 1인 2만 원을 더 내야 해요.",
+      "question": "어떤 방식으로 이동하고 싶어요?",
       "options": [
         {
           "option_id": "shared_vehicle_1",
-          "label": "추가 비용 없이 한 곳을 정해 모두 함께 가고 싶다"
+          "label": "추가 비용 없이 한 곳을 정해 모두 함께 가고 싶어요"
         },
         {
           "option_id": "shared_vehicle_2",
-          "label": "나는 별도 차량 비용을 내고 원하는 곳에 가고 싶다"
+          "label": "나는 별도 차량 비용을 내고 원하는 곳에 가고 싶어요"
         },
         {
           "option_id": "shared_vehicle_3",
-          "label": "두 곳을 모두 포기하고 함께 갈 다른 곳을 찾고 싶다"
+          "label": "두 곳을 모두 포기하고 함께 갈 다른 곳을 찾고 싶어요"
         },
         {
           "option_id": "shared_vehicle_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "shared_vehicle_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "shared_vehicle_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -1147,32 +1147,32 @@
       "topic": "의견 표현",
       "title": "바뀐 일정이 아쉬웠다면",
       "purpose": "선호했던 활동을 못 한 뒤 원하는 대화 시점과 방식을 확인한다.",
-      "scene": "원래 기대한 활동이 취소되고 대체 일정이 끝났다. 잠시 뒤 저녁 식사가 있다. 이 상황에서 아쉬움이 남는다면 지금 말하거나, 저녁 뒤 따로 이야기하거나, 오늘은 넘길 수 있다.",
-      "question": "이런 아쉬움이 있다면 나는 어떻게 하고 싶어?",
+      "scene": "원래 기대한 활동이 취소되고 대체 일정이 끝났어요. 잠시 뒤 저녁 식사가 있어요. 이 상황에서 아쉬움이 남는다면 지금 말하거나, 저녁 뒤 따로 이야기하거나, 오늘은 넘길 수 있어요.",
+      "question": "이런 아쉬움이 있다면 어떻게 하고 싶어요?",
       "options": [
         {
           "option_id": "missed_preference_1",
-          "label": "다음 활동 전에 원하는 점을 짧게 말하고 싶다"
+          "label": "다음 활동 전에 원하는 점을 짧게 말하고 싶어요"
         },
         {
           "option_id": "missed_preference_2",
-          "label": "저녁 뒤 시간을 내서 차분히 이야기하고 싶다"
+          "label": "저녁 뒤 시간을 내서 차분히 이야기하고 싶어요"
         },
         {
           "option_id": "missed_preference_3",
-          "label": "오늘은 따로 이야기하지 않고 넘어가고 싶다"
+          "label": "오늘은 따로 이야기하지 않고 넘어가고 싶어요"
         },
         {
           "option_id": "missed_preference_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "missed_preference_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "missed_preference_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -1187,32 +1187,32 @@
       "topic": "아침·휴식",
       "title": "아침 출발을 맞출까",
       "purpose": "출발 시각이 자유로운 아침에 공동 출발과 개별 시간을 어떻게 조정할지 확인한다.",
-      "scene": "숙소에서 맞은 아침이다. 오전 예약은 없고 10시에 함께 나가는 안이 나왔다. 그 전에 근처를 산책하거나 숙소에서 쉬어도 된다. 따로 나가도 10시에 숙소로 돌아올 수 있다.",
-      "question": "나는 아침을 어떻게 보내고 싶어?",
+      "scene": "숙소에서 맞은 아침이에요. 오전 예약은 없고 10시에 함께 나가는 안이 나왔어요. 그전에 근처를 산책하거나 숙소에서 쉬어도 돼요. 따로 나가도 10시에 숙소로 돌아올 수 있어요.",
+      "question": "아침을 어떻게 보내고 싶어요?",
       "options": [
         {
           "option_id": "morning_departure_1",
-          "label": "10시까지 숙소에서 쉬다가 함께 나가고 싶다"
+          "label": "10시까지 숙소에서 쉬다가 함께 나가고 싶어요"
         },
         {
           "option_id": "morning_departure_2",
-          "label": "먼저 혼자 산책하고 10시에 돌아와 합류하고 싶다"
+          "label": "먼저 혼자 산책하고 10시에 돌아와 합류하고 싶어요"
         },
         {
           "option_id": "morning_departure_3",
-          "label": "10시보다 일찍 모두 함께 나가고 싶다"
+          "label": "10시보다 일찍 모두 함께 나가고 싶어요"
         },
         {
           "option_id": "morning_departure_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "morning_departure_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "morning_departure_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -1227,32 +1227,32 @@
       "topic": "이동·짐",
       "title": "짐부터 맡기고 갈까",
       "purpose": "짐을 들고 바로 식사할지 동선을 더 써서 맡길지 확인한다.",
-      "scene": "여행지에 도착했고 각자 여행 가방을 들고 있다. 식당은 바로 갈 수 있지만 가방을 들고 이동해야 한다. 숙소에 먼저 짐을 맡기면 식당 도착이 30분 늦어지며, 그때도 식사는 가능하다.",
-      "question": "나는 어떤 순서로 움직이고 싶어?",
+      "scene": "여행지에 도착했고 각자 여행 가방을 들고 있어요. 식당은 바로 갈 수 있지만 가방을 들고 이동해야 해요. 숙소에 먼저 짐을 맡기면 식당 도착이 30분 늦어지지만, 그때도 식사할 수 있어요.",
+      "question": "어떤 순서로 움직이고 싶어요?",
       "options": [
         {
           "option_id": "luggage_drop_1",
-          "label": "가방을 들고 바로 식당에 가고 싶다"
+          "label": "가방을 들고 바로 식당에 가고 싶어요"
         },
         {
           "option_id": "luggage_drop_2",
-          "label": "30분 더 걸려도 숙소에 짐부터 맡기고 싶다"
+          "label": "30분 더 걸려도 숙소에 짐부터 맡기고 싶어요"
         },
         {
           "option_id": "luggage_drop_3",
-          "label": "가방을 맡길 다른 가까운 곳이 있는지 먼저 알아보고 싶다"
+          "label": "가방을 맡길 다른 가까운 곳이 있는지 먼저 알아보고 싶어요"
         },
         {
           "option_id": "luggage_drop_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "luggage_drop_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "luggage_drop_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -1268,32 +1268,32 @@
       "topic": "식사·휴식",
       "title": "저녁은 나가서 먹을까",
       "purpose": "음식 종류와 비용이 비슷할 때 외식과 숙소 식사 중 원하는 방식을 확인한다.",
-      "scene": "숙소에 돌아왔고 저녁을 먹을 차례다. 근처 식당에서 먹거나 같은 메뉴를 배달받을 수 있다. 배달료까지 포함한 비용은 비슷하고, 식당 왕복에는 20분이 걸린다. 숙소에서는 음식 섭취가 허용된다.",
-      "question": "나는 어디서 저녁을 먹고 싶어?",
+      "scene": "숙소에 돌아왔고 저녁을 먹을 차례예요. 근처 식당에서 먹거나 같은 메뉴를 배달받을 수 있어요. 배달료까지 포함한 비용은 비슷하고, 식당 왕복에는 20분이 걸려요. 숙소에서는 음식을 먹어도 돼요.",
+      "question": "어디서 저녁을 먹고 싶어요?",
       "options": [
         {
           "option_id": "dine_out_or_in_1",
-          "label": "식당에 나가서 먹고 싶다"
+          "label": "식당에 나가서 먹고 싶어요"
         },
         {
           "option_id": "dine_out_or_in_2",
-          "label": "배달받아 숙소에서 먹고 싶다"
+          "label": "배달받아 숙소에서 먹고 싶어요"
         },
         {
           "option_id": "dine_out_or_in_3",
-          "label": "각자 원하는 방식으로 먹고 싶다"
+          "label": "각자 원하는 방식으로 먹고 싶어요"
         },
         {
           "option_id": "dine_out_or_in_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "dine_out_or_in_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "dine_out_or_in_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -1308,32 +1308,32 @@
       "topic": "분리·재합류",
       "title": "먼저 끝난 쪽은 무엇을 할까",
       "purpose": "별도 활동의 종료 시각이 달라졌을 때 기다리는 방식을 확인한다.",
-      "scene": "각자 활동한 뒤 만나기로 했는데 다른 쪽에서 30분 더 걸린다는 연락이 왔다. 내 활동은 끝났고 근처에서 기다리거나 상점을 둘러볼 수 있다. 바로 숙소에 돌아가도 다른 쪽이 스스로 올 수 있다.",
-      "question": "나는 이 30분을 어떻게 보내고 싶어?",
+      "scene": "각자 활동한 뒤 만나기로 했는데 다른 쪽에서 30분 더 걸린다는 연락이 왔어요. 내 활동은 끝났고 근처에서 기다리거나 상점을 둘러볼 수 있어요. 바로 숙소에 돌아가도 다른 쪽이 스스로 올 수 있어요.",
+      "question": "이 30분을 어떻게 보내고 싶어요?",
       "options": [
         {
           "option_id": "reunion_delay_1",
-          "label": "약속한 장소 근처에서 기다리고 싶다"
+          "label": "약속한 장소 근처에서 기다리고 싶어요"
         },
         {
           "option_id": "reunion_delay_2",
-          "label": "근처 상점을 둘러본 뒤 만나고 싶다"
+          "label": "근처 상점을 둘러본 뒤 만나고 싶어요"
         },
         {
           "option_id": "reunion_delay_3",
-          "label": "먼저 숙소로 돌아가서 만나고 싶다"
+          "label": "먼저 숙소로 돌아가서 만나고 싶어요"
         },
         {
           "option_id": "reunion_delay_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "reunion_delay_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "reunion_delay_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -1349,32 +1349,32 @@
       "topic": "식사·시간",
       "title": "하나 더 보고 먹을까",
       "purpose": "관광을 이어가는 것과 식사 시간을 확보하는 것 중 우선순위를 확인한다.",
-      "scene": "점심시간이고 지금 식당에 갈 수 있다. 근처 전시를 먼저 보면 식사가 1시간 늦어진다. 전시는 점심 뒤에도 운영하며, 지금 먹을 수 있는 간식도 있다.",
-      "question": "나는 어떻게 하고 싶어?",
+      "scene": "점심시간이고 지금 식당에 갈 수 있어요. 근처 전시를 먼저 보면 식사가 1시간 늦어져요. 전시는 점심 뒤에도 운영하고, 지금 먹을 수 있는 간식도 있어요.",
+      "question": "어떻게 하고 싶어요?",
       "options": [
         {
           "option_id": "meal_before_sights_1",
-          "label": "지금 식사한 뒤 전시를 보고 싶다"
+          "label": "지금 식사한 뒤 전시를 보고 싶어요"
         },
         {
           "option_id": "meal_before_sights_2",
-          "label": "전시를 먼저 보고 1시간 뒤 식사하고 싶다"
+          "label": "전시를 먼저 보고 1시간 뒤 식사하고 싶어요"
         },
         {
           "option_id": "meal_before_sights_3",
-          "label": "간식을 먹고 전시를 본 뒤 식사하고 싶다"
+          "label": "간식을 먹고 전시를 본 뒤 식사하고 싶어요"
         },
         {
           "option_id": "meal_before_sights_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "meal_before_sights_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "meal_before_sights_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -1389,32 +1389,32 @@
       "topic": "이동·공간",
       "title": "차에 들어가지 않는 큰 짐",
       "purpose": "공동 차량의 적재 한계와 개인 물품 운반 사이의 선택을 확인한다.",
-      "scene": "가져가려는 큰 물품이 예약한 차량의 짐칸에 들어가지 않는다. 좌석이나 통로를 막지 않고 고정할 방법도 없다. 큰 차량으로 바꾸면 일행 전체에 총4만 원이 추가되고, 물품을 숙소에 두면 기존 차량을 이용할 수 있다.",
-      "question": "이 물품을 가져가려는 입장이라면 어떻게 하고 싶어?",
+      "scene": "가져가려는 큰 물품이 예약한 차량의 짐칸에 들어가지 않아요. 좌석이나 통로를 막지 않고 고정할 방법도 없어요. 큰 차량으로 바꾸면 일행 전체에 총 4만 원이 추가되고, 물품을 숙소에 두면 기존 차량을 이용할 수 있어요.",
+      "question": "이 물품을 가져가려는 입장이라면 어떻게 하고 싶어요?",
       "options": [
         {
           "option_id": "large_luggage_1",
-          "label": "내가 추가금4만 원을 내고 큰 차량으로 바꾸고 싶다"
+          "label": "내가 추가금 4만 원을 내고 큰 차량으로 바꾸고 싶어요"
         },
         {
           "option_id": "large_luggage_2",
-          "label": "일행이 비용을 나눌 수 있는지 이야기한 뒤 결정하고 싶다"
+          "label": "일행이 비용을 나눌 수 있는지 이야기한 뒤 결정하고 싶어요"
         },
         {
           "option_id": "large_luggage_3",
-          "label": "물품을 숙소에 두고 기존 차량으로 가고 싶다"
+          "label": "물품을 숙소에 두고 기존 차량으로 가고 싶어요"
         },
         {
           "option_id": "large_luggage_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "large_luggage_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "large_luggage_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -1430,32 +1430,32 @@
       "topic": "숙소·배정",
       "title": "잠자리의 조건이 다르다면",
       "purpose": "품질이 다른 잠자리를 비용 조정·교대·추첨 중 어떻게 배정할지 확인한다.",
-      "scene": "두 밤을 지낼 숙소에 개인 잠자리는 모두 있지만 한 자리는 다른 자리보다 좁다. 방 교체는 불가능하고 숙박비 분담은 아직 정하지 않았다. 누가 어느 자리를 쓸지도 정하지 않았다.",
-      "question": "나는 어떤 배정 방식을 원해?",
+      "scene": "두 밤을 지낼 숙소에 개인 잠자리는 모두 있지만 한 자리는 다른 자리보다 좁아요. 방 교체는 불가능하고 숙박비 분담은 아직 정하지 않았어요. 누가 어느 자리를 쓸지도 정하지 않았어요.",
+      "question": "잠자리를 어떻게 배정하고 싶어요?",
       "options": [
         {
           "option_id": "unequal_beds_1",
-          "label": "추첨으로 정하고 숙박비는 똑같이 내고 싶다"
+          "label": "추첨으로 정하고 숙박비는 똑같이 내고 싶어요"
         },
         {
           "option_id": "unequal_beds_2",
-          "label": "좁은 자리를 원하는 사람이 비용을 덜 내는 방식으로 정하고 싶다"
+          "label": "좁은 자리를 원하는 사람이 비용을 덜 내는 방식으로 정하고 싶어요"
         },
         {
           "option_id": "unequal_beds_3",
-          "label": "하루씩 잠자리를 바꾸고 숙박비는 똑같이 내고 싶다"
+          "label": "하루씩 잠자리를 바꾸고 숙박비는 똑같이 내고 싶어요"
         },
         {
           "option_id": "unequal_beds_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "unequal_beds_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "unequal_beds_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -1471,32 +1471,32 @@
       "topic": "장보기",
       "title": "어느 만큼 사갈까",
       "purpose": "공동 식재료의 양과 추가 구매분을 나누는 방식을 확인한다.",
-      "scene": "숙소에서 함께 저녁을 만들려고 장을 보고 있다. 기본 식재료 묶음은 1인1만 원 정도이고, 종류와 양을 늘리면 1인1만 5천 원 정도다. 남은 음식은 보관하거나 가져갈 수 없다.",
-      "question": "나는 어떤 방식으로 사고 싶어?",
+      "scene": "숙소에서 함께 저녁을 만들려고 장을 보고 있어요. 기본 식재료 묶음은 1인 1만 원 정도이고, 종류와 양을 늘리면 1인 1만 5천 원 정도예요. 남은 음식은 보관하거나 가져갈 수 없어요.",
+      "question": "먹거리를 어떻게 사고 싶어요?",
       "options": [
         {
           "option_id": "grocery_amount_1",
-          "label": "추가 먹거리는 사지 않고 기본 묶음으로 마치고 싶다"
+          "label": "추가 먹거리는 사지 않고 기본 묶음만 사고 싶어요"
         },
         {
           "option_id": "grocery_amount_2",
-          "label": "종류와 양을 늘린 묶음을 함께 사고 싶다"
+          "label": "종류와 양을 늘린 묶음을 함께 사고 싶어요"
         },
         {
           "option_id": "grocery_amount_3",
-          "label": "기본 묶음은 함께 사고 추가로 먹고 싶은 것은 개인 비용으로 사고 싶다"
+          "label": "기본 묶음은 함께 사고 추가로 먹고 싶은 것은 개인 비용으로 사고 싶어요"
         },
         {
           "option_id": "grocery_amount_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "grocery_amount_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "grocery_amount_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -1511,32 +1511,32 @@
       "topic": "식사·분담",
       "title": "조금만 맛보고 싶은 사이드",
       "purpose": "공유 메뉴의 참여량과 비용을 주문 전에 어떻게 정하고 싶은지 확인한다.",
-      "scene": "각자 식사 메뉴를 정했고, 2만 원짜리 사이드 메뉴를 함께 주문할지 이야기하고 있다. 아직 주문하지 않았다. 조금만 맛볼지 충분히 먹을지, 아예 먹지 않을지 각자 선택할 수 있다.",
-      "question": "나는 사이드 메뉴에 어떻게 참여하고 싶어?",
+      "scene": "각자 식사 메뉴를 정했고, 2만 원짜리 사이드 메뉴를 함께 주문할지 이야기하고 있어요. 아직 주문하지 않았어요. 조금만 맛볼지 충분히 먹을지, 아예 먹지 않을지 각자 선택할 수 있어요.",
+      "question": "사이드 메뉴에 어떻게 참여하고 싶어요?",
       "options": [
         {
           "option_id": "shared_side_1",
-          "label": "함께 나눠 먹고 참여자끼리 똑같이 부담하고 싶다"
+          "label": "함께 나눠 먹고 참여자끼리 똑같이 부담하고 싶어요"
         },
         {
           "option_id": "shared_side_2",
-          "label": "조금만 먹고 적게 부담할 수 있을지 먼저 이야기하고 싶다"
+          "label": "조금만 먹고 적게 부담할 수 있을지 먼저 이야기하고 싶어요"
         },
         {
           "option_id": "shared_side_3",
-          "label": "사이드는 먹지 않고 비용도 부담하지 않고 싶다"
+          "label": "사이드는 먹지 않고 비용도 부담하지 않고 싶어요"
         },
         {
           "option_id": "shared_side_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "shared_side_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "shared_side_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -1552,32 +1552,32 @@
       "topic": "숙소·비용",
       "title": "잠만 잘 곳, 머물고 싶은 곳",
       "purpose": "숙소 부대시설에 추가 비용을 쓸 의향을 확인한다.",
-      "scene": "숙소 두 곳의 위치와 개인 침대 수는 같다. 기본 숙소는 1인5만 원이고, 공용 라운지와 넓은 휴식 공간이 있는 숙소는 1인8만 원이다. 두 곳 모두 필요한 세면시설을 갖췄다.",
-      "question": "나는 어느 숙소를 고르고 싶어?",
+      "scene": "숙소 두 곳의 위치와 개인 침대 수는 같아요. 기본 숙소는 1인 5만 원이고, 공용 라운지와 넓은 휴식 공간이 있는 숙소는 1인 8만 원이에요. 두 곳 모두 필요한 세면시설을 갖췄어요.",
+      "question": "어느 숙소를 고르고 싶어요?",
       "options": [
         {
           "option_id": "lodging_amenities_1",
-          "label": "기본 숙소를 고르고 다른 활동에 돈을 쓰고 싶다"
+          "label": "기본 숙소를 고르고 다른 활동에 돈을 쓰고 싶어요"
         },
         {
           "option_id": "lodging_amenities_2",
-          "label": "8만 원을 내고 휴식 공간이 넓은 숙소를 고르고 싶다"
+          "label": "8만 원을 내고 휴식 공간이 넓은 숙소를 고르고 싶어요"
         },
         {
           "option_id": "lodging_amenities_3",
-          "label": "두 곳 사이 가격대의 숙소를 더 찾아보고 싶다"
+          "label": "두 곳 사이 가격대의 숙소를 더 찾아보고 싶어요"
         },
         {
           "option_id": "lodging_amenities_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "lodging_amenities_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "lodging_amenities_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -1592,32 +1592,32 @@
       "topic": "사진·시간",
       "title": "사진을 한 번 더 찍고 싶다면",
       "purpose": "재촬영 희망과 다른 사람의 이용 대기를 함께 고려한 행동을 확인한다.",
-      "scene": "사진 명소에서 한 차례 촬영을 마쳤고 뒤에 다른 방문객이 기다린다. 자리를 비워준 뒤 다시 줄을 서면 약15분이 걸린다. 근처에는 줄 없이 찍을 수 있는 다른 구도도 있다.",
-      "question": "사진이 더 필요하다면 나는 어떻게 하고 싶어?",
+      "scene": "사진 명소에서 한 차례 촬영을 마쳤고 뒤에 다른 방문객이 기다려요. 자리를 비워준 뒤 다시 줄을 서면 약 15분이 걸려요. 근처에는 줄 없이 찍을 수 있는 다른 구도도 있어요.",
+      "question": "사진이 더 필요하다면 어떻게 하고 싶어요?",
       "options": [
         {
           "option_id": "photo_queue_1",
-          "label": "다시 줄을 서서 같은 구도로 찍고 싶다"
+          "label": "다시 줄을 서서 같은 구도로 찍고 싶어요"
         },
         {
           "option_id": "photo_queue_2",
-          "label": "줄 없는 다른 구도에서 찍고 싶다"
+          "label": "줄 없는 다른 구도에서 찍고 싶어요"
         },
         {
           "option_id": "photo_queue_3",
-          "label": "지금 사진으로 마무리하고 다음 장소로 가고 싶다"
+          "label": "지금 사진으로 마무리하고 다음 장소로 가고 싶어요"
         },
         {
           "option_id": "photo_queue_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "photo_queue_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "photo_queue_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -1633,32 +1633,32 @@
       "topic": "비용 분담",
       "title": "같이 산 간식을 혼자 먹었다면",
       "purpose": "공동 구매 의도와 실제 소비가 달라졌을 때 원하는 정산을 확인한다.",
-      "scene": "함께 먹으려고 간식1만 원어치를 샀는데 결국 한 사람만 먹었다. 구매할 때 이런 경우의 정산 방식은 정하지 않았다. 누가 먹었는지와 영수증은 확인할 수 있다.",
-      "question": "이 비용은 어떻게 나누고 싶어?",
+      "scene": "함께 먹으려고 간식 1만 원어치를 샀는데 결국 한 사람만 먹었어요. 구매할 때 이런 경우의 정산 방식은 정하지 않았어요. 누가 먹었는지와 영수증은 확인할 수 있어요.",
+      "question": "이 비용은 어떻게 나누고 싶어요?",
       "options": [
         {
           "option_id": "unused_shared_snack_1",
-          "label": "함께 사기로 했으니 모두 똑같이 나누고 싶다"
+          "label": "함께 사기로 했으니 모두 똑같이 나누고 싶어요"
         },
         {
           "option_id": "unused_shared_snack_2",
-          "label": "실제로 먹은 사람이 전액 부담하는 방식이 좋다"
+          "label": "실제로 먹은 사람이 전액 부담했으면 좋겠어요"
         },
         {
           "option_id": "unused_shared_snack_3",
-          "label": "일부는 공동 비용으로 두고 먹은 사람이 나머지를 부담하도록 이야기하고 싶다"
+          "label": "일부는 공동 비용으로 두고 먹은 사람이 나머지를 부담하도록 이야기하고 싶어요"
         },
         {
           "option_id": "unused_shared_snack_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "unused_shared_snack_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "unused_shared_snack_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -1674,32 +1674,32 @@
       "topic": "비용 확인",
       "title": "예상과 다른 정산 금액",
       "purpose": "정산 금액이 예상과 다를 때 확인 범위와 지급 시점을 선택한다.",
-      "scene": "여행비 정산표에서 공동 교통비 한 항목이 기억한 금액보다 2만 원 많다. 결제 내역과 영수증은 함께 볼 수 있다. 단순 계산 차이인지 빠뜨린 지출인지 아직 모른다.",
-      "question": "나는 먼저 어떻게 하고 싶어?",
+      "scene": "여행비 정산표에서 공동 교통비 한 항목이 기억한 금액보다 2만 원 많아요. 결제 내역과 영수증은 함께 볼 수 있어요. 단순 계산 차이인지 빠뜨린 지출인지 아직 몰라요.",
+      "question": "먼저 어떻게 하고 싶어요?",
       "options": [
         {
           "option_id": "bill_discrepancy_1",
-          "label": "전체 내역을 함께 확인한 뒤 보내고 싶다"
+          "label": "전체 내역을 함께 확인한 뒤 보내고 싶어요"
         },
         {
           "option_id": "bill_discrepancy_2",
-          "label": "차이가 난 교통비 항목만 확인한 뒤 보내고 싶다"
+          "label": "차이가 난 교통비 항목만 확인한 뒤 보내고 싶어요"
         },
         {
           "option_id": "bill_discrepancy_3",
-          "label": "우선 정산표 금액을 보내고 나중에 차이를 확인하고 싶다"
+          "label": "우선 정산표 금액을 보내고 나중에 차이를 확인하고 싶어요"
         },
         {
           "option_id": "bill_discrepancy_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "bill_discrepancy_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "bill_discrepancy_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -1714,32 +1714,32 @@
       "topic": "함께 보내는 시간",
       "title": "식탁 위 휴대전화",
       "purpose": "함께 보내는 식사 시간의 휴대전화 사용에 관한 선호를 확인한다.",
-      "scene": "일행과 저녁을 먹고 있다. 급한 연락이나 업무는 없는 상황이며 휴대전화로 사진을 정리하거나 메시지를 확인할 수 있다. 식사 뒤에는 각자 쉴 시간이 있다.",
-      "question": "나는 식사 중 휴대전화를 어떻게 쓰고 싶어?",
+      "scene": "일행과 저녁을 먹고 있어요. 급한 연락이나 업무는 없는 상황이고, 휴대전화로 사진을 정리하거나 메시지를 확인할 수 있어요. 식사 뒤에는 각자 쉴 시간이 있어요.",
+      "question": "식사 중 휴대전화를 어떻게 쓰고 싶어요?",
       "options": [
         {
           "option_id": "phone_during_meal_1",
-          "label": "필요한 확인만 짧게 하고 대화에 시간을 쓰고 싶다"
+          "label": "필요한 확인만 짧게 하고 대화에 시간을 쓰고 싶어요"
         },
         {
           "option_id": "phone_during_meal_2",
-          "label": "각자 자유롭게 사용하면서 식사하고 싶다"
+          "label": "각자 자유롭게 사용하면서 식사하고 싶어요"
         },
         {
           "option_id": "phone_during_meal_3",
-          "label": "식사 중에는 넣어두고 식사 뒤에 확인하고 싶다"
+          "label": "식사 중에는 넣어두고 식사 뒤에 확인하고 싶어요"
         },
         {
           "option_id": "phone_during_meal_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "phone_during_meal_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "phone_during_meal_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -1754,32 +1754,32 @@
       "topic": "숙소·공용 공간",
       "title": "다음 사람이 쓸 욕실",
       "purpose": "공용 욕실을 사용한 뒤 정리 시점과 분담 방식을 확인한다.",
-      "scene": "숙소 욕실은 하나이고 일행이 차례로 사용한다. 사용 뒤 바닥 물기와 세면대 주변을 정리하는 데 약3분이 걸린다. 숙소 직원이 중간에 청소해주지는 않는다.",
-      "question": "나는 정리를 어떻게 하고 싶어?",
+      "scene": "숙소 욕실은 하나이고 일행이 차례로 사용해요. 사용 뒤 바닥 물기와 세면대 주변을 정리하는 데 약 3분이 걸려요. 숙소 직원이 중간에 청소해주지는 않아요.",
+      "question": "정리를 어떻게 하고 싶어요?",
       "options": [
         {
           "option_id": "bathroom_tidy_1",
-          "label": "사용한 사람이 나올 때마다 정리하는 방식이 좋다"
+          "label": "사용한 사람이 나올 때마다 정리했으면 좋겠어요"
         },
         {
           "option_id": "bathroom_tidy_2",
-          "label": "모두 사용한 뒤 한 사람이 정리하고 다른 공용 일을 나누는 방식이 좋다"
+          "label": "모두 사용한 뒤 한 사람이 정리하고 다른 공용 일을 나눠 맡으면 좋겠어요"
         },
         {
           "option_id": "bathroom_tidy_3",
-          "label": "두 사람이 함께 마지막에 정리하는 방식이 좋다"
+          "label": "두 사람이 함께 마지막에 정리했으면 좋겠어요"
         },
         {
           "option_id": "bathroom_tidy_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "bathroom_tidy_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "bathroom_tidy_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -1795,32 +1795,32 @@
       "topic": "비용 관리",
       "title": "공동 경비를 미리 모을까",
       "purpose": "공동 지출에 쓸 돈을 사전에 모을지 건별 결제할지 확인한다.",
-      "scene": "교통과 공동 식비가 여러 번 발생할 여행이다. 개인 쇼핑은 각자 부담하기로 했고 공동 지출 내역은 공유할 수 있다. 아직 회비를 모으거나 결제 담당자를 정하지 않았다.",
-      "question": "나는 공동 비용을 어떻게 준비하고 싶어?",
+      "scene": "교통비와 공동 식비가 여러 번 드는 여행이에요. 개인 쇼핑은 각자 부담하기로 했고, 공동 지출 내역은 공유할 수 있어요. 아직 회비를 모으거나 결제 담당자를 정하지 않았어요.",
+      "question": "공동 비용을 어떻게 준비하고 싶어요?",
       "options": [
         {
           "option_id": "shared_fund_1",
-          "label": "일정 금액을 미리 모아 공동 비용을 내고 싶다"
+          "label": "일정 금액을 미리 모아 공동 비용을 내고 싶어요"
         },
         {
           "option_id": "shared_fund_2",
-          "label": "공동 지출이 생길 때마다 각자 나눠 내고 싶다"
+          "label": "공동 지출이 생길 때마다 각자 나눠 내고 싶어요"
         },
         {
           "option_id": "shared_fund_3",
-          "label": "번갈아 결제하고 내역을 기록해 정산하고 싶다"
+          "label": "번갈아 결제하고 내역을 기록해 정산하고 싶어요"
         },
         {
           "option_id": "shared_fund_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "shared_fund_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "shared_fund_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -1836,32 +1836,32 @@
       "topic": "여행 목적",
       "title": "먹거리 위주로 하루를 쓸까",
       "purpose": "식당 방문 자체와 관광 활동 중 어디에 시간을 더 쓰고 싶은지 확인한다.",
-      "scene": "오늘 하루는 예약이 없다. 식당과 시장을 여러 곳 찾아다니는 코스와, 식사는 간단히 하고 전시·거리를 둘러보는 코스가 있다. 두 코스의 전체 비용과 이동 시간은 비슷하다.",
-      "question": "나는 오늘 어떤 코스를 원해?",
+      "scene": "오늘 하루는 예약이 없어요. 식당과 시장을 여러 곳 찾아다니는 코스와, 식사는 간단히 하고 전시·거리를 둘러보는 코스가 있어요. 두 코스의 전체 비용과 이동 시간은 비슷해요.",
+      "question": "오늘 어떤 코스로 다니고 싶어요?",
       "options": [
         {
           "option_id": "food_centered_day_1",
-          "label": "식당과 시장을 중심으로 다니고 싶다"
+          "label": "식당과 시장을 중심으로 다니고 싶어요"
         },
         {
           "option_id": "food_centered_day_2",
-          "label": "식사는 간단히 하고 전시와 거리를 둘러보고 싶다"
+          "label": "식사는 간단히 하고 전시와 거리를 둘러보고 싶어요"
         },
         {
           "option_id": "food_centered_day_3",
-          "label": "식당 한 곳과 관광 한 곳만 정하고 나머지는 비워두고 싶다"
+          "label": "식당 한 곳과 관광 한 곳만 정하고 나머지는 비워두고 싶어요"
         },
         {
           "option_id": "food_centered_day_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "food_centered_day_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "food_centered_day_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -1876,32 +1876,32 @@
       "topic": "식사·개별 필요",
       "title": "아침을 먹고 출발하고 싶다면",
       "purpose": "식사 여부가 달라도 공동 출발을 유지하는 방법을 확인한다.",
-      "scene": "공동 출발까지40분 남았다. 숙소에서 간단한 아침을 먹거나 도보5분 거리의 식당을 이용할 수 있다. 모두가 아침을 먹어야 할 필요는 없고, 출발 시각은 그대로 지킬 수 있다.",
-      "question": "나는 아침을 어떻게 하고 싶어?",
+      "scene": "공동 출발까지 40분 남았어요. 숙소에서 간단한 아침을 먹거나 도보 5분 거리의 식당을 이용할 수 있어요. 모두가 아침을 먹을 필요는 없고, 출발 시각은 그대로 지킬 수 있어요.",
+      "question": "아침 식사는 어떻게 하고 싶어요?",
       "options": [
         {
           "option_id": "breakfast_difference_1",
-          "label": "숙소에서 간단히 먹고 싶다"
+          "label": "숙소에서 간단히 먹고 싶어요"
         },
         {
           "option_id": "breakfast_difference_2",
-          "label": "출발 전에 가까운 식당에서 먹고 싶다"
+          "label": "출발 전에 가까운 식당에서 먹고 싶어요"
         },
         {
           "option_id": "breakfast_difference_3",
-          "label": "아침은 건너뛰고 출발하고 싶다"
+          "label": "아침은 건너뛰고 출발하고 싶어요"
         },
         {
           "option_id": "breakfast_difference_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "breakfast_difference_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "breakfast_difference_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -1917,32 +1917,32 @@
       "topic": "준비·의견 전달",
       "title": "공유된 일정표를 받았다면",
       "purpose": "다른 사람이 만든 일정에 자신의 의견을 전달하는 방식을 확인한다.",
-      "scene": "일행이 가볼 장소와 식당이 담긴 일정표를 공유했다. 아직 결제한 예약은 없고, 출발 전에 수정할 시간이 있다. 일정표를 만든 사람은 각자가 원하는 변경점을 알려달라고 했다.",
-      "question": "나는 어떤 방식으로 의견을 보내고 싶어?",
+      "scene": "일행이 가볼 장소와 식당이 담긴 일정표를 공유했어요. 아직 결제한 예약은 없고, 출발 전에 수정할 시간이 있어요. 일정표를 만든 사람은 각자가 원하는 변경점을 알려달라고 했어요.",
+      "question": "어떤 방식으로 의견을 보내고 싶어요?",
       "options": [
         {
           "option_id": "itinerary_feedback_1",
-          "label": "일정 전체를 읽고 바꾸고 싶은 부분을 한 번에 보내고 싶다"
+          "label": "일정 전체를 읽고 바꾸고 싶은 부분을 한 번에 보내고 싶어요"
         },
         {
           "option_id": "itinerary_feedback_2",
-          "label": "꼭 하고 싶은 일과 피하고 싶은 일만 추려 보내고 싶다"
+          "label": "꼭 하고 싶은 일과 피하고 싶은 일만 추려 보내고 싶어요"
         },
         {
           "option_id": "itinerary_feedback_3",
-          "label": "함께 이야기할 시간을 잡고 보면서 정하고 싶다"
+          "label": "함께 이야기할 시간을 잡고 보면서 정하고 싶어요"
         },
         {
           "option_id": "itinerary_feedback_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "itinerary_feedback_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "itinerary_feedback_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -1958,32 +1958,32 @@
       "topic": "식사·준비",
       "title": "숙소 주변에 식당이 없다면",
       "purpose": "식당이 없는 숙소에 들어가기 전 개인 식사 필요를 어떻게 준비할지 확인한다.",
-      "scene": "오늘 묵을 숙소 주변에는 식당과 편의점이 없고 배달도 되지 않는다. 들어가기 전에 장을 볼 수 있으며 숙소에는 냉장고가 있다. 다음 날 밖으로 나갈 때까지 먹을 음식을 지금 마련해야 한다.",
-      "question": "나는 무엇을 준비하고 싶어?",
+      "scene": "오늘 묵을 숙소 주변에는 식당과 편의점이 없고 배달도 되지 않아요. 들어가기 전에 장을 볼 수 있고 숙소에는 냉장고가 있어요. 다음 날 밖으로 나갈 때까지 먹을 음식을 지금 마련해야 해요.",
+      "question": "무엇을 준비하고 싶어요?",
       "options": [
         {
           "option_id": "remote_lodging_food_1",
-          "label": "식사와 간식을 모두 공동 비용으로 준비하고 싶다"
+          "label": "식사와 간식을 모두 공동 비용으로 준비하고 싶어요"
         },
         {
           "option_id": "remote_lodging_food_2",
-          "label": "각자 먹을 음식과 간식을 따로 사고 싶다"
+          "label": "각자 먹을 음식과 간식을 따로 사고 싶어요"
         },
         {
           "option_id": "remote_lodging_food_3",
-          "label": "공동 식사만 함께 사고 추가 간식은 각자 준비하고 싶다"
+          "label": "공동 식사만 함께 사고 추가 간식은 각자 준비하고 싶어요"
         },
         {
           "option_id": "remote_lodging_food_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "remote_lodging_food_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "remote_lodging_food_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
@@ -1998,32 +1998,32 @@
       "topic": "일정 변경",
       "title": "가는 길에 눈에 들어온 곳",
       "purpose": "즉석에서 발견한 장소를 들르기 위해 기존 활동을 줄일 의향을 확인한다.",
-      "scene": "예약한 저녁 장소로 가는 길에 흥미로운 작은 전시를 발견했다. 전시를20분 보면 원래40분 하려던 산책을20분 줄여야 저녁 예약에 맞출 수 있다. 전시 입장료는 없고 산책은 예약하지 않았다.",
-      "question": "나는 어떻게 하고 싶어?",
+      "scene": "예약한 저녁 장소로 가는 길에 흥미로운 작은 전시를 발견했어요. 전시를 20분 보면 원래 40분 하려던 산책을 20분 줄여야 저녁 예약에 맞출 수 있어요. 전시 입장료는 없고 산책은 예약하지 않았어요.",
+      "question": "어떻게 하고 싶어요?",
       "options": [
         {
           "option_id": "unplanned_stop_1",
-          "label": "전시를 보고 산책을20분 줄이고 싶다"
+          "label": "전시를 보고 산책을 20분 줄이고 싶어요"
         },
         {
           "option_id": "unplanned_stop_2",
-          "label": "전시는 건너뛰고 원래 산책을 하고 싶다"
+          "label": "전시는 건너뛰고 원래 산책을 하고 싶어요"
         },
         {
           "option_id": "unplanned_stop_3",
-          "label": "산책을 생략하고 전시 뒤 저녁 장소로 바로 가고 싶다"
+          "label": "산책을 생략하고 전시 뒤 저녁 장소로 바로 가고 싶어요"
         },
         {
           "option_id": "unplanned_stop_any",
-          "label": "어느 쪽이든 괜찮다"
+          "label": "어느 쪽이든 괜찮아요"
         },
         {
           "option_id": "unplanned_stop_other",
-          "label": "다른 의견이 있다"
+          "label": "다른 의견이 있어요"
         },
         {
           "option_id": "unplanned_stop_info",
-          "label": "정보가 더 필요하다"
+          "label": "정보가 더 필요해요"
         }
       ],
       "core_constraints": [
