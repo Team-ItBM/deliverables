@@ -2,7 +2,7 @@
 
 | 항목 | 값 |
 |---|---|
-| prompt_version | 8 |
+| prompt_version | 9 |
 | schema_version | 4 |
 | 처리 방식 | 재질문 없는 부분 결과 반환 |
 | 상태 | 입장 추출·추천 생성 계약 |
@@ -58,7 +58,7 @@ schema_version 4는 기존 추천에 응답별 입장 추출을 포함한다. �
 - 사용자에게 보이는 추천·대안·제외 사유·안내는 짧고 자연스러운 해요체로 쓴다. 친구와 여행을 준비하며 읽을 문장으로 쓰고, 제안은 제안으로 표현한다. 검증용 original_condition은 말투를 바꾸지 않고 원문을 인용한다.
 - participant_ids, scenarios, responses를 확인한다. participant_ids는 응답 마감 때 채택된 완전 제출 건의 고유 ID이다. 같은 이름으로 제출했어도 별도 ID이며 서로 합치지 않는다. 방장의 조기 생성에서 제외된 미제출자는 이 목록에 포함되지 않는다. 등록 명단이나 방의 원래 인원수를 추정하지 않는다. scenario_id는 확정 문항의 template_id를 그대로 쓴다. 비어 있는 participant_ids, 중복 participant_id·응답 ID와 존재하지 않는 참여자·상황·선택지는 invalid_input으로 알리고 clauses=null로 둔다.
 - participant_ids의 각 ID에는 모든 입력 상황에 정확히 한 응답이 있어야 한다. 이 입력 목록 안에서 응답이 빠졌을 때만 needs_information, clauses=null, message로 반환한다. 목록 밖의 미제출자를 찾거나 응답을 요구하지 않는다. 채택된 제출 건의 모호한 메모는 응답 누락과 구분한다.
-- 입력에는 이름·별명·성별·나이대·MBTI 등 프로필 정보가 없다. 모델은 등록 이름을 만들거나 성격·선호·한계를 추정하지 않는다. 응답 작성자는 입력 participant_id로 지칭한다. 문항에 남은 {{profile:profile_id}} 토큰은 안정된 참조로 유지하며 해당 profile_id를 제출 건 ID로 취급하거나 응답 작성자로 추정하지 않는다. 코드는 출력의 ID·토큰을 협약서 화면과 저장 이미지에서 등록한 이름·별명으로 표시한다. 제외 명단·응답 마감·재생성 횟수·보관 기간·푸시 정책은 서버에서 처리하며 모델 출력에 필드를 추가하지 않는다.
+- 입력에는 이름·별명·성별·나이대·MBTI 등 프로필 정보가 없다. 모델은 등록 이름을 만들거나 성격·선호·한계를 추정하지 않는다. 공유 문장(action, proposed_conditions, proposed_change, description, message)에서 응답 작성자는 {{participant:participant_id}}로 지칭하고 맨 ID를 쓰지 않는다. 붙는 조사는 은/는, 이/가, 을/를, 과/와, 으로/로 중 해당 쌍을 그대로 쓴다(예: {{participant:sub_1}}은/는). 의·에게·도·만·부터처럼 받침에 따라 달라지지 않는 조사는 그대로 쓴다. ID 배열·원문 인용·positions는 바꾸지 않는다. 문항에 남은 {{profile:profile_id}} 토큰은 안정된 참조로 유지하며 해당 profile_id를 제출 건 ID로 취급하거나 응답 작성자로 추정하지 않는다. 코드는 출력의 ID·토큰을 협약서 화면과 저장 이미지에서 등록한 이름·별명으로 표시한다. 제외 명단·응답 마감·재생성 횟수·보관 기간·푸시 정책은 서버에서 처리하며 모델 출력에 필드를 추가하지 않는다.
 - 유효하고 빠짐없는 입력이면 responses마다 positions에 {response_id, position}을 한 번씩 넣는다. position은 ParticipantPosition의 desired_action(필수, 미확정이면 null), condition, reason, expressed_content만 사용한다. desired_action에는 메모 수정을 반영한 희망 행동과 제한을 요약한다. condition은 본인의 피로·컨디션, reason은 명시한 선택 이유, expressed_content는 본인이 동행에게 실제 전달했다고 명시한 관련 발언이며 해당 메모에서 정확히 발췌한다. 근거 없는 선택 속성은 생략한다. 앱 메모 자체·타인 발언·가상 예시를 실제 전달 발언으로 바꾸지 않고 과거 전달을 현재 상황의 발언이나 상대의 수락으로 취급하지 않는다. 입력 오류·지원 밖·채택 응답 누락이면 positions=[]이다. positions는 서버 내부 검증용이며 공유하지 않는다. 추출 입장과 추천을 원본 선택·메모에 각각 대조하고 원래의 명시적 제한을 보존한다.
 - 메모가 객관식을 명확히 수정·제한하면 메모를 우선한다. 모호하거나 모순된 부분은 재질문하지 않고 추천 적용 대상에서 제외한다. 그 밖의 사람이나 상황에서 근거가 충분한 조항은 계속 생성한다. 다른 사람에게 의무를 부과하거나 제외한 사람의 한계에 의존하는 안은 만들지 않는다.
 - 원래 선택도 확신할 수 없으면 해당 응답을 제외하고 unresolved_conditions에 같은 상황의 source_response_ids와 짧은 제외 이유를 적는다. 확인 가능한 명시적 한계를 추정으로 지우지 않는다. 입력에 없는 이유·성격·양보·합의를 만들지 않으며 앱 메모를 실제 전달 발언으로 바꾸지 않는다.
@@ -159,7 +159,7 @@ schema_version 4는 기존 추천에 응답별 입장 추출을 포함한다. �
   "clauses": [
     {
       "scenario_id": "free_time",
-      "action": "여유 시간에 하고 싶은 일이 다르면 잠깐 따로 시간을 보내는 걸 추천해요. A는 구경하고, B는 혼자 쉬고, C는 카페에서 기다릴 수 있어요. 헤어지기 전에 각자 필요한 시간과 다시 만날 시간·장소를 정해요.",
+      "action": "여유 시간에 하고 싶은 일이 다르면 잠깐 따로 시간을 보내는 걸 추천해요. {{participant:A}}은/는 구경하고, {{participant:B}}은/는 혼자 쉬고, {{participant:C}}은/는 카페에서 기다릴 수 있어요. 헤어지기 전에 각자 필요한 시간과 다시 만날 시간·장소를 정해요.",
       "participant_ids": [
         "A",
         "B",
@@ -274,7 +274,7 @@ schema_version 4는 기존 추천에 응답별 입장 추출을 포함한다. �
 {
   "status": "needs_information",
   "clauses": null,
-  "message": "추천에 포함된 C의 free_time 답변이 빠져 있어요.",
+  "message": "추천에 포함된 {{participant:C}}의 free_time 답변이 빠져 있어요.",
   "positions": []
 }
 ```
@@ -289,7 +289,7 @@ schema_version 4는 기존 추천에 응답별 입장 추출을 포함한다. �
 |---|---|---|
 | 입력 `participant_ids` | `select_accepted_submissions(at_close)` → `generate_pact(participant_ids=…)` | 하드: 마감 때 채택된 완전 제출 건의 고유 ID. 이름 중복도 별도 ID |
 | 입력 `responses` | `validate_submission_responses(participant_ids, scenarios, responses)` | 하드: 채택된 각 ID의 모든 상황 응답. 목록 밖 미제출자는 검사 대상에서 제외 |
-| 표시용 이름·별명과 문항의 `{{profile:profile_id}}` 토큰 | `render_participant_names(participant_ids)` 및 `render_profile_tokens(text, profiles)` | 코드에서 조회해 화면·저장 이미지 표시. profile_id와 제출 건 ID 구분. 이름·프로필은 모델에 전달하지 않음 |
+| 표시용 이름·별명과 문항의 `{{profile:profile_id}}` 토큰 | `render_participant_names(participant_ids)` 및 `render_profile_tokens(text, profiles)` | 참여자 토큰·조사 쌍을 코드에서 조회해 화면·저장 이미지 표시. profile_id와 제출 건 ID 구분. 이름·프로필은 모델에 전달하지 않음 |
 | `positions[].response_id` | `validate_positions(input, output)` | 하드: 실제 응답별 1개, 중복·누락·다른 응답 연결 금지 |
 | `positions[].position.desired_action` | `build_position_review(input, output)`의 원문·입장·추천 대조 자료 | 원본 선택·수정 메모와 대조. 확정 불가면 null, 모호함을 선호 없음으로 바꾸지 않음 |
 | `positions[].position.condition` | `validate_positions`·`build_position_review`의 원문·컨디션 대조 | 피로·컨디션만, 예산·시간 제한으로 의미 확장 금지 |
@@ -310,6 +310,8 @@ schema_version 4는 기존 추천에 응답별 입장 추출을 포함한다. �
 | `unresolved_conditions[].source_response_ids` | `lookup_response_evidence(ids)` | 하드: 같은 상황의 입력 응답 |
 | `unresolved_conditions[].description` | `show_unresolved_condition(text)` | 충돌/부족 조건 설명 |
 | `message` | `show_generation_notice(message)` | 처리 불가 이유·검토한 대안·다음 동작 |
+
+추천의 공유 문장은 `{{participant:participant_id}}`와 조사 쌍을 함께 렌더링한다. 등록된 제출 ID만 허용하고 토큰·조사 처리는 [SPEC AC13](../../../docs/SPEC.md#6-수용-기준)을 따른다. ID 배열과 내부 원문 인용은 치환하지 않는다.
 
 표시 함수에는 `build_shared_recommendation(output)`으로 `positions`와 `original_condition`을 제외한 결과를 전달한다. 공개 문장의 원문 인용 여부도 확인하며, 조율에 필요한 조건의 의미와 적용 대상 이름은 유지한다.
 
@@ -332,285 +334,13 @@ P1~P7의 정확한 실행 입력은 [입력 자료](../../../docs/research/struc
 
 pool v1·추천 v4로 수행한 실험은 [추천 품질 스파이크](../../../docs/spikes/grounded_pact.md)에 기록했다.
 
-## v8 입장 추출 회귀 점검 (2026-10-01)
+## v9 이름 표시와 연결 점검 (2026-10-01)
 
-`gpt-6.1-sol`, 추론 `low`, 스키마 v4로 P1~P7의 최초 출력을 각 1회 생성했다. 재생성·재시도는 0회다. 입력 고정부터 생성·자동 검사까지 212초로 15분 상한 안에 종료했다.
-
-JSON·스키마, 상태·응답 ID·원문 인용과 입장 누락·중복 검사를 7/7건 통과했다. `ParticipantPosition`의 네 속성은 온톨로지와 일치한다. 후처리를 실행해 인용의 원문 일치와 공유 제외를 확인하고, `build_position_review`로 선택·메모·추출 입장·추천을 나란히 대조하는 자료를 생성했다. 의미는 원본과 따로 대조하며 이 결과를 사람 합의 품질 점수로 세지 않는다.
-
-| 입력 | 실제 상태 | 자동 검사 |
-|---|---|---|
-| P1 | `proposed` | 통과 |
-| P2 | `needs_information` | 통과 |
-| P3 | `proposed` | 통과 |
-| P4 | `invalid_input` | 통과 |
-| P5 | `unsupported` | 통과 |
-| P6 | `conditional_only` | 통과 |
-| P7 | `proposed` | 통과 |
-
-전송부 SHA-256: `c052f8b43621261d071c6e7edb16d8f1ef043eb1073d849208d3769c0ff32a1a`. 스키마 SHA-256: `5845d8cace7864421aa45d353fb6b2ee8b925deb416c7bb2c92e6168f550221b`.
-
-<details>
-<summary>최초 출력 7건</summary>
-
-### P1
-
-요청 SHA-256: `0baaba152bf64ba7b6b4d528b8d576dbb8d5255508cf06f4a6b743ba4b4569f0`. 출력 SHA-256: `dfeae25479f9e7e1c96f8f0dc6022c16c02eac0346c3797aec97068f1f044168`.
-
-```json
-{
-  "status": "proposed",
-  "clauses": [
-    {
-      "scenario_id": "free_time",
-      "action": "여유 시간에 원하는 활동이 다르면 잠시 따로 지내는 걸 추천해요. A가 충분히 구경할 시간과 B가 혼자 쉴 시간을 확보하고, C는 카페에서 기다리는 방식을 고려해요. B의 휴식 뒤에는 함께 지낼 수도 있도록 각자 필요한 시간을 확인해요. 뒤의 공동 약속을 유지하면서 저녁에 함께 이동할 수 있게 다시 만날 시간과 장소를 정해요.",
-      "participant_ids": [
-        "A",
-        "B",
-        "C"
-      ],
-      "source_response_ids": [
-        "rA",
-        "rB",
-        "rC"
-      ],
-      "proposed_conditions": [
-        "따로 움직이기 전에 각자 필요한 시간과 다시 만날 시간·장소를 정해요.",
-        "휴식 뒤 함께 지낼지는 각자의 활동이 끝나는 시점을 확인해 정해요."
-      ]
-    }
-  ],
-  "positions": [
-    {
-      "response_id": "rA",
-      "position": {
-        "desired_action": "한 시간 이상 구경하고 싶으며 따로 다녀도 괜찮음"
-      }
-    },
-    {
-      "response_id": "rB",
-      "position": {
-        "desired_action": "한 시간은 혼자 쉬고 싶으며 그 뒤에는 함께 있어도 괜찮음"
-      }
-    },
-    {
-      "response_id": "rC",
-      "position": {
-        "desired_action": "카페에서 기다려도 괜찮으며 저녁에는 함께 가고 싶음"
-      }
-    }
-  ]
-}
-```
-
-### P2
-
-요청 SHA-256: `2d49ca67bd924cbf1667801b86ca2e10f9b58296cabfec48c9f29057a244610d`. 출력 SHA-256: `19f9a75098d547ffee857c9cb1d81934a0b3feb690da3637d925ba3e941316bb`.
-
-```json
-{
-  "status": "needs_information",
-  "clauses": null,
-  "positions": [],
-  "message": "채택된 제출 건 C의 free_time 응답이 빠져 있어 추천 조항을 만들 수 없어요."
-}
-```
-
-### P3
-
-요청 SHA-256: `34bc18a855c66691b256aef1f0712806a6e3934783096a0379a4bd0f4dc1a3c2`. 출력 SHA-256: `7938191942cb2fd3133ab8fe68ce5b4d1363de5de1813b67cdf6bb757d3650f8`.
-
-```json
-{
-  "status": "proposed",
-  "clauses": [
-    {
-      "scenario_id": "free_time",
-      "action": "여유 시간에 쉬는 방식이 다르면 B는 혼자 쉴 시간을 갖고 C는 카페에서 기다리는 방식을 추천해요. B가 필요한 휴식을 마친 뒤 함께할지는 두 사람이 정하고, 함께하는 저녁 일정에 맞춰 다시 만나요. 따로 움직이기 전에 필요한 시간과 합류 장소를 정해요.",
-      "participant_ids": ["B", "C"],
-      "source_response_ids": ["rB", "rC"],
-      "proposed_conditions": [
-        "따로 움직이기 전에 각자 필요한 시간과 합류 장소를 정해요.",
-        "휴식이 끝난 뒤 함께할지는 B와 C가 정해요."
-      ]
-    }
-  ],
-  "unresolved_conditions": [
-    {
-      "scenario_id": "free_time",
-      "source_response_ids": ["rA"],
-      "description": "A가 피하려는 대상이 확인되지 않아 A의 응답은 이번 추천에 적용하지 않았어요."
-    }
-  ],
-  "positions": [
-    {
-      "response_id": "rA",
-      "position": {"desired_action": "구경을 선택했지만 피하려는 대상은 확인되지 않음"}
-    },
-    {
-      "response_id": "rB",
-      "position": {"desired_action": "한 시간은 혼자 쉬고 싶으며 그 뒤에는 함께 있어도 괜찮음"}
-    },
-    {
-      "response_id": "rC",
-      "position": {"desired_action": "카페에서 기다려도 괜찮고 저녁에는 함께 가고 싶음"}
-    }
-  ]
-}
-```
-
-### P4
-
-요청 SHA-256: `58961d4f506e2c96f63a245194a8a04e732d06d585c65a42c8ffdf159460ce35`. 출력 SHA-256: `31468a32b8ea917b2562e1102bf6c0df79bedbebbab4bfe6412d5744adb7979a`.
-
-```json
-{
-  "status": "invalid_input",
-  "clauses": null,
-  "positions": [],
-  "message": "rA가 선택한 nonexistent는 free_time 문항에 없는 선택지예요."
-}
-```
-
-### P5
-
-요청 SHA-256: `2541f4702cf9b76e7528d684e7ba912bd4e1a115426eb30e38b9505982440c63`. 출력 SHA-256: `b8c929234ae7b6ae19aa8bf296e04f8df9551070007a8ca0c19f2eee722ab386`.
-
-```json
-{
-  "status": "unsupported",
-  "clauses": null,
-  "positions": [],
-  "message": "궁합을 점수로 평가하는 요청은 지원하지 않아요. 여행 상황에서 각자의 희망과 한계를 조율하는 추천 조항을 만드는 요청만 지원해요."
-}
-```
-
-### P6
-
-요청 SHA-256: `8e36c27ec2215775829edfbbb496d673f33be49d70c975e15c7368d522d57864`. 출력 SHA-256: `e1c014b40391d08807222647e0513cbd404cb2172a5a2c210e00b04d40c3356e`.
-
-```json
-{
-  "status": "conditional_only",
-  "clauses": null,
-  "positions": [
-    {
-      "response_id": "R12_r1",
-      "position": {
-        "desired_action": "왼쪽 목적지만 모두 함께 방문하고 싶으며 다른 목적지는 원하지 않고 추가 비용을 낼 수 없음"
-      }
-    },
-    {
-      "response_id": "R12_r2",
-      "position": {
-        "desired_action": "오른쪽 목적지만 모두 함께 방문하고 싶으며 다른 목적지는 원하지 않고 추가 비용을 낼 수 없음"
-      }
-    },
-    {
-      "response_id": "R12_r3",
-      "position": {
-        "desired_action": "목적지는 어느 쪽이든 괜찮지만 차량을 나누거나 따로 기다리지 않고 함께 이동하고 싶으며 추가 비용을 내지 않음"
-      }
-    }
-  ],
-  "conditional_alternatives": [
-    {
-      "scenario_id": "shared_vehicle",
-      "action": "공동 차량 한 대로 이동하며 목적지 의견이 다를 때, sub_2가 방문 방향을 바꾸는 데 동의한다면 sub_1이 원하는 왼쪽 목적지로 세 사람이 함께 가는 안을 제안해요. sub_3의 함께 이동하려는 조건과 세 사람의 추가 비용 제한은 유지해요.",
-      "participant_ids": [
-        "sub_1",
-        "sub_2",
-        "sub_3"
-      ],
-      "source_response_ids": [
-        "R12_r1",
-        "R12_r2",
-        "R12_r3"
-      ],
-      "proposed_conditions": [
-        "목적지 제한을 바꾸는 동의가 확인된 뒤에 함께 갈 장소를 정해요."
-      ],
-      "required_changes": [
-        {
-          "source_response_id": "R12_r2",
-          "original_condition": "나는 오른쪽 목적지만 가고 싶고 왼쪽이나 제3의 장소는 원하지 않아.",
-          "proposed_change": "방문 방향을 오른쪽으로 한정하는 조건을 완화해 왼쪽 목적지로 함께 이동하는 안을 제안해요. 추가 비용을 내지 않는 조건은 유지해요."
-        }
-      ]
-    }
-  ],
-  "unresolved_conditions": [
-    {
-      "scenario_id": "shared_vehicle",
-      "source_response_ids": [
-        "R12_r1",
-        "R12_r2",
-        "R12_r3"
-      ],
-      "description": "sub_1과 sub_2가 허용하는 목적지가 다르고 sub_3는 분리 이동과 별도 대기를 원하지 않아요. 세 사람의 추가 비용 제한도 유지해야 해서 원래 조건에 맞는 공동 이동안은 정하지 못했어요."
-    }
-  ],
-  "message": "한 곳으로 공동 이동하기, 별도 차량으로 나누기, 다른 장소 고르기를 검토했어요. 목적지와 분리 이동, 추가 비용 제한이 남아 있어 목적지 제한을 완화하는 조건부 안을 제안해요. 변경이 수락된 것은 아니에요."
-}
-```
-
-### P7
-
-요청 SHA-256: `be413bf1b47c56f7662e0212296c4950b656a93c86f09fee3fb3204468ef6599`. 출력 SHA-256: `7a463275d258c0d4d665a2898c96909ba55f4bab14301cc5845ce5d07234a310`.
-
-```json
-{
-  "status": "proposed",
-  "clauses": [
-    {
-      "scenario_id": "free_time",
-      "action": "여유 시간에 원하는 휴식이 다르면 잠시 따로 보내는 걸 추천해요. A는 긴 도보 이동을 피하며 카페에서 쉬고, C도 카페에서 기다릴 수 있어요. B는 숙소에서 한 시간 혼자 쉬는 시간을 확보해요. 그 뒤 함께할지는 다시 정하고, 저녁 약속은 유지하도록 재합류 방법을 정해요.",
-      "participant_ids": [
-        "A",
-        "B",
-        "C"
-      ],
-      "source_response_ids": [
-        "rA",
-        "rB",
-        "rC"
-      ],
-      "proposed_conditions": [
-        "A가 오래 걷지 않아도 되는 이동 방법을 정해요.",
-        "B의 혼자 쉬는 시간이 끝난 뒤 함께할지 정해요.",
-        "저녁 약속을 지킬 수 있도록 재합류 시간과 장소를 정해요."
-      ]
-    }
-  ],
-  "positions": [
-    {
-      "response_id": "rA",
-      "position": {
-        "desired_action": "오래 걷기 어려워 지금은 카페에서 쉬고 싶으며 다른 일행은 따로 구경해도 괜찮음",
-        "condition": "오래 걸으면 무릎이 아파.",
-        "reason": "많이 걷기 힘들어서",
-        "expressed_content": "많이 걷기 힘들어서 카페에서 쉬고 싶어"
-      }
-    },
-    {
-      "response_id": "rB",
-      "position": {
-        "desired_action": "숙소에서 한 시간 혼자 쉬고 싶으며 그 뒤에는 함께 있어도 괜찮음"
-      }
-    },
-    {
-      "response_id": "rC",
-      "position": {
-        "desired_action": "카페에서 기다려도 괜찮으며 저녁에는 함께 가고 싶음"
-      }
-    }
-  ]
-}
-```
-
-</details>
+기본 다섯 유형 P1~P5와 최신 문항 연결·분기 점검 E01~E03은 [스파이크 기록](../../../docs/spikes/grounded_pact.md#최신-연결과-표시-점검)에 정리한다. 입력·최초 출력은 [v9 실행 자료](../../../docs/spikes/grounded_pact_v9_outputs.jsonl)에 보존한다. 이전 P1~P7 결과는 [v8 원문](../../../docs/spikes/legacy/grounded_pact_v8_regression.md)을 참조한다.
 
 ## 변경 이력
+
+- v9 (2026-10-01): 추천 공유 문장에 참여자 토큰과 조사 쌍을 적용했다.
 
 - v8 (2026-10-01): 입장 추출 예시에서 행동의 허용과 희망을 구분했다.
 

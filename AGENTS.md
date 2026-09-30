@@ -43,7 +43,6 @@
 
 - `positions`는 같은 추천 호출에서 추출한 `ParticipantPosition`이며 서버 검증용이다. 원본 응답과 먼저 대조하고 공유에서 제외한다. 실제 전달했다고 명시한 발언만 `expressed_content`로 추출하며 전달을 수락으로 해석하지 않는다.
 - 입력 `memo`는 이유·추가 설명 원문이며, 도메인 선택 이유는 `ParticipantPosition.reason`이다. 실제 전달 발언인 `expressed_content`로 자동 저장하지 않는다. AI의 새 약속은 `proposed_conditions`, 실제 실행 결과는 `Decision.reported_result`로 구분한다.
-
 - 용어·필드는 온톨로지와 스키마의 이름을 쓴다. 타입·enum은 JSON Schema로, 상태·참조는 후처리로, 의미는 사람이 확인한 기준으로 검증한다. 외부 호출은 검증·표시 로직과 분리한다.
 - 구현 전에 대응 골든 케이스와 판정 기준을 확인한다. 코드의 정렬·상태 판정은 동일 입력에서 같아야 하며 동점 처리도 명시한다. LLM의 자유 문장까지 동일하다고 가정하지 않는다.
 - 로그·관찰·AC 번호와 원문 연결을 유지한다. 인터뷰 클래스·속성·관계에는 실제 로그의 `evidence`를, 출력 계약에는 `design_source`를 연결하고 관계 대상을 검사한다.
@@ -59,7 +58,7 @@
 
 ## 7. 운영 정보
 
-모델은 GPT Sol을 사용한다. 이 저장소는 조사·스펙·모델 출력 계약을 관리한다. 서비스 실행·테스트·린트 명령은 구현 코드의 설정을 따른다. 모바일 확인은 아이폰 Safari와 안드로이드 Chrome 실제 기기로 수행한다. 실제 확인한 명령과 통과 조건을 이 절과 README에 기록한다. 문서 점검: `git diff --check`, 변경 범위 확인: `git status --short`.
+모델은 GPT-6.1 Sol (`gpt-6.1-sol`, 이하 Sol)을 사용한다. 이 저장소는 조사·스펙·모델 출력 계약을 관리한다. 서비스 실행·테스트·린트 명령은 구현 코드의 설정을 따른다. 모바일 확인은 아이폰 Safari와 안드로이드 Chrome 실제 기기로 수행한다. 실제 확인한 명령과 통과 조건을 이 절과 README에 기록한다. 문서 점검: `git diff --check`, 변경 범위 확인: `git status --short`.
 
 - `docs/`: 문제·스펙·온톨로지. `research/`는 인터뷰·관찰, `spikes/`는 실험 기록.
 - `src/travel/schemas/`, `src/travel/prompts/`: 제품 출력 계약·프롬프트.
