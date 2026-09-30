@@ -19,4 +19,4 @@
 | 4강 · 문제 정의와 스펙 | [문제 정의서](docs/PROBLEM.md), [제품 스펙](docs/SPEC.md), [에이전트 작업 규칙](AGENTS.md) |
 | 4강 · 기술 타당성 실험 | [문항 선정·각색](docs/spikes/scenario_adaptation.md), [추천 협약서 품질](docs/spikes/grounded_pact.md) |
 
-[질문 pool 50개](src/travel/data/scenario_pool.json) · [남은 작업](TODO.md) · [강의 작성지침](references/course/00_README.md)
+[회의록](docs/meetings/README.md) · [질문 pool 50개](src/travel/data/scenario_pool.json) · [남은 작업](TODO.md) · [강의 작성지침](references/course/00_README.md)

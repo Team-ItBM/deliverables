@@ -235,7 +235,7 @@ output_contracts:
 # 기록 규칙: 본인 진술·전해 들은 말·추측을 구분한다. 침묵을 동의로 채우지 않는다.
 # 인터뷰 개념 범위: 상황별 입장과 제약, 활동, 조정안, 결정·실행 결과.
 # 제품 설계 범위: 인터뷰 개념을 가상 문항과 추천 협약서의 출력 계약으로 확장한다.
-# 외부 참조: 지도·이동 경로, 영업·예약 정보.
+# 외부 참조: 지도·이동 경로, 영업·예약 정보는 여행 상황의 배경 맥락이며 서비스에서 조회하지 않는다.
 # 범위 밖: 예약·결제·정산 실행, 실시간 최적 동선, 성격·궁합 점수.
 # 핵심 흐름: TravelSituation → ParticipantPosition → AdjustmentOption → Decision.
 # 서비스 흐름: ScenarioSet → Scenario → 일행의 응답 → PactRecommendation.
