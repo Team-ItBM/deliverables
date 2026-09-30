@@ -4,7 +4,7 @@
 |---|---|
 | prompt_version | 4 |
 | schema_version | 2 |
-| 상태 | v3 기본 계약 점검 완료; v4 총인원 표현 보완 |
+| 상태 | v4 기본 다섯 유형 회귀 점검 완료; pool v1 기술 재점검 기록 보존 |
 | 대응 온톨로지 | `ScenarioSet` 및 해당 중첩 출력 모델. 프로퍼티는 각 모델의 `attributes`와 일치한다. |
 | 스키마 | [JSON Schema](../schemas/scenario_set.schema.json) |
 | 참고 | [작성지침](../../../references/course/03/강의03_구조화출력_작성지침.md) · [온톨로지](../../../docs/ontology.yaml) |
@@ -1019,33 +1019,27 @@ v2 호출에서는 Draft7 스키마를 Responses API의 `text.format.type=json_s
 
 출력 형식 오류가 발생하면 이유를 붙여 한 번 재요청한다. 다시 실패하면 처리를 중단하고 수정이 필요한 내용을 안내한다. 정보가 부족하거나 의미가 불명확하면 사용자에게 재질문하고, 지원 밖 요청은 지원 범위를 안내한다. API/CLI 오류는 실행 실패로 기록하며 미해결 여행 조합으로 처리하지 않는다.
 
-## 점검 상태
+pool v1을 사용한 실험은 [문항 선정·각색 스파이크](../../../docs/spikes/scenario_adaptation.md)에 기록했다.
 
-v3은 프로필·공통 기준 문항·decision_key 계약을 반영했고 현재 계약 점검 절에 실행 결과를 기록했다. 아래 v2 호출과 실제 출력은 이전 계약의 기록이며, 당시 입력은 Git에 보존된 v2 문서를 따른다.
+## v4 기본 다섯 유형 회귀 점검 (2026-09-30)
 
-### v2 호출 기록
+문항 프롬프트 v4·스키마 v2로 D절의 기본 다섯 유형을 다시 실행했다. 모델은 `gpt-6.1-sol`, 추론 수준 `low`이며 각 입력의 최초 출력 1회만 사용했다. 재시도·재생성은 0회이다. 입력은 C절 예시의 pool 8개를 사용하며, 서비스용 pool 50개 품질 평가와 구분한다.
 
-2026-09-27(KST)에 같은 입력 다섯 건을 수정 전후 각각 1회 호출하였다. 점검용 모델과 `reasoning.effort=none`, `temperature=0`, `max_output_tokens=6000` 설정을 유지하였다. 당시는 서비스 모델 선정 전이었으며, 현재 모델은 Sol이다. 서비스 API 비용·지연은 구현 검증에서 확인한다.
+입력 고정부터 출력 저장·자동 검사까지 22:39:05~22:41:01 KST, 117초가 걸렸다. 15분 상한 안에 5건을 마쳤다. 서비스 API 비용·응답 지연 측정값은 아니다.
 
-v2 작성 중 전송부를 수정했으므로 당시 전후 구분은 해시와 실제 출력으로 기록한다. 아래 해시는 v2 수정 후 호출의 전송부를 가리키며 현재 v3 전송부와 다르다.
+| ID | 입력 | 실제 상태 | 확인 결과 |
+|---|---|---|---|
+| S1 | 정상 | `ready` | 공통 6문항·ID·선택지·서로 다른 판단과 본인 포함 총 3명 표기 |
+| S2 | 정보 부족 | `needs_information` | 목적지를 임의로 채우지 않고 필요한 정보 요청 |
+| S3 | 모호한 값 | `needs_information` | 모호한 기간을 숫자로 확정하지 않고 필요한 정보 요청 |
+| S4 | 범위 위반 | `invalid_input` | 9문항 요청을 범위 위반으로 안내 |
+| S5 | 지원 밖 조건 | `unsupported` | 성격·궁합 검사 요청을 지원 밖으로 안내 |
 
-- v2 수정 후 전송부 SHA-256: `82a6e6632416cbe8c661b444f7599edd5c8df5d9acd0d4b97cd95d32fdbdfbce`
-- v2 호출 스키마 파일 SHA-256: `38e4a91c8ec3c955e98256c73f2bff98cd5c669068182a9fd587dfbb4400b9ed`
+5건 모두 JSON·스키마·상태 조합·기대 상태 검사를 통과했다. 정상 출력은 요청 수·문항과 선택지 ID·판단 중복·프로필 토큰을 추가 검사했다. 실제 출력은 아래에 그대로 보존한다. 사람 합의 기준에 따른 추천 품질 점수에는 합산하지 않는다.
 
-| 입력 | 수정 후 상태 | 시간 전→후(초) | 입력/출력 토큰 전→후 | AI 검토 | 사람 확인 |
-|---|---|---:|---|---|---|
-| S1 | `ready` | 3.983→3.938 | 10,223/1,244→10,251/1,222 | 6개 문항의 선택지 문구를 보존하고 가상 배경만 각색 | 완료 |
-| S2 | `needs_information` | 1.021→0.974 | 10,221/48→10,249/61 | 없는 목적지를 추측하지 않고 재질문 | 완료 |
-| S3 | `needs_information` | 1.005→0.961 | 10,225/59→10,253/61 | 모호한 기간을 숫자로 채우지 않고 재질문 | 완료 |
-| S4 | `invalid_input` | 0.896→0.967 | 10,223/48→10,251/48 | 요청 수 9개의 범위 위반 안내 | 완료 |
-| S5 | `unsupported` | 1.005→0.880 | 10,221/48→10,249/51 | 성격·궁합 문항 요청의 미지원 안내 | 완료 |
+### v4 S1: 정상
 
-수정 전후 모두 HTTP 200·`completed`로 종료되었고 JSON·스키마·상태·ID 검사를 통과하였다. 재요청은 없었다. 입력 토큰은 캐시 적중분을 포함하며, 캐시와 단일 호출의 변동 때문에 시간 차이를 성능 개선으로 해석하지 않는다.
-
-수정 전후 모두 여섯 문항의 선택지 문구와 설정된 제약을 유지하였다. 가상 장면이라는 지시를 추가했으며, 이번 입력에서 새로운 의미 오류는 발견하지 못했다.
-
-<details>
-<summary>S1 수정 후 실제 출력</summary>
+요청 SHA-256: `1a034b4b24258cddadd302d0d0481391a7f9693ed3590bbed1cfbc98c93cd8e9`. 최초 출력 SHA-256: `7b3e13ae50c85fb206ec6e764d6eb5ad9fc839afab5f495c5c01a1152d6cba27`.
 
 ```json
 {
@@ -1053,7 +1047,7 @@ v2 작성 중 전송부를 수정했으므로 당시 전후 구분은 해시와 
   "scenarios": [
     {
       "template_id": "free_time",
-      "scene": "제주에서 가려던 곳이 닫혔다. 저녁 약속까지 세 시간이 남았고 카페와 숙소가 가깝다.",
+      "scene": "친구 사이인 일행 총 3명이 제주에서 3일 여행을 하는 가상 상황이다. 가려던 곳이 닫혔다. 저녁 약속은 유지하며, 약속까지 세 시간이 남았고 카페와 숙소가 가깝다.",
       "question": "이 시간을 어떻게 보내고 싶어?",
       "options": [
         {
@@ -1084,7 +1078,7 @@ v2 작성 중 전송부를 수정했으므로 당시 전후 구분은 해시와 
     },
     {
       "template_id": "rest",
-      "scene": "제주에서 점심 뒤 관광과 저녁 일정이 남아 있다. 지금 일정을 조정할 수 있다.",
+      "scene": "제주에서 친구들과 3일 여행을 하는 가상 상황이다. 점심 뒤 관광과 저녁 일정이 남아 있다. 지금 일정을 조정할 수 있다.",
       "question": "이후 어떻게 하고 싶어?",
       "options": [
         {
@@ -1115,7 +1109,7 @@ v2 작성 중 전송부를 수정했으므로 당시 전후 구분은 해시와 
     },
     {
       "template_id": "sunset",
-      "scene": "제주에서 노을까지 40분 남았다. 쇼핑과 노을 구경을 둘 다 검토 중이다.",
+      "scene": "제주 여행 중의 가상 상황이다. 노을까지 40분 남았다. 쇼핑과 노을 구경을 둘 다 검토 중이며, 이동 시간은 아직 확인하지 않았다.",
       "question": "남은 시간을 어떻게 쓰고 싶어?",
       "options": [
         {
@@ -1146,7 +1140,7 @@ v2 작성 중 전송부를 수정했으므로 당시 전후 구분은 해시와 
     },
     {
       "template_id": "meal",
-      "scene": "제주에서 일행이 식사 메뉴를 고르는 중이며 근처에 서로 다른 메뉴의 식당이 있다.",
+      "scene": "제주 여행 중의 가상 상황이다. 일행이 식사 메뉴를 고르는 중이며 근처에 서로 다른 메뉴의 식당이 있다. 식사 후 일정은 함께 이어갈 예정이고, 따로 식사할 경우 재합류할 장소와 시각은 아직 정하지 않았다.",
       "question": "어떻게 식사하고 싶어?",
       "options": [
         {
@@ -1177,7 +1171,7 @@ v2 작성 중 전송부를 수정했으므로 당시 전후 구분은 해시와 
     },
     {
       "template_id": "photo",
-      "scene": "제주에서 사진을 찍으려면 30분 기다려야 한다. 주변에서 쉬거나 구경할 수 있다.",
+      "scene": "제주 여행 중의 가상 상황이다. 사진을 찍으려면 30분 기다려야 한다. 주변에서 쉬거나 구경할 수 있다.",
       "question": "어떻게 보내고 싶어?",
       "options": [
         {
@@ -1208,7 +1202,7 @@ v2 작성 중 전송부를 수정했으므로 당시 전후 구분은 해시와 
     },
     {
       "template_id": "budget",
-      "scene": "제주에서 공동 식사 예산은 1인 2만 원이다. 4만 원 식당도 후보로 나왔다.",
+      "scene": "제주 여행 중의 가상 상황이다. 공동 식사 예산은 1인 2만 원이다. 1인 4만 원 식당도 후보로 나왔다.",
       "question": "어떻게 하고 싶어?",
       "options": [
         {
@@ -1241,282 +1235,9 @@ v2 작성 중 전송부를 수정했으므로 당시 전후 구분은 해시와 
 }
 ```
 
-</details>
+### v4 S2: 정보 부족
 
-<details>
-<summary>S2 수정 후 실제 출력</summary>
-
-```json
-{
-  "status": "needs_information",
-  "scenarios": null,
-  "clarification_questions": [
-    "목적지는 어디인가요?"
-  ],
-  "message": "목적지가 없어 장면을 여행 맥락에 맞게 각색할 수 없습니다."
-}
-```
-
-</details>
-
-<details>
-<summary>S3 수정 후 실제 출력</summary>
-
-```json
-{
-  "status": "needs_information",
-  "scenarios": null,
-  "clarification_questions": [
-    "여행 기간은 며칠인가요?"
-  ],
-  "message": "duration_days가 숫자가 아니어서 여행 기간을 확정할 수 없습니다."
-}
-```
-
-</details>
-
-<details>
-<summary>S4 수정 후 실제 출력</summary>
-
-```json
-{
-  "status": "invalid_input",
-  "scenarios": null,
-  "message": "requested_count는 6~8이어야 합니다. 요청한 9개는 지원 범위를 벗어납니다."
-}
-```
-
-</details>
-
-<details>
-<summary>S5 수정 후 실제 출력</summary>
-
-```json
-{
-  "status": "unsupported",
-  "scenarios": null,
-  "message": "성격·궁합 검사 문항은 지원 범위 밖입니다. 여행 중 선택 상황에 대한 문항만 제공할 수 있습니다."
-}
-```
-
-</details>
-
-## v3 현재 계약 점검 (2026-09-30)
-
-`gpt-6.1-sol`, 추론 수준 `low`로 기본 다섯 유형과 추가 정책 한 건을 각각 1회 생성했다. 재생성 없이 최초 출력을 검사했으며 6건 모두 JSON·스키마·기대 상태·참조 검사를 통과했다. 두 프롬프트의 입력 고정부터 총 12건 자동 검사 완료까지 19:48:22~19:50:56 KST, 155초가 걸렸다. 이 시간은 3주차 기본 점검 구간이며 4주차 스파이크의 전체 소요나 서비스 지연이 아니다.
-
-| 입력 | 상태 | 확인한 동작 |
-|---|---|---|
-| S1 정상 | `ready` | 6개 문항·선택지 ID와 서로 다른 판단을 유지했다. 선택 프로필을 노출하지 않았다. |
-| S2 정보 부족 | `needs_information` | 목적지 누락을 알리고 필요한 정보를 물었다. |
-| S3 모호한 값 | `needs_information` | 불명확한 여행 기간을 임의로 확정하지 않았다. |
-| S4 범위 위반 | `invalid_input` | 9개 문항 요청을 거부했다. |
-| S5 지원 밖 | `unsupported` | 성격·궁합 검사 요청을 지원하지 않는다고 알렸다. |
-| S6 동일 판단만 있는 pool | `needs_information` | 문항 8개가 같은 decision_key이면 6개를 중복 선정하지 않고 보충을 요청했다. |
-
-기본 입력은 D절의 예시와 변경값을 따른다. 추가 S6 입력은 C절 예시 1에서 모든 pool 항목의 `decision_key`를 `same_judgment`로 바꾼 것이다. 이름 토큰의 실제 화면 치환과 두 모바일 기기의 동작은 서비스 구현 후 AC15·AC14로 검증한다. 의미 품질의 최종 통과율이나 제품 전체의 검증 완료로 해석하지 않는다.
-
-<details>
-<summary>S1 최초 출력</summary>
-
-```json
-{
-  "status": "ready",
-  "scenarios": [
-    {
-      "template_id": "free_time",
-      "scene": "친구 셋이 함께하는 3일 제주 여행 중, 가려던 곳이 닫혔다. 유지할 저녁 약속까지 세 시간이 남았고 카페와 숙소가 가깝다.",
-      "question": "이 시간을 어떻게 보내고 싶어?",
-      "options": [
-        {
-          "option_id": "free_time_1",
-          "label": "구경하고 싶다"
-        },
-        {
-          "option_id": "free_time_2",
-          "label": "카페에서 보내고 싶다"
-        },
-        {
-          "option_id": "free_time_3",
-          "label": "숙소에서 쉬고 싶다"
-        },
-        {
-          "option_id": "free_time_any",
-          "label": "어느 쪽이든 괜찮다"
-        },
-        {
-          "option_id": "free_time_other",
-          "label": "다른 의견이 있다"
-        },
-        {
-          "option_id": "free_time_info",
-          "label": "정보가 더 필요하다"
-        }
-      ]
-    },
-    {
-      "template_id": "rest",
-      "scene": "친구 셋이 함께하는 3일 제주 여행 중 점심을 마쳤다. 관광과 저녁 일정이 남아 있으며 지금 일정을 조정할 수 있다.",
-      "question": "이후 어떻게 하고 싶어?",
-      "options": [
-        {
-          "option_id": "rest_1",
-          "label": "관광을 계속하고 싶다"
-        },
-        {
-          "option_id": "rest_2",
-          "label": "잠시 쉬고 싶다"
-        },
-        {
-          "option_id": "rest_3",
-          "label": "오늘은 귀가하고 싶다"
-        },
-        {
-          "option_id": "rest_any",
-          "label": "어느 쪽이든 괜찮다"
-        },
-        {
-          "option_id": "rest_other",
-          "label": "다른 의견이 있다"
-        },
-        {
-          "option_id": "rest_info",
-          "label": "정보가 더 필요하다"
-        }
-      ]
-    },
-    {
-      "template_id": "sunset",
-      "scene": "친구 셋이 함께하는 3일 제주 여행 중, 노을까지 40분 남았다. 쇼핑과 노을 구경을 둘 다 검토 중이며 이동 시간은 아직 확인하지 않았다.",
-      "question": "남은 시간을 어떻게 쓰고 싶어?",
-      "options": [
-        {
-          "option_id": "sunset_1",
-          "label": "쇼핑을 먼저 하고 싶다"
-        },
-        {
-          "option_id": "sunset_2",
-          "label": "노을을 먼저 보고 싶다"
-        },
-        {
-          "option_id": "sunset_3",
-          "label": "둘을 짧게 나누고 싶다"
-        },
-        {
-          "option_id": "sunset_any",
-          "label": "어느 쪽이든 괜찮다"
-        },
-        {
-          "option_id": "sunset_other",
-          "label": "다른 의견이 있다"
-        },
-        {
-          "option_id": "sunset_info",
-          "label": "정보가 더 필요하다"
-        }
-      ]
-    },
-    {
-      "template_id": "meal",
-      "scene": "친구 셋이 함께하는 3일 제주 여행 중 식사 메뉴를 고르는 중이다. 근처에 서로 다른 메뉴의 식당이 있다. 식사 후 일정은 함께 이어갈 예정이며 재합류 장소와 시각은 아직 정하지 않았다.",
-      "question": "어떻게 식사하고 싶어?",
-      "options": [
-        {
-          "option_id": "meal_1",
-          "label": "한 식당에서 같이 먹고 싶다"
-        },
-        {
-          "option_id": "meal_2",
-          "label": "각자 원하는 메뉴를 먹고 싶다"
-        },
-        {
-          "option_id": "meal_3",
-          "label": "메뉴를 더 찾아보고 싶다"
-        },
-        {
-          "option_id": "meal_any",
-          "label": "어느 쪽이든 괜찮다"
-        },
-        {
-          "option_id": "meal_other",
-          "label": "다른 의견이 있다"
-        },
-        {
-          "option_id": "meal_info",
-          "label": "정보가 더 필요하다"
-        }
-      ]
-    },
-    {
-      "template_id": "photo",
-      "scene": "친구 셋이 함께하는 3일 제주 여행 중, 사진을 찍으려면 30분 기다려야 하는 곳에 왔다. 주변에서 쉬거나 구경할 수 있다.",
-      "question": "어떻게 보내고 싶어?",
-      "options": [
-        {
-          "option_id": "photo_1",
-          "label": "줄을 서서 사진을 찍고 싶다"
-        },
-        {
-          "option_id": "photo_2",
-          "label": "주변을 구경하고 싶다"
-        },
-        {
-          "option_id": "photo_3",
-          "label": "쉬면서 기다리고 싶다"
-        },
-        {
-          "option_id": "photo_any",
-          "label": "어느 쪽이든 괜찮다"
-        },
-        {
-          "option_id": "photo_other",
-          "label": "다른 의견이 있다"
-        },
-        {
-          "option_id": "photo_info",
-          "label": "정보가 더 필요하다"
-        }
-      ]
-    },
-    {
-      "template_id": "budget",
-      "scene": "친구 셋이 함께하는 3일 제주 여행의 공동 식사 예산은 1인 2만 원이다. 1인 4만 원 식당도 후보로 나왔다.",
-      "question": "어떻게 하고 싶어?",
-      "options": [
-        {
-          "option_id": "budget_1",
-          "label": "기존 예산을 유지하고 싶다"
-        },
-        {
-          "option_id": "budget_2",
-          "label": "추가 비용을 내고 바꾸고 싶다"
-        },
-        {
-          "option_id": "budget_3",
-          "label": "각자 다른 식당을 골라도 괜찮다"
-        },
-        {
-          "option_id": "budget_any",
-          "label": "어느 쪽이든 괜찮다"
-        },
-        {
-          "option_id": "budget_other",
-          "label": "다른 의견이 있다"
-        },
-        {
-          "option_id": "budget_info",
-          "label": "정보가 더 필요하다"
-        }
-      ]
-    }
-  ]
-}
-```
-
-</details>
-
-<details>
-<summary>S2 최초 출력</summary>
+요청 SHA-256: `a57968651b7f3250650f9dabb0b5cd76a34a385d037966fdcd312bebd270d419`. 최초 출력 SHA-256: `4ce83711fe643de319fbef1dde702ffa301cb94b9a66b2b7900abf57360f9303`.
 
 ```json
 {
@@ -1525,75 +1246,51 @@ v2 작성 중 전송부를 수정했으므로 당시 전후 구분은 해시와 
   "clarification_questions": [
     "여행 목적지는 어디인가요?"
   ],
-  "message": "여행 목적지가 제공되지 않아 상황 문항을 선정·각색할 수 없습니다."
+  "message": "여행 목적지가 없어 상황 문항의 배경을 각색할 수 없습니다."
 }
 ```
 
-</details>
+### v4 S3: 모호한 값
 
-<details>
-<summary>S3 최초 출력</summary>
+요청 SHA-256: `5ff7d7186b0f47be1aa40134567835acdd4467fa5c6bb6bfeabcfd2aad083176`. 최초 출력 SHA-256: `087404a3b2e7722bb44b89e6cf83489822508b7cf7db84d4bfb2fdfe14b518b1`.
 
 ```json
 {
   "status": "needs_information",
   "scenarios": null,
   "clarification_questions": [
-    "제주 여행 기간은 정확히 며칠인가요? 1 이상의 정수로 알려주세요."
+    "여행 기간은 정확히 며칠인가요? 1 이상의 정수로 알려주세요."
   ],
   "message": "여행 기간이 '며칠 정도'로 모호하여 문항을 각색할 수 없습니다."
 }
 ```
 
-</details>
+### v4 S4: 범위 위반
 
-<details>
-<summary>S4 최초 출력</summary>
+요청 SHA-256: `17fdcec282eba4da3e77bf58326650e5935fc89e54da86038ac96606ccbd9575`. 최초 출력 SHA-256: `121a43fda362890641345fbad45922ab4f7c54bf771abde24927246ec8ac3fbc`.
 
 ```json
 {
   "status": "invalid_input",
   "scenarios": null,
-  "message": "requested_count는 6~8이어야 합니다. 입력된 요청 문항 수 9는 허용 범위를 벗어납니다."
+  "message": "requested_count가 9로 허용 범위인 6~8을 벗어났습니다."
 }
 ```
 
-</details>
+### v4 S5: 지원 밖 조건
 
-<details>
-<summary>S5 최초 출력</summary>
+요청 SHA-256: `e7e17b214743ed146e51f3ea215e1a9d79433b85dacea89fa9d458e7d51069c4`. 최초 출력 SHA-256: `01fb050af537098a6efcf4cd4ac79db5741f72425b2ca75835239c48dfa959da`.
 
 ```json
 {
   "status": "unsupported",
   "scenarios": null,
-  "message": "성격·궁합 검사는 지원 범위 밖입니다. 제공된 문항 풀에서 여행 선택 상황을 선정·각색하는 요청만 지원합니다."
+  "message": "여행자들의 성격과 궁합을 검사하는 질문은 지원 범위 밖입니다. 제공된 pool을 바탕으로 여행 선택 상황 문항을 선정·각색할 수 있습니다."
 }
 ```
-
-</details>
-
-<details>
-<summary>S6 최초 출력</summary>
-
-```json
-{
-  "status": "needs_information",
-  "scenarios": null,
-  "clarification_questions": [
-    "서로 다른 decision_key를 가진 문항이 총 6개 이상 되도록 scenario_pool을 보충해 주실 수 있나요?"
-  ],
-  "message": "제공된 8개 문항의 decision_key가 모두 same_judgment로 같아 고유 판단 문항은 1개입니다. 요청한 6개 문항을 중복 없이 선정하려면 서로 다른 decision_key를 가진 문항이 최소 5개 더 필요합니다."
-}
-```
-
-</details>
-
-전송부 SHA-256(마커 내부 양끝 공백 제거): `189367a99e6cb056a51be69851afdbae2d0a548cb65b58043402030ba7f95ef5`. 스키마 파일 SHA-256: `bd5ea3a6b8438b45787efb86cfe26ef33a99151da74d493f360390ab47633af7`.
 
 ## 변경 이력
 
-- v4 (2026-09-30): party_size가 본인을 포함한 총인원임을 명시하고, 본인을 별도로 더할 수 있는 표현을 제한했다. 출력 스키마 v2는 유지한다.
-
-- v3 (2026-09-30): participant_profiles 입력·프로필 비공개·공통 기준 문항과 코드의 뷰별 토큰 치환을 정의했다. decision_key로 같은 판단의 중복 선정을 제한하고 주제별 고정 비중을 없앴다. 출력 구조와 schema_version 2는 유지하며 기본 다섯 유형과 추가 정책 한 건을 실행·점검했다.
-- v2 (2026-09-27): 가상 문항 선정·각색의 스키마·프롬프트를 작성하고 원본 제약·선택지 보존 규칙을 정리하였다. 중복 출력을 줄이고 출처 기록은 전송부 밖에 두었다. 필드 사용처와 실패 처리, 다섯 유형의 수정 전후 호출·검토 결과를 기록하였다.
+- v4 (2026-09-30): `party_size`를 본인 포함 총인원으로 명시했다.
+- v3 (2026-09-30): 프로필 입력·비공개·공통 문항·이름 치환을 정의하고 `decision_key` 중복과 주제별 고정 비중을 제거했다.
+- v2 (2026-09-27): 가상 문항 선정·각색, 원본 제약·선택지 보존, 중복 방지와 실패 처리 규칙을 작성했다.

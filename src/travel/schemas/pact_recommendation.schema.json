@@ -169,7 +169,7 @@
         "original_condition": {
           "type": "string",
           "minLength": 1,
-          "description": "해당 응답의 선택지 문구 또는 메모에서 인용한 조건. 메모가 수정한 선택지 조건은 사용하지 않는다."
+          "description": "서버 검증용 원문 인용. 해당 응답의 선택지 문구 또는 메모에서 가져오며 메모가 수정한 선택지 조건은 사용하지 않는다. 공유 응답·화면·이미지에서는 제외한다."
         },
         "proposed_change": {
           "type": "string",

@@ -159,7 +159,7 @@ classes:
     evidence: [제품 기획]
     attributes:
       source_response_id: {type: string, description: 원래 조건을 담은 응답 ID. 작성자는 이 ID로 조회한다., evidence: [협약 출력]}
-      original_condition: {type: string, description: 선택한 선택지 또는 메모에 명시된 조건의 정확한 구절. 메모가 수정한 조건을 우선한다., evidence: [협약 출력]}
+      original_condition: {type: string, description: 서버 검증용 원문 인용. 메모가 수정한 조건을 우선하며 공유 응답·화면·이미지에서는 제외한다., evidence: [협약 출력]}
       proposed_change: {type: string, description: 원래 조건을 어떻게 바꿔야 가능한지 설명., evidence: [협약 출력]}
     relations: []
 
