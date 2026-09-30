@@ -21,7 +21,7 @@
         "$ref": "#/definitions/PactClause"
       },
       "minItems": 1,
-      "description": "proposed이면 원래 조건을 지키는 조항, 나머지 상태이면 null."
+      "description": "proposed이면 적용 대상의 원래 조건을 지키는 조항. 일부 상황·동행자의 조항만 있어도 가능하며 제외한 응답은 unresolved_conditions에 연결한다. 다른 상태는 null."
     },
     "conditional_alternatives": {
       "type": "array",
@@ -37,14 +37,6 @@
       },
       "minItems": 1
     },
-    "clarification_questions": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      },
-      "minItems": 1
-    },
     "message": {
       "type": "string",
       "minLength": 1
@@ -57,7 +49,7 @@
   "additionalProperties": false,
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "PactRecommendation",
-  "description": "가상 상황 응답에서 도출한 여행 조율 규칙의 추천. 실제 합의·예약·일정 확정이 아니다.",
+  "description": "가상 상황 응답에서 도출한 여행 조율 규칙의 추천. 가능한 일부 조항과 제외 사유를 함께 반환하며 실제 합의·일정 확정과 구분한다.",
   "definitions": {
     "PactClause": {
       "type": "object",
