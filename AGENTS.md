@@ -18,9 +18,10 @@
 - `Decision`: `method`, `reported_result`, `respondent_evaluation`.
 - `ScenarioSet`: `status`, `scenarios`. `Scenario`: `template_id`, `scene`, `question`, `options`.
 - `ScenarioOption`: `option_id`, `label`.
-- `PactRecommendation`: `status`, `clauses`, `conditional_alternatives`, `unresolved_conditions`, `message`.
+- `PactRecommendation`: `status`, `positions`, `clauses`, `conditional_alternatives`, `unresolved_conditions`, `message`.
 - `PactClause`: `scenario_id`, `action`, `participant_ids`, `source_response_ids`, `proposed_conditions`.
 - `ConditionalAlternative`: `scenario_id`, `action`, `participant_ids`, `source_response_ids`, `proposed_conditions`, `required_changes`.
+- `ResponsePosition`: `response_id`, `position`.
 - `ConditionChange`: `source_response_id`, `original_condition`, `proposed_change`.
 
 ## 3. 절대 규칙
@@ -40,6 +41,7 @@
 
 ## 5. 코딩·문서 컨벤션
 
+- `positions`는 같은 추천 호출에서 추출한 `ParticipantPosition`이며 서버 검증용이다. 원본 응답과 먼저 대조하고 공유에서 제외한다. 실제 전달했다고 명시한 발언만 `expressed_content`로 추출하며 전달을 수락으로 해석하지 않는다.
 - 입력 `memo`는 이유·추가 설명 원문이며, 도메인 선택 이유는 `ParticipantPosition.reason`이다. 실제 전달 발언인 `expressed_content`로 자동 저장하지 않는다. AI의 새 약속은 `proposed_conditions`, 실제 실행 결과는 `Decision.reported_result`로 구분한다.
 
 - 용어·필드는 온톨로지와 스키마의 이름을 쓴다. 타입·enum은 JSON Schema로, 상태·참조는 후처리로, 의미는 사람이 확인한 기준으로 검증한다. 외부 호출은 검증·표시 로직과 분리한다.

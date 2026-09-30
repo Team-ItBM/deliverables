@@ -72,7 +72,7 @@
 | 문항 선정·각색 | `{trip, participant_profiles, requested_count, scenario_pool, request}` | `ScenarioSet`: `{status, scenarios, clarification_questions?, message?}` |
 | 답변 제출 | 작성 세션, `profile_id`, 전체 문항의 `{scenario_id, option_id, memo}` | 별도 `participant_id`와 문항별 `response_id`. 제출 후 수정 불가. |
 | 생성·조기 생성 | 제출 수 도달 이벤트 또는 방장 요청 | 응답을 마감하고 채택한 제출·문항을 고정한다. 제외 안내·반영 건수는 서버가 계산한다. |
-| 추천 협약서 생성 | `{participant_ids, scenarios, responses, request}` | `PactRecommendation`: `{status, clauses, conditional_alternatives?, unresolved_conditions?, message?}` |
+| 추천 협약서 생성 | `{participant_ids, scenarios, responses, request}` | `PactRecommendation`: `{status, positions, clauses, conditional_alternatives?, unresolved_conditions?, message?}` |
 | 재생성·결과 선택 | 방장 권한, 고정 입력·결과 식별자 | 같은 입력의 두 번째 정상 결과 또는 선택한 결과. 세 번째 정상 결과 생성은 거부한다. |
 | 방장 편집·이미지 저장 | 방장 권한, 선택한 결과, 조항 문구 수정 | 원본과 구분한 수정본·이미지. 이름·별명, 추천·조건부 대안·제외 안내·수정 표시를 유지한다. |
 | 푸시 등록·발송 | 알림 권한·구독, 방의 완료·생성 이벤트 | 허용된 구독에만 발송하고 같은 이벤트의 중복 알림을 막는다. |
@@ -80,7 +80,7 @@
 
 ### 필드 연결과 검증 경계
 
-- 문항 프롬프트 v4는 [문항 스키마 v2](../src/travel/schemas/scenario_set.schema.json), 추천 프롬프트 v5는 [추천 스키마 v3](../src/travel/schemas/pact_recommendation.schema.json)를 사용한다. 출력 필드·타입·enum은 유지하며, 갱신한 입력 의미는 각 프롬프트를 따른다.
+- 문항 프롬프트 v6는 [문항 스키마 v2](../src/travel/schemas/scenario_set.schema.json), 추천 프롬프트 v8은 [추천 스키마 v4](../src/travel/schemas/pact_recommendation.schema.json)를 사용한다. 추천은 같은 호출에서 `ParticipantPosition`도 추출한다. 추가 LLM 호출 없이 원본·입장·조항을 대조한다.
 - `profile_id`는 등록 프로필, `display_name`은 이름·별명이다. 문항의 `{{profile:profile_id}}` 표기는 코드가 조회해 본인에게 ‘당신’, 다른 사람에게 등록한 이름으로 바꾼다. 모두 같은 문항·선택지 ID와 의미를 유지하며 선택 프로필 정보를 그대로 노출하지 않는다. 표시 이름·‘당신’의 받침에 맞게 이/가·은/는·과/와를 처리한다.
 - [pool 데이터](../src/travel/data/scenario_pool.json)는 `pool_version`과 `scenario_pool`을 저장한다. 모델에는 문항 배열만 전달하고 출처·작성 근거는 입력에서 제외한다. 숙박·다음 날·2박 등 장면의 적용 조건은 여행 기간과 대조해 선정한다.
 - pool의 `decision_key`는 같은 판단을 묻는 문항의 식별자다. 각 문항에 부여한 키를 유지하고 같은 키의 문항을 함께 선정하지 않는다. 주제 자체는 중복을 금지하는 기준이 아니다.
@@ -89,8 +89,9 @@
 - `participant_id`는 채택한 제출 건의 식별자다. 같은 이름·프로필의 별도 제출도 다른 ID로 유지한다. 동일 제출 요청의 전송 재시도는 같은 건으로 처리한다. 이름 선택만으로 기존 제출의 소유권이나 수정 권한을 부여하지 않는다.
 - 추천의 `participant_ids`에는 고정한 완전 제출 건만 넣는다. 미응답 등록 프로필은 모델 입력에서 제외하며 서버가 결과에 제외 안내를 붙인다. 자동 생성도 중복 이름으로 인원이 채워졌다면 반영되지 않은 등록 프로필을 안내한다. 마감과 마지막 제출·조기 생성이 겹쳐도 입력 고정과 최초 생성을 한 번만 수행한다.
 - 각 제출·상황 쌍에는 정확히 한 `response_id`가 있어야 한다. `source_response_ids`는 같은 상황의 실제 응답을 참조한다. 이름·성별·나이대·MBTI는 추천 입력에서 제외하고 표시 이름은 서버가 ID로 조회한다. 추천용 장면에서도 인물 표시는 안정된 식별자로 유지한다.
+- `positions[].position`은 `ParticipantPosition`의 네 속성과 일치한다. `condition`은 피로·컨디션, `desired_action`은 선택·수정 메모의 희망 행동과 제한, `reason`은 명시 이유, `expressed_content`는 실제 전달했다고 명시한 관련 발언이다. 미확정 행동은 null, 근거 없는 선택 속성은 생략한다. 후처리는 응답별 누락·중복과 인용의 원문 일치를 검사한다. 공유 결과에서는 `positions` 전체를 제외한다. 같은 모델의 추출값끼리 일치해도 의미가 맞았다고 판정하지 않는다.
 - `memo`는 추가 설명이며 동행에게 실제로 전달한 말인 `expressed_content`로 자동 변환하지 않는다. `proposed_conditions`는 새 약속, `required_changes`는 원래 조건과 제안 변경이다. 어느 것도 기존 합의·수락으로 표시하지 않는다.
-- `required_changes.original_condition`은 서버가 원문과 대조하는 검증용 필드다. 공유 응답을 만들 때 이 필드와 개인 응답 원문을 제외하고, 화면·이미지에는 `action`과 `proposed_change` 등 조율에 필요한 추천 문장만 표시한다. 표시 문장에도 메모를 그대로 인용하지 않으며, 이 기준은 방장 수정본에도 적용한다.
+- `required_changes.original_condition`은 서버가 원문과 대조하는 검증용 필드다. 공유 응답을 만들 때 이 필드·`positions`와 개인 응답 원문을 제외하고, 화면·이미지에는 `action`과 `proposed_change` 등 조율에 필요한 추천 문장만 표시한다. 표시 문장에도 메모를 그대로 인용하지 않으며, 이 기준은 방장 수정본에도 적용한다.
 
 2026-10-01 문체를 정리한 pool v2의 SHA-256: `39ad97f1cc9132fb6aa08abcc85e9f95aff860a4191bcd0b848cfb2fcfde119a`. 문항을 변경하면 버전과 해시를 함께 갱신한다.
 
@@ -117,9 +118,9 @@ EARS 문형으로 조건·서비스·동작을 명시한다. 케이스 ID는 구
 
 | AC | 요구사항 | 케이스·판정 방법 |
 |---|---|---|
-| AC1 [이벤트 기반] | 유효한 문항 요청이 오면, 서비스는 요청한 6~8개를 반환하고 문항·선택지 ID와 핵심 제약·선택 의미를 보존하며, 인원을 쓰면 본인을 포함한 총인원으로 표시한다. | `scenario_contract`: 같은 `decision_key` 중복과 주제 고정 비중이 없고, 같은 주제·다른 고민은 함께 선정할 수 있는지 대조한다. |
-| AC2 [예외 대응] | 필수 여행 정보·프로필·서로 다른 판단의 pool이 부족하면, 서비스는 `needs_information`으로 필요한 정보를 요청한다. 범위 위반은 `invalid_input`, 지원 밖 요청은 `unsupported`로 반환한다. | `scenario_input`: 기본 다섯 유형과 프로필 누락·수 불일치·중복 ID·선택 정보 생략을 검사한다. |
-| AC3 [상시 적용] | 서비스는 다른 참여자에게 개인 선택·메모 원문, `original_condition`, 선택 프로필 정보를 반환하지 않는다. | `response_privacy`: 응답 조회와 공유 결과에서 원문·검증용 인용 필드가 제외되고, 공개 문장에도 메모가 그대로 인용되지 않는지 검사한다. 이름 재선택·다른 응답 ID 조회에도 같은 기준을 적용한다. 조율 조건의 의미와 적용 대상 이름은 표시할 수 있다. |
+| AC1 [이벤트 기반] | 유효한 문항 요청이 오면, 서비스는 요청한 6~8개를 반환하고 문항·선택지 ID와 핵심 제약·선택 의미를 보존하며, 인원을 쓰면 본인을 포함한 총인원으로 표시한다. | `scenario_contract`: 기간·인원에 맞지 않는 문항을 제외한 뒤 선정 수와 `decision_key` 중복을 대조한다. 핵심 조건을 바꿔 부적합 문항을 끼워 넣으면 실패이다. 주제 고정 비중은 없으며 같은 주제·다른 고민은 함께 선정할 수 있다. |
+| AC2 [예외 대응] | 필수 여행 정보·프로필 또는 여행 조건에 맞는 서로 다른 판단의 pool이 부족하면, 서비스는 `needs_information`으로 필요한 정보를 요청한다. 범위 위반은 `invalid_input`, 지원 밖 요청은 `unsupported`로 반환한다. | `scenario_input`: 기본 다섯 유형과 프로필 누락·수 불일치·중복 ID·선택 정보 생략을 검사한다. |
+| AC3 [상시 적용] | 서비스는 다른 참여자에게 개인 선택·메모 원문, `positions`, `original_condition`, 선택 프로필 정보를 반환하지 않는다. | `response_privacy`: 응답 조회와 공유 결과에서 원문·검증용 인용 필드가 제외되고, 공개 문장에도 메모가 그대로 인용되지 않는지 검사한다. 이름 재선택·다른 응답 ID 조회에도 같은 기준을 적용한다. 조율 조건의 의미와 적용 대상 이름은 표시할 수 있다. |
 | AC4 [이벤트 기반] | 유효한 제출 수가 설정 인원에 도달하거나 방장이 조기 생성을 요청하면, 서비스는 입력을 한 번 고정하고 응답을 마감해 생성한다. | `response_closure`: 같은 이름의 별도 제출을 각각 집계한다. 조기 생성 0건은 거부하고 1건 이상은 허용한다. 동시 제출·조기 요청에서도 최초 생성은 한 번이며 이후 제출·수정은 거부한다. 제외 안내와 반영 건수를 검사한다. |
 | AC5 [상시 적용] | 서비스는 같은 상황의 실제 응답만 근거로 사용하고 잘못된 ID·중복 응답 ID를 거부한다. | `evidence_integrity`: 같은 이름·서로 다른 제출 ID는 허용하고, 같은 제출·상황의 중복은 `invalid_input`으로 처리한다. 작성자·상황 연결을 대조한다. |
 | AC6 [이벤트 기반] | 추천 요청이 오면, 서비스는 명시적 요구·한계와 선택을 수정한 메모를 보존하고 모호한 부분을 제외한 가능한 조항을 반환한다. | `memo_limits`: 같은 선택·다른 메모, 소수 한계, 타인 추측, 중복 이름의 다른 답변을 대조한다. 공동 차량의 일부 조항을 전체 이동 결정으로 표시하거나 제외된 사람에게 의무를 부과하면 실패이다. |

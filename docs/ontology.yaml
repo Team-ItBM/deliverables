@@ -1,8 +1,8 @@
 # 여행 갈등 조율의 미니 온톨로지
 # classes는 강의 2의 인터뷰 개념 6개이며 evidence는 실제 로그만 참조한다.
-# output_contracts는 강의 3의 제품 출력 모델 8개이다. 속성은 JSON Schema와 일치시킨다.
+# output_contracts는 강의 3의 제품 출력 모델 9개이다. 속성은 JSON Schema와 일치시킨다.
 # 출력 모델의 설계 출처는 design_sources로 구분하며 인터뷰에서 발견한 클래스로 세지 않는다.
-version: 4
+version: 5
 
 evidence_sources:
   로그 1: {path: research/records/log-01.md}
@@ -86,6 +86,40 @@ classes:
       - {reported_by: Traveler, evidence: [로그 1, 로그 2, 로그 6, 로그 9, 로그 12]}
 
 
+# 도메인 의미와 제품 필드의 연결. 값의 단순 복사 규칙이 아니다.
+field_mappings:
+  - domain: [TravelSituation.trigger, TravelSituation.constraints, Activity.name, Activity.place]
+    input: [scenario_pool.scene, scenario_pool.core_constraints, scenario_pool.options]
+    output: [Scenario.scene, Scenario.question, ScenarioOption.label]
+    meaning: 인터뷰에서 발견한 상황·행동 개념으로 가상 문항을 설계하고 표현을 각색한다. 실제 여행의 일정·예약 사실로 변환하지 않는다.
+  - domain: [ParticipantPosition.desired_action, ParticipantPosition.condition, ParticipantPosition.reason]
+    input: [responses.option_id, responses.memo]
+    output: [ResponsePosition.position, PactClause.action, ConditionalAlternative.action, ConditionChange.original_condition, ConditionChange.proposed_change]
+    meaning: 선택과 메모에서 바람·한계·이유를 해석한다. 선택을 수정한 메모가 우선이며 새 이유를 만들지 않는다. 메모 자체를 실제 발언으로 간주하지 않으며, 본인이 실제 전달했다고 명시한 관련 발언만 expressed_content로 추출한다.
+  - domain: [AdjustmentOption.summary, AdjustmentOption.participation, AdjustmentOption.conditions]
+    input: [scenarios.core_constraints, responses]
+    output: [PactClause.action, PactClause.participant_ids, PactClause.proposed_conditions, ConditionalAlternative.required_changes]
+    meaning: 조정안의 행동·참여·조건 개념을 추천 설계에 사용한다. 입력의 기존 한계는 보존하고 AI가 새로 제안한 약속만 proposed_conditions로 분리한다. 원래 조건 변경은 required_changes이며 수락을 뜻하지 않는다.
+  - domain: [Traveler]
+    input: [participant_profiles, participant_ids, responses.response_id]
+    output: [PactClause.participant_ids, PactClause.source_response_ids]
+    meaning: 프로필과 제출 건은 제품 식별자다. 같은 이름의 별도 제출은 서로 다른 participant_id이며 인터뷰 인원이나 실제 사람 수로 합치지 않는다.
+  - domain: []
+    output: [ScenarioSet.status, ScenarioSet.clarification_questions, ScenarioSet.message, Scenario.template_id, ScenarioOption.option_id, PactRecommendation.status, PactRecommendation.message, PactRecommendation.unresolved_conditions]
+    meaning: 상태·식별·처리 안내·추적을 위한 제품 필드다. 인터뷰에서 발견한 어휘로 세지 않으며 상세 타입과 사용처는 출력 계약·프롬프트를 따른다.
+  - domain: [Decision]
+    output: []
+    meaning: 추천 생성은 실제 결정·실행 결과를 만들지 않으므로 이번 출력에서 사용하지 않는다.
+
+# 클래스 속성은 유지하고 파싱 시 미확인 값과 선택 필드를 구분한다.
+schema_bindings:
+  ParticipantPosition:
+    schema: ../src/travel/schemas/pact_recommendation.schema.json#/definitions/ParticipantPosition
+    required: [desired_action]
+    nullable: [condition, desired_action, reason, expressed_content]
+    omitted_when_unknown: [condition, reason, expressed_content]
+    use: 선택·메모에서 입장을 추출해 원문 및 추천과 대조한다. expressed_content는 본인이 실제 전달했다고 명시한 관련 발언만 추출한다.
+
 # 문항과 추천 협약서의 입출력. domain_basis는 설계에 사용한 인터뷰 개념이다.
 output_contracts:
   ScenarioSet:
@@ -124,18 +158,29 @@ output_contracts:
       - {expresses: Activity, design_source: [제품 기획]}
 
   PactRecommendation:
-    domain_basis: [AdjustmentOption]
+    domain_basis: [ParticipantPosition, AdjustmentOption]
     description: 가상 상황 응답을 바탕으로 한 여행 조율 규칙의 추천. 실제 결정인 Decision과 구분한다.
     schema: ../src/travel/schemas/pact_recommendation.schema.json
     design_source: [제품 기획]
     attributes:
       status: {type: enum, description: 출력의 사용 가능 상태. 실행 오류와 정보 부족을 구분한다., design_source: [협약 출력], values: [proposed, conditional_only, needs_information, unresolved, unsupported, invalid_input]}
+      positions: {type: array, description: 응답별 ParticipantPosition 추출과 원본 연결. 서버 검증용이며 공유에서 제외한다., design_source: [협약 출력]}
       clauses: {type: [array, 'null'], description: 적용 대상의 원래 조건을 충족하는 추천 조항. 일부 결과를 허용하며 만들지 못하면 null., design_source: [협약 출력]}
       conditional_alternatives: {type: array, description: 조건 변경을 전제로 하는 별도 제안. 현재 조건을 충족했다고 간주하지 않음., design_source: [협약 출력]}
       unresolved_conditions: {type: array, description: 부족하거나 서로 충돌하여 해결하지 못한 조건., design_source: [협약 출력]}
       message: {type: string, description: 정상 생성하지 못한 이유와 다음 동작., design_source: [협약 출력]}
     relations:
       - {contains: PactClause, design_source: [제품 기획]}
+
+  ResponsePosition:
+    domain_basis: [ParticipantPosition]
+    description: 추출한 입장과 원본 응답의 연결
+    design_source: [협약 출력]
+    attributes:
+      response_id: {type: string, description: 입장을 추출한 실제 입력 응답 ID., design_source: [협약 출력]}
+      position: {type: object, description: ParticipantPosition 클래스와 같은 네 속성의 파싱 결과., design_source: [협약 출력]}
+    relations:
+      - {extracts: ParticipantPosition, design_source: [협약 출력]}
 
   PactClause:
     domain_basis: [AdjustmentOption, Traveler]
