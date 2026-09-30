@@ -1,6 +1,7 @@
 # OS / local work
 .DS_Store
-.local-work/
+# Internal notes, validation tools, fixtures, and environment
+/.local-work/
 .tmp/
 .work/
 
