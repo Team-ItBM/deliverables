@@ -23,6 +23,7 @@
 - `ConditionalAlternative`: `scenario_id`, `action`, `participant_ids`, `source_response_ids`, `proposed_conditions`, `required_changes`.
 - `ResponsePosition`: `response_id`, `position`.
 - `ConditionChange`: `source_response_id`, `original_condition`, `proposed_change`.
+- `UnresolvedCondition`: `scenario_id`, `source_response_ids`, `description`.
 
 ## 3. 절대 규칙
 
