@@ -336,9 +336,9 @@ pool v1·추천 v4로 수행한 실험은 [추천 품질 스파이크](../../../
 
 ## v10 정보 부족 분기 점검 (2026-10-01)
 
-기본 다섯 유형 P1~P5와 완전 제출의 전체 정보 부족 E02를 각 1회 실행했다. JSON·스키마·상태·응답 연결·원문 인용·공유 제외·참여자 토큰 검사 6/6건을 통과했다. P2는 `positions=[]`, E02는 응답 18개에 대한 `positions`와 부족 사유를 반환했다. [입력·최초 출력](../../../docs/spikes/grounded_pact_v10_outputs.jsonl)과 [회차 기록](../../../docs/spikes/grounded_pact.md#정보-부족-분기-점검)을 연결한다.
+기본 다섯 유형 P1~P5와 완전 제출의 전체 정보 부족 E02를 각 1회 실행했다. JSON·스키마·상태·응답 연결·원문 인용·공유 제외·참여자 토큰 검사 6/6건을 통과했다. P2는 `positions=[]`, E02는 응답 18개에 대한 `positions`와 부족 사유를 반환했다. [입력·최초 출력](../../../docs/spikes/grounded_pact_v10_outputs.jsonl)과 [점검 요약](../../../docs/spikes/grounded_pact.md#기술-점검-현황)을 연결한다.
 
-이전 [v9 이름 표시·연결 점검](../../../docs/spikes/grounded_pact.md#v9-연결과-표시-점검), [v9 최초 출력](../../../docs/spikes/grounded_pact_v9_outputs.jsonl), [v8 기본 회귀](../../../docs/spikes/legacy/grounded_pact_v8_regression.md)는 당시 기록으로 보존한다.
+이전 [v9 최초 출력](../../../docs/spikes/legacy/grounded_pact_v9_outputs.jsonl)과 [v8 기본 회귀](../../../docs/spikes/legacy/grounded_pact_v8_regression.md)는 당시 기록으로 보존한다.
 
 ## 변경 이력
 
