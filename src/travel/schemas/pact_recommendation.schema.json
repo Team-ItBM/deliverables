@@ -21,7 +21,7 @@
         "$ref": "#/definitions/PactClause"
       },
       "minItems": 1,
-      "description": "proposed이면 원래 조건을 지키는 조항, 나머지 상태이면 null."
+      "description": "proposed이면 적용 대상의 원래 조건을 지키는 조항. 일부 상황·동행자의 조항만 있어도 가능하며 제외한 응답은 unresolved_conditions에 연결한다. 다른 상태는 null."
     },
     "conditional_alternatives": {
       "type": "array",
@@ -37,27 +37,27 @@
       },
       "minItems": 1
     },
-    "clarification_questions": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      },
-      "minItems": 1
-    },
     "message": {
       "type": "string",
       "minLength": 1
+    },
+    "positions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/ResponsePosition"
+      },
+      "description": "응답별 입장 추출. 원본과 대조하는 서버 내부 자료이며 공유하지 않는다. 입력 오류·지원 밖·채택 응답 누락이면 빈 배열."
     }
   },
   "required": [
     "status",
-    "clauses"
+    "clauses",
+    "positions"
   ],
   "additionalProperties": false,
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "PactRecommendation",
-  "description": "가상 상황 응답에서 도출한 여행 조율 규칙의 추천. 실제 합의·예약·일정 확정이 아니다.",
+  "description": "가상 상황 응답에서 도출한 여행 조율 규칙의 추천. 가능한 일부 조항과 제외 사유를 함께 반환하며 실제 합의·일정 확정과 구분한다.",
   "definitions": {
     "PactClause": {
       "type": "object",
@@ -177,7 +177,7 @@
         "original_condition": {
           "type": "string",
           "minLength": 1,
-          "description": "해당 응답의 선택지 문구 또는 메모에서 인용한 조건. 메모가 수정한 선택지 조건은 사용하지 않는다."
+          "description": "서버 검증용 원문 인용. 해당 응답의 선택지 문구 또는 메모에서 가져오며 메모가 수정한 선택지 조건은 사용하지 않는다. 공유 응답·화면·이미지에서는 제외한다."
         },
         "proposed_change": {
           "type": "string",
@@ -216,6 +216,65 @@
         "scenario_id",
         "source_response_ids",
         "description"
+      ],
+      "additionalProperties": false
+    },
+    "ParticipantPosition": {
+      "type": "object",
+      "description": "인터뷰 ParticipantPosition의 네 속성. 현재 선택은 desired_action으로, 명시된 컨디션·이유·실제 전달 발언은 원문에서 추출한다.",
+      "properties": {
+        "condition": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "description": "본인의 피로·컨디션을 설명한 메모 원문. 시간·예산 제한을 이 필드로 넓히지 않는다."
+        },
+        "desired_action": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "description": "선택과 수정 메모에 따른 현재 희망 행동과 그 제한. 확정할 수 없으면 null."
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "description": "본인이 명시한 선택 이유의 메모 원문. 행동에서 이유를 추정하지 않는다."
+        },
+        "expressed_content": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "description": "본인이 동행에게 실제 전달했다고 명시한 관련 발언의 메모 원문. 앱 메모 자체·타인 발언·가상 예시는 제외하며 전달을 수락으로 해석하지 않는다."
+        }
+      },
+      "required": [
+        "desired_action"
+      ],
+      "additionalProperties": false
+    },
+    "ResponsePosition": {
+      "type": "object",
+      "properties": {
+        "response_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "position": {
+          "$ref": "#/definitions/ParticipantPosition"
+        }
+      },
+      "required": [
+        "response_id",
+        "position"
       ],
       "additionalProperties": false
     }

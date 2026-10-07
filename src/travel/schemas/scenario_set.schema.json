@@ -42,7 +42,7 @@
   "additionalProperties": false,
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ScenarioSet",
-  "description": "여행 전 상황 문항 선정·각색의 출력 계약. 3주차 검토용 초안.",
+  "description": "여행 전 상황 문항 선정·각색의 출력 계약.",
   "definitions": {
     "Scenario": {
       "type": "object",

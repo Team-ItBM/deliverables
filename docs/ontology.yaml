@@ -1,6 +1,8 @@
 # 여행 갈등 조율의 미니 온톨로지
-# 로그는 인터뷰 근거이며, 제품 기획·출력 규칙은 서비스 설계 근거이다.
-version: 2
+# classes는 강의 2의 인터뷰 개념 6개이며 evidence는 실제 로그만 참조한다.
+# output_contracts는 강의 3의 제품 출력 모델 9개이다. 속성은 JSON Schema와 일치시킨다.
+# 출력 모델의 설계 출처는 design_sources로 구분하며 인터뷰에서 발견한 클래스로 세지 않는다.
+version: 5
 
 evidence_sources:
   로그 1: {path: research/records/log-01.md}
@@ -9,7 +11,9 @@ evidence_sources:
   로그 6: {path: research/records/log-06.md}
   로그 9: {path: research/records/log-09.md}
   로그 12: {path: research/records/log-12.md}
-  제품 기획: {path: ../IDEA.md, sections: [질문, 추천 협약서], note: 서비스 기획이며 인터뷰 근거와 구분한다.}
+
+design_sources:
+  제품 기획: {path: SPEC.md, sections: [3. 핵심 기능, 4. 범위, 5. 인터페이스], note: 서비스 기획이며 인터뷰 근거와 구분한다.}
   질문 출력: {path: ../src/travel/prompts/prepare_scenarios.md, sections: [B. 스키마 규칙, C. 모델 전송부]}
   협약 출력: {path: ../src/travel/prompts/generate_pact.md, sections: [B. 스키마 규칙, C. 모델 전송부]}
 
@@ -82,103 +86,161 @@ classes:
       - {reported_by: Traveler, evidence: [로그 1, 로그 2, 로그 6, 로그 9, 로그 12]}
 
 
-  # 문항과 추천 협약서의 입출력
+# 도메인 의미와 제품 필드의 연결. 값의 단순 복사 규칙이 아니다.
+field_mappings:
+  - domain: [TravelSituation.trigger, TravelSituation.constraints, Activity.name, Activity.place]
+    input: [scenario_pool.scene, scenario_pool.core_constraints, scenario_pool.options]
+    output: [Scenario.scene, Scenario.question, ScenarioOption.label]
+    meaning: 인터뷰에서 발견한 상황·행동 개념으로 가상 문항을 설계하고 표현을 각색한다. 실제 여행의 일정·예약 사실로 변환하지 않는다.
+  - domain: [ParticipantPosition.desired_action, ParticipantPosition.condition, ParticipantPosition.reason]
+    input: [responses.option_id, responses.memo]
+    output: [ResponsePosition.position, PactClause.action, ConditionalAlternative.action, ConditionChange.original_condition, ConditionChange.proposed_change]
+    meaning: 선택과 메모에서 바람·한계·이유를 해석한다. 선택을 수정한 메모가 우선이며 새 이유를 만들지 않는다. 메모 자체를 실제 발언으로 간주하지 않으며, 본인이 실제 전달했다고 명시한 관련 발언만 expressed_content로 추출한다.
+  - domain: [AdjustmentOption.summary, AdjustmentOption.participation, AdjustmentOption.conditions]
+    input: [scenarios.core_constraints, responses]
+    output: [PactClause.action, PactClause.participant_ids, PactClause.proposed_conditions, ConditionalAlternative.required_changes]
+    meaning: 조정안의 행동·참여·조건 개념을 추천 설계에 사용한다. 입력의 기존 한계는 보존하고 AI가 새로 제안한 약속만 proposed_conditions로 분리한다. 원래 조건 변경은 required_changes이며 수락을 뜻하지 않는다.
+  - domain: [Traveler]
+    input: [participant_profiles, participant_ids, responses.response_id]
+    output: [PactClause.participant_ids, PactClause.source_response_ids]
+    meaning: 프로필과 제출 건은 제품 식별자다. 같은 이름의 별도 제출은 서로 다른 participant_id이며 인터뷰 인원이나 실제 사람 수로 합치지 않는다.
+  - domain: []
+    output: [ScenarioSet.status, ScenarioSet.clarification_questions, ScenarioSet.message, Scenario.template_id, ScenarioOption.option_id, PactRecommendation.status, PactRecommendation.message, PactRecommendation.unresolved_conditions]
+    meaning: 상태·식별·처리 안내·추적을 위한 제품 필드다. 인터뷰에서 발견한 어휘로 세지 않으며 상세 타입과 사용처는 출력 계약·프롬프트를 따른다.
+  - domain: [Decision]
+    output: []
+    meaning: 추천 생성은 실제 결정·실행 결과를 만들지 않으므로 이번 출력에서 사용하지 않는다.
+
+# 클래스 속성은 유지하고 파싱 시 미확인 값과 선택 필드를 구분한다.
+schema_bindings:
+  ParticipantPosition:
+    schema: ../src/travel/schemas/pact_recommendation.schema.json#/definitions/ParticipantPosition
+    required: [desired_action]
+    nullable: [condition, desired_action, reason, expressed_content]
+    omitted_when_unknown: [condition, reason, expressed_content]
+    use: 선택·메모에서 입장을 추출해 원문 및 추천과 대조한다. expressed_content는 본인이 실제 전달했다고 명시한 관련 발언만 추출한다.
+
+# 문항과 추천 협약서의 입출력. domain_basis는 설계에 사용한 인터뷰 개념이다.
+output_contracts:
   ScenarioSet:
+    domain_basis: [TravelSituation]
     description: 여행 전 상황 문항의 선정·각색 결과
     schema: ../src/travel/schemas/scenario_set.schema.json
-    evidence: [제품 기획]
+    design_source: [제품 기획]
     attributes:
-      status: {type: enum, description: 출력의 사용 가능 상태. 실행 오류와 정보 부족을 구분한다., evidence: [질문 출력], values: [ready, needs_information, unsupported, invalid_input]}
-      scenarios: {type: [array, 'null'], description: 선정·각색한 문항. 미확정이면 null., evidence: [질문 출력]}
-      clarification_questions: {type: array, description: 진행에 필요한 부족 정보만 묻는 질문., evidence: [질문 출력]}
-      message: {type: string, description: 정상 생성하지 못한 이유와 다음 동작., evidence: [질문 출력]}
+      status: {type: enum, description: 출력의 사용 가능 상태. 실행 오류와 정보 부족을 구분한다., design_source: [질문 출력], values: [ready, needs_information, unsupported, invalid_input]}
+      scenarios: {type: [array, 'null'], description: 선정·각색한 문항. 미확정이면 null., design_source: [질문 출력]}
+      clarification_questions: {type: array, description: 진행에 필요한 부족 정보만 묻는 질문., design_source: [질문 출력]}
+      message: {type: string, description: 정상 생성하지 못한 이유와 다음 동작., design_source: [질문 출력]}
     relations:
-      - {contains: Scenario, evidence: [제품 기획]}
+      - {contains: Scenario, design_source: [제품 기획]}
 
   Scenario:
+    domain_basis: [TravelSituation]
     description: TravelSituation을 각색한 가상 문항
-    evidence: [제품 기획]
+    design_source: [제품 기획]
     attributes:
-      template_id: {type: string, description: 사람이 준비한 원본 문항의 식별자., evidence: [질문 출력]}
-      scene: {type: string, description: 핵심 제약을 유지해 각색한 장면., evidence: [질문 출력]}
-      question: {type: string, description: 본인이 원하는 행동을 묻는 질문., evidence: [질문 출력]}
-      options: {type: array, description: 원본 ID와 의미를 보존한 선택지., evidence: [질문 출력]}
+      template_id: {type: string, description: 사람이 준비한 원본 문항의 식별자., design_source: [질문 출력]}
+      scene: {type: string, description: 핵심 제약을 유지해 각색한 장면., design_source: [질문 출력]}
+      question: {type: string, description: 본인이 원하는 행동을 묻는 질문., design_source: [질문 출력]}
+      options: {type: array, description: 원본 ID와 의미를 보존한 선택지., design_source: [질문 출력]}
     relations:
-      - {models: TravelSituation, evidence: [제품 기획]}
+      - {models: TravelSituation, design_source: [제품 기획]}
 
   ScenarioOption:
+    domain_basis: [Activity, ParticipantPosition]
     description: 가상 상황에서 사용자가 원하는 행동의 선택지
-    evidence: [제품 기획]
+    design_source: [제품 기획]
     attributes:
-      option_id: {type: string, description: 원본 문항 안에서 유일한 선택지 ID., evidence: [질문 출력]}
-      label: {type: string, description: 선택지의 표시 문구. 의미 변경 금지., evidence: [질문 출력]}
+      option_id: {type: string, description: 원본 문항 안에서 유일한 선택지 ID., design_source: [질문 출력]}
+      label: {type: string, description: 선택지의 표시 문구. 의미 변경 금지., design_source: [질문 출력]}
     relations:
-      - {expresses: Activity, evidence: [제품 기획]}
+      - {expresses: Activity, design_source: [제품 기획]}
 
   PactRecommendation:
+    domain_basis: [ParticipantPosition, AdjustmentOption]
     description: 가상 상황 응답을 바탕으로 한 여행 조율 규칙의 추천. 실제 결정인 Decision과 구분한다.
     schema: ../src/travel/schemas/pact_recommendation.schema.json
-    evidence: [제품 기획]
+    design_source: [제품 기획]
     attributes:
-      status: {type: enum, description: 출력의 사용 가능 상태. 실행 오류와 정보 부족을 구분한다., evidence: [협약 출력], values: [proposed, conditional_only, needs_information, unresolved, unsupported, invalid_input]}
-      clauses: {type: [array, 'null'], description: 원래 조건을 충족하는 추천 조항. 만들지 못하면 null., evidence: [협약 출력]}
-      conditional_alternatives: {type: array, description: 조건 변경을 전제로 하는 별도 제안. 현재 조건을 충족했다고 간주하지 않음., evidence: [협약 출력]}
-      unresolved_conditions: {type: array, description: 부족하거나 서로 충돌하여 해결하지 못한 조건., evidence: [협약 출력]}
-      clarification_questions: {type: array, description: 진행에 필요한 부족 정보만 묻는 질문., evidence: [협약 출력]}
-      message: {type: string, description: 정상 생성하지 못한 이유와 다음 동작., evidence: [협약 출력]}
+      status: {type: enum, description: 출력의 사용 가능 상태. 실행 오류와 정보 부족을 구분한다., design_source: [협약 출력], values: [proposed, conditional_only, needs_information, unresolved, unsupported, invalid_input]}
+      positions: {type: array, description: 응답별 ParticipantPosition 추출과 원본 연결. 서버 검증용이며 공유에서 제외한다., design_source: [협약 출력]}
+      clauses: {type: [array, 'null'], description: 적용 대상의 원래 조건을 충족하는 추천 조항. 일부 결과를 허용하며 만들지 못하면 null., design_source: [협약 출력]}
+      conditional_alternatives: {type: array, description: 조건 변경을 전제로 하는 별도 제안. 현재 조건을 충족했다고 간주하지 않음., design_source: [협약 출력]}
+      unresolved_conditions: {type: array, description: 부족하거나 서로 충돌하여 해결하지 못한 조건., design_source: [협약 출력]}
+      message: {type: string, description: 정상 생성하지 못한 이유와 다음 동작., design_source: [협약 출력]}
     relations:
-      - {contains: PactClause, evidence: [제품 기획]}
+      - {contains: PactClause, design_source: [제품 기획]}
+
+  ResponsePosition:
+    domain_basis: [ParticipantPosition]
+    description: 추출한 입장과 원본 응답의 연결
+    design_source: [협약 출력]
+    attributes:
+      response_id: {type: string, description: 입장을 추출한 실제 입력 응답 ID., design_source: [협약 출력]}
+      position: {type: object, description: ParticipantPosition 클래스와 같은 네 속성의 파싱 결과., design_source: [협약 출력]}
+    relations:
+      - {extracts: ParticipantPosition, design_source: [협약 출력]}
 
   PactClause:
+    domain_basis: [AdjustmentOption, Traveler]
     description: AdjustmentOption을 바탕으로 제안하는 운영 조항
-    evidence: [제품 기획]
+    design_source: [제품 기획]
     attributes:
-      scenario_id: {type: string, description: 근거가 된 가상 문항의 template_id., evidence: [협약 출력]}
-      action: {type: string, description: 유사 상황에서 누구의 바람을 어떻게 조율할지 담은 추천., evidence: [협약 출력]}
-      participant_ids: {type: array, description: 이 조항의 적용 대상., evidence: [협약 출력]}
-      source_response_ids: {type: array, description: 근거가 된 실제 입력 응답 ID. 인용만으로 조건 충족이 증명되지는 않음., evidence: [협약 출력]}
-      proposed_conditions: {type: array, description: 응답에 없고 AI가 새로 제안한 조율 절차·약속., evidence: [협약 출력]}
+      scenario_id: {type: string, description: 근거가 된 가상 문항의 template_id., design_source: [협약 출력]}
+      action: {type: string, description: 유사 상황에서 누구의 바람을 어떻게 조율할지 담은 추천., design_source: [협약 출력]}
+      participant_ids: {type: array, description: 이 조항의 적용 대상인 제출 건 ID. 같은 이름의 별도 제출도 구분한다., design_source: [협약 출력]}
+      source_response_ids: {type: array, description: 근거가 된 실제 입력 응답 ID. 인용만으로 조건 충족이 증명되지는 않음., design_source: [협약 출력]}
+      proposed_conditions: {type: array, description: 응답에 없고 AI가 새로 제안한 조율 절차·약속., design_source: [협약 출력]}
     relations:
-      - {suggests: AdjustmentOption, evidence: [제품 기획]}
-      - {applies_to: Traveler, evidence: [제품 기획]}
+      - {suggests: AdjustmentOption, design_source: [제품 기획]}
+      - {applies_to: Traveler, design_source: [제품 기획]}
 
   ConditionalAlternative:
+    domain_basis: [AdjustmentOption]
     description: 원래 조건 일부를 변경해야 가능한 조정안
-    evidence: [제품 기획]
+    design_source: [제품 기획]
     attributes:
-      scenario_id: {type: string, description: 근거가 된 가상 문항의 template_id., evidence: [협약 출력]}
-      action: {type: string, description: 유사 상황에서 누구의 바람을 어떻게 조율할지 담은 추천., evidence: [협약 출력]}
-      participant_ids: {type: array, description: 이 조항의 적용 대상., evidence: [협약 출력]}
-      source_response_ids: {type: array, description: 근거가 된 실제 입력 응답 ID. 인용만으로 조건 충족이 증명되지는 않음., evidence: [협약 출력]}
-      proposed_conditions: {type: array, description: 응답에 없고 AI가 새로 제안한 조율 절차·약속., evidence: [협약 출력]}
-      required_changes: {type: array, description: 이 대안을 사용하려면 바꿔야 하는 원래 조건., evidence: [협약 출력]}
+      scenario_id: {type: string, description: 근거가 된 가상 문항의 template_id., design_source: [협약 출력]}
+      action: {type: string, description: 유사 상황에서 누구의 바람을 어떻게 조율할지 담은 추천., design_source: [협약 출력]}
+      participant_ids: {type: array, description: 이 조항의 적용 대상인 제출 건 ID. 같은 이름의 별도 제출도 구분한다., design_source: [협약 출력]}
+      source_response_ids: {type: array, description: 근거가 된 실제 입력 응답 ID. 인용만으로 조건 충족이 증명되지는 않음., design_source: [협약 출력]}
+      proposed_conditions: {type: array, description: 응답에 없고 AI가 새로 제안한 조율 절차·약속., design_source: [협약 출력]}
+      required_changes: {type: array, description: 이 대안을 사용하려면 바꿔야 하는 원래 조건., design_source: [협약 출력]}
     relations:
-      - {suggests: AdjustmentOption, evidence: [제품 기획]}
+      - {suggests: AdjustmentOption, design_source: [제품 기획]}
 
   ConditionChange:
+    domain_basis: [ParticipantPosition]
     description: 조건부 대안에 필요한 변경 사항
-    evidence: [제품 기획]
+    design_source: [제품 기획]
     attributes:
-      source_response_id: {type: string, description: 원래 조건을 담은 응답 ID. 작성자는 이 ID로 조회한다., evidence: [협약 출력]}
-      original_condition: {type: string, description: 선택한 선택지 또는 메모에 명시된 조건의 정확한 구절. 메모가 수정한 조건을 우선한다., evidence: [협약 출력]}
-      proposed_change: {type: string, description: 원래 조건을 어떻게 바꿔야 가능한지 설명., evidence: [협약 출력]}
+      source_response_id: {type: string, description: 원래 조건을 담은 응답 ID. 작성자는 이 ID로 조회한다., design_source: [협약 출력]}
+      original_condition: {type: string, description: 서버 검증용 원문 인용. 메모가 수정한 조건을 우선하며 공유 응답·화면·이미지에서는 제외한다., design_source: [협약 출력]}
+      proposed_change: {type: string, description: 원래 조건을 어떻게 바꿔야 가능한지 설명., design_source: [협약 출력]}
     relations: []
 
   UnresolvedCondition:
-    description: 추가 확인 또는 재조정이 필요한 조건
-    evidence: [제품 기획]
+    domain_basis: [TravelSituation, ParticipantPosition]
+    description: 모호하거나 충돌하여 추천에서 제외한 조건과 사유
+    design_source: [제품 기획]
     attributes:
-      scenario_id: {type: string, description: 근거가 된 가상 문항의 template_id., evidence: [협약 출력]}
-      source_response_ids: {type: array, description: 근거가 된 실제 입력 응답 ID. 인용만으로 조건 충족이 증명되지는 않음., evidence: [협약 출력]}
-      description: {type: string, description: 미해결 조건과 그 이유. 대안 부재를 증명한 것으로 보지 않음., evidence: [협약 출력]}
+      scenario_id: {type: string, description: 근거가 된 가상 문항의 template_id., design_source: [협약 출력]}
+      source_response_ids: {type: array, description: 근거가 된 실제 입력 응답 ID. 인용만으로 조건 충족이 증명되지는 않음., design_source: [협약 출력]}
+      description: {type: string, description: 미해결 조건과 그 이유. 대안 부재를 증명한 것으로 보지 않음., design_source: [협약 출력]}
     relations: []
 
 # 용어: 친구·동행·일행 = Traveler. 특정 장면의 희망·이유·컨디션 = ParticipantPosition.
 # 조율 방식은 Decision.method, 분리 행동은 AdjustmentOption.participation에 담는다.
 # 기록 규칙: 본인 진술·전해 들은 말·추측을 구분한다. 침묵을 동의로 채우지 않는다.
-# 범위 안: 상황별 입장과 제약, 활동, 조정안, 결정·실행 결과, 사전 문항과 추천 협약서.
-# 외부 참조: 지도·이동 경로, 영업·예약 정보.
+# 인터뷰 개념 범위: 상황별 입장과 제약, 활동, 조정안, 결정·실행 결과.
+# 제품 설계 범위: 인터뷰 개념을 가상 문항과 추천 협약서의 출력 계약으로 확장한다.
+# 외부 참조: 지도·이동 경로, 영업·예약 정보는 여행 상황의 배경 맥락이며 서비스에서 조회하지 않는다.
 # 범위 밖: 예약·결제·정산 실행, 실시간 최적 동선, 성격·궁합 점수.
 # 핵심 흐름: TravelSituation → ParticipantPosition → AdjustmentOption → Decision.
 # 서비스 흐름: ScenarioSet → Scenario → 일행의 응답 → PactRecommendation.
 # Job Story: 동행자별 입장과 제약을 확인하고 조정안을 비교한다. 불만 감소 효과는 미검증이다.
+
+# 운영 정책: 등록 프로필과 실제 제출 건은 구분한다. 이름 선택은 본인 확인이 아니다.
+# 프로필·제출·마감·재생성·푸시·보관 계약은 SPEC.md 4~6절을 따른다.
+# 프로필은 문항 개인화에만 쓰며 추천의 입장·한계 근거는 제출 응답이다.
