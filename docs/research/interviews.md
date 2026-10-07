@@ -1,6 +1,5 @@
 # 인터뷰 프로토콜과 로그 — Team ItBM
 
-> 강의 2 산출물. 저장 위치는 `docs/research/interviews.md`.
 > 여기서 매기는 **로그 번호**가 `docs/ontology.yaml`의 `evidence:` 원천이다.
 > 실명은 쓰지 않는다. 대상은 연령·성별·역할로만 표기하고, 동행은 동행A·동행B로 쓴다.
 
