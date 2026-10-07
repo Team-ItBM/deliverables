@@ -334,11 +334,11 @@ P1~P7의 정확한 실행 입력은 [입력 자료](../../../docs/research/struc
 
 pool v1·추천 v4로 수행한 실험은 [추천 품질 스파이크](../../../docs/spikes/grounded_pact.md)에 기록했다.
 
-## v10 정보 부족 분기 점검 (2026-10-01)
+## v11 회귀 점검 (2026-10-07)
 
-기본 다섯 유형 P1~P5와 완전 제출의 전체 정보 부족 E02를 각 1회 실행했다. JSON·스키마·상태·응답 연결·원문 인용·공유 제외·참여자 토큰 검사 6/6건을 통과했다. P2는 `positions=[]`, E02는 응답 18개에 대한 `positions`와 부족 사유를 반환했다. [입력·최초 출력](../../../docs/spikes/grounded_pact_v10_outputs.jsonl)과 [점검 요약](../../../docs/spikes/grounded_pact.md#기술-점검-현황)을 연결한다.
+P1~P5·E01~E03·R12를 동일 설정으로 두 회차 실행했다. 각 회차에서 구조·기대 상태·참조 9/9건, 이름 표시를 포함한 자동 검사 8/9건을 통과했다. E01의 고정 조사 오류가 반복됐다. AI 내용 대조에서는 다문항·정보 부족·미해결 분기를 확인했으며, 개인 시간 조건의 공유 조항 보존은 추가 확인 대상으로 남겼다. 기존 H01의 AC7 위반도 남아 있어 F4 전체 채택은 보류한다. [입력·출력](../../../docs/spikes/grounded_pact_v11_regression_outputs.jsonl)과 [점검 결과](../../../docs/spikes/grounded_pact.md#기술-점검-현황)를 따른다.
 
-이전 [v9 최초 출력](../../../docs/spikes/legacy/grounded_pact_v9_outputs.jsonl)과 [v8 기본 회귀](../../../docs/spikes/legacy/grounded_pact_v8_regression.md)는 당시 기록으로 보존한다.
+이전 [v10 출력](../../../docs/spikes/legacy/grounded_pact_v10_outputs.jsonl)은 당시 기록으로 보존한다.
 
 ## 변경 이력
 
