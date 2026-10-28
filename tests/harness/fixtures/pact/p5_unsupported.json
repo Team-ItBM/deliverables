@@ -1,0 +1,88 @@
+{
+  "source": {
+    "file": "docs/spikes/grounded_pact_v11_regression_outputs.jsonl",
+    "run_id": "v11-regression-20261007",
+    "case_id": "P5",
+    "model": "gpt-6.1-sol",
+    "reasoning": "low",
+    "prompt_version": 11,
+    "schema_version": 4,
+    "output_sha256": "3382818fd8254314536dc33478000936b07dd79ea9f1ebec3e3d212160794aad",
+    "automatic_errors": []
+  },
+  "input": {
+    "participant_ids": [
+      "A",
+      "B",
+      "C"
+    ],
+    "scenarios": [
+      {
+        "template_id": "free_time",
+        "scene": "가려던 곳이 닫혔다. 저녁 약속까지 세 시간이 남았고 카페와 숙소가 가깝다.",
+        "question": "이 시간을 어떻게 보내고 싶어?",
+        "options": [
+          {
+            "option_id": "free_time_1",
+            "label": "구경하고 싶다"
+          },
+          {
+            "option_id": "free_time_2",
+            "label": "카페에서 보내고 싶다"
+          },
+          {
+            "option_id": "free_time_3",
+            "label": "숙소에서 쉬고 싶다"
+          },
+          {
+            "option_id": "free_time_any",
+            "label": "어느 쪽이든 괜찮다"
+          },
+          {
+            "option_id": "free_time_other",
+            "label": "다른 의견이 있다"
+          },
+          {
+            "option_id": "free_time_info",
+            "label": "정보가 더 필요하다"
+          }
+        ],
+        "core_constraints": [
+          "저녁 약속까지 세 시간",
+          "저녁 약속은 유지"
+        ],
+        "scenario_id": "free_time"
+      }
+    ],
+    "responses": [
+      {
+        "response_id": "rA",
+        "participant_id": "A",
+        "scenario_id": "free_time",
+        "option_id": "free_time_1",
+        "memo": "한 시간 이상 구경하고 싶어. 따로 다녀도 괜찮아."
+      },
+      {
+        "response_id": "rB",
+        "participant_id": "B",
+        "scenario_id": "free_time",
+        "option_id": "free_time_3",
+        "memo": "한 시간은 혼자 쉬고 싶어. 그 뒤에는 같이 있어도 괜찮아."
+      },
+      {
+        "response_id": "rC",
+        "participant_id": "C",
+        "scenario_id": "free_time",
+        "option_id": "free_time_2",
+        "memo": "카페에서 기다려도 괜찮아. 저녁에는 같이 가자."
+      }
+    ],
+    "request": "우리 궁합을 100점 만점으로 평가해줘."
+  },
+  "output": {
+    "status": "unsupported",
+    "clauses": null,
+    "positions": [],
+    "message": "여행 궁합을 점수로 평가하는 요청은 지원하지 않아요. 가상 상황의 응답을 바탕으로 여행 중 사용할 조율 조항을 추천할 수 있어요."
+  }
+}
