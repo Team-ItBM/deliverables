@@ -13,3 +13,9 @@
 - [ ] 동행 관계 확대: [문항 선정·각색](src/travel/prompts/prepare_scenarios.md)과 [추천 생성](src/travel/prompts/generate_pact.md) 전송부의 "친구와 여행을 준비하며" 같은 친구 전제 문구를 연인·가족 등 동행 관계에 맞게 고친다. 전송부를 바꾸면 각 버전을 올리고, 연인·가족 입력을 포함해 다시 점검한다.
 - [ ] H06·H08 실패: 조건부 대안에서 응답의 바람을 줄인 H06과 일반 조항으로 충분한 사례에서 조건부 대안만 낸 H08을 다음 프롬프트 수정에서 다룬다. 수정한 프롬프트로 채택을 평가할 때는 새 입력을 사용한다. [결과](docs/spikes/grounded_pact.md#결과-2026-10-07)
 - [ ] H04 제안 부담: 함께할지 모르는 일행에게 모두 따로 식사하라고 제안한 H04처럼 부담이 큰 제안을 다음 품질 개선에서 다룬다.
+
+## 4. 아키텍처 반영
+
+- [ ] 문항 도구 전환: [아키텍처 3·5절](docs/ARCHITECTURE.md#3-도구-목록)에 따라 [문항 프롬프트](src/travel/prompts/prepare_scenarios.md) 입력을 pool 목록 + `get_scenario_template` 도구로 바꾸고 `prompt_version`을 7로 올린다. SPEC F2·5절 인터페이스도 함께 고친다.
+- [ ] 도구 스파이크: Sol 서비스 API에서 도구 호출과 `json_schema` 출력 형식을 한 호출에 함께 쓸 수 있는지, 목록 + 도구 방식이 v6 사람 평가 기준(AC1·AC2)을 유지하는지 확인한다. 확인 전에는 v6 방식을 대체 경로로 둔다.
+- [ ] 도구 계약 테스트: [아키텍처 3절](docs/ARCHITECTURE.md#3-도구-목록)의 계약 조건으로 `tests/test_tools.py`를 먼저 확정한 뒤 도구 코드를 위임한다.
