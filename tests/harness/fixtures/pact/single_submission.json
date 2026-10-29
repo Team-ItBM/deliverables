@@ -1,0 +1,85 @@
+{
+  "source": {
+    "note": "수기 작성 fixture. 모델 출력이 아니다. p1_proposed의 입력에서 A의 제출 건만 남기고, 출력은 검증 규칙을 만족하도록 사람이 작성했다.",
+    "based_on": "tests/harness/fixtures/pact/p1_proposed.json"
+  },
+  "input": {
+    "participant_ids": [
+      "A"
+    ],
+    "scenarios": [
+      {
+        "template_id": "free_time",
+        "scene": "가려던 곳이 닫혔다. 저녁 약속까지 세 시간이 남았고 카페와 숙소가 가깝다.",
+        "question": "이 시간을 어떻게 보내고 싶어?",
+        "options": [
+          {
+            "option_id": "free_time_1",
+            "label": "구경하고 싶다"
+          },
+          {
+            "option_id": "free_time_2",
+            "label": "카페에서 보내고 싶다"
+          },
+          {
+            "option_id": "free_time_3",
+            "label": "숙소에서 쉬고 싶다"
+          },
+          {
+            "option_id": "free_time_any",
+            "label": "어느 쪽이든 괜찮다"
+          },
+          {
+            "option_id": "free_time_other",
+            "label": "다른 의견이 있다"
+          },
+          {
+            "option_id": "free_time_info",
+            "label": "정보가 더 필요하다"
+          }
+        ],
+        "core_constraints": [
+          "저녁 약속까지 세 시간",
+          "저녁 약속은 유지"
+        ],
+        "scenario_id": "free_time"
+      }
+    ],
+    "responses": [
+      {
+        "response_id": "rA",
+        "participant_id": "A",
+        "scenario_id": "free_time",
+        "option_id": "free_time_1",
+        "memo": "한 시간 이상 구경하고 싶어. 따로 다녀도 괜찮아."
+      }
+    ],
+    "request": "각자의 조건을 보존하는 추천 조항을 만들어줘."
+  },
+  "output": {
+    "status": "proposed",
+    "clauses": [
+      {
+        "scenario_id": "free_time",
+        "action": "여유 시간이 생기면 {{participant:A}}이/가 원하는 만큼 구경할 시간을 확보하는 걸 추천해요. 따로 움직일 때는 저녁 약속에 맞춰 다시 만날 시간과 장소를 먼저 정해요.",
+        "participant_ids": [
+          "A"
+        ],
+        "source_response_ids": [
+          "rA"
+        ],
+        "proposed_conditions": [
+          "따로 움직이기 전에 저녁 약속에 맞춰 다시 만날 시간과 장소를 정해요."
+        ]
+      }
+    ],
+    "positions": [
+      {
+        "response_id": "rA",
+        "position": {
+          "desired_action": "한 시간 이상 구경하고 싶으며 따로 다녀도 괜찮음"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,124 @@
+{
+  "source": {
+    "file": "docs/spikes/grounded_pact_v11_regression_outputs.jsonl",
+    "run_id": "v11-regression-20261007",
+    "case_id": "P1",
+    "model": "gpt-6.1-sol",
+    "reasoning": "low",
+    "prompt_version": 11,
+    "schema_version": 4,
+    "output_sha256": "7f62f97ce321ad1837b2a74baee813898a323c426e565d61b55ed7647a059ec4",
+    "automatic_errors": []
+  },
+  "input": {
+    "participant_ids": [
+      "A",
+      "B",
+      "C"
+    ],
+    "scenarios": [
+      {
+        "template_id": "free_time",
+        "scene": "가려던 곳이 닫혔다. 저녁 약속까지 세 시간이 남았고 카페와 숙소가 가깝다.",
+        "question": "이 시간을 어떻게 보내고 싶어?",
+        "options": [
+          {
+            "option_id": "free_time_1",
+            "label": "구경하고 싶다"
+          },
+          {
+            "option_id": "free_time_2",
+            "label": "카페에서 보내고 싶다"
+          },
+          {
+            "option_id": "free_time_3",
+            "label": "숙소에서 쉬고 싶다"
+          },
+          {
+            "option_id": "free_time_any",
+            "label": "어느 쪽이든 괜찮다"
+          },
+          {
+            "option_id": "free_time_other",
+            "label": "다른 의견이 있다"
+          },
+          {
+            "option_id": "free_time_info",
+            "label": "정보가 더 필요하다"
+          }
+        ],
+        "core_constraints": [
+          "저녁 약속까지 세 시간",
+          "저녁 약속은 유지"
+        ],
+        "scenario_id": "free_time"
+      }
+    ],
+    "responses": [
+      {
+        "response_id": "rA",
+        "participant_id": "A",
+        "scenario_id": "free_time",
+        "option_id": "free_time_1",
+        "memo": "한 시간 이상 구경하고 싶어. 따로 다녀도 괜찮아."
+      },
+      {
+        "response_id": "rB",
+        "participant_id": "B",
+        "scenario_id": "free_time",
+        "option_id": "free_time_3",
+        "memo": "한 시간은 혼자 쉬고 싶어. 그 뒤에는 같이 있어도 괜찮아."
+      },
+      {
+        "response_id": "rC",
+        "participant_id": "C",
+        "scenario_id": "free_time",
+        "option_id": "free_time_2",
+        "memo": "카페에서 기다려도 괜찮아. 저녁에는 같이 가자."
+      }
+    ],
+    "request": "각자의 조건을 보존하는 추천 조항을 만들어줘."
+  },
+  "output": {
+    "status": "proposed",
+    "clauses": [
+      {
+        "scenario_id": "free_time",
+        "action": "여유 시간에 하고 싶은 일이 다르면 잠깐 따로 시간을 보내는 걸 추천해요. {{participant:A}}은/는 구경할 시간을 충분히 갖고, {{participant:B}}은/는 혼자 쉬는 시간을 가진 뒤 함께할 수 있어요. {{participant:C}}은/는 카페에서 기다리고 저녁에는 함께 가는 바람을 반영해요. 헤어지기 전에 각자 필요한 시간과 저녁 약속에 맞춰 다시 만날 시간·장소를 함께 정해요.",
+        "participant_ids": [
+          "A",
+          "B",
+          "C"
+        ],
+        "source_response_ids": [
+          "rA",
+          "rB",
+          "rC"
+        ],
+        "proposed_conditions": [
+          "따로 움직이기 전에 각자 필요한 시간을 확인하고, 구경과 혼자 쉬는 시간이 확보되도록 재합류 시간·장소를 함께 정해요."
+        ]
+      }
+    ],
+    "positions": [
+      {
+        "response_id": "rA",
+        "position": {
+          "desired_action": "한 시간 이상 구경하고 싶으며 따로 다녀도 괜찮음"
+        }
+      },
+      {
+        "response_id": "rB",
+        "position": {
+          "desired_action": "숙소에서 한 시간 혼자 쉬고 싶으며 그 뒤에는 함께 있어도 괜찮음"
+        }
+      },
+      {
+        "response_id": "rC",
+        "position": {
+          "desired_action": "카페에서 기다려도 괜찮으며 저녁에는 함께 가고 싶음"
+        }
+      }
+    ]
+  }
+}

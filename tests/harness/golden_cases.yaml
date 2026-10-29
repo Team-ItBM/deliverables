@@ -1,0 +1,285 @@
+# 추천 출력 검증기 골든 케이스 (강의 5 산출물: 첫 위임의 완료 기준)
+#
+# 대상 함수
+#   src/travel/pact.py 의 validate_pact_output(pact_input, raw_output) -> PactValidation
+#   모델이 낸 PactRecommendation을 공유·저장하기 전에 결정적으로 검사한다.
+#   반환값: {valid: bool, errors: [{code, path, detail}]}
+#   의미 판정(요구 보존이 맞는지, 제안이 적절한지)은 범위 밖이며 사람 평가(spikes/grounded_pact.md)가 맡는다.
+#   예: 사람 평가에서 실패한 H06·H08 출력도 구조는 맞으므로 이 검증기는 통과시킨다. 그 판정은 강의 7 evals 몫이다.
+#
+# 근거 문서
+#   docs/SPEC.md 5절(필드 연결과 검증 경계, 상태별 처리), 6절 AC
+#   src/travel/prompts/generate_pact.md B절(상태별 후처리 규칙), "필드와 함수 인자" 절
+#   src/travel/schemas/pact_recommendation.schema.json (스키마 v4)
+#
+# 케이스 입력
+#   fixture   : tests/harness/fixtures/pact/<이름>.json 의 {source, input, output}
+#   patch     : fixture 문서에 적용할 RFC 6902 연산(add, remove, replace). 경로는 /input/... 또는 /output/...
+#   raw_output: 있으면 output 대신 이 문자열을 그대로 검증기에 넘긴다(JSON 파싱 전 단계 검사용)
+#   patch가 없으면 fixture의 output을 JSON 문자열로 직렬화해 넘긴다.
+#
+# 판정 키와 검사 범위
+#   expect_valid           : 결과의 valid 값과 정확히 같아야 한다. 모든 케이스의 필수 키.
+#   must_include_errors    : 결과 errors의 code 전체에 이 코드가 모두 있어야 한다. expect_valid가 false면 필수.
+#   must_not_include_errors: 결과 errors의 code 전체에 이 코드가 하나도 없어야 한다.
+#
+# 오류 코드 (검증기가 반환할 수 있는 code 전체 목록. 아래 error_codes 키가 기준이며, 이 밖의 코드를 케이스에 쓰면 로더 오류)
+#   json_invalid          JSON으로 파싱되지 않는다. (AC10)
+#   schema_violation      스키마 v4를 통과하지 못한다: 추가 키, enum 밖 status, 타입 오류. (AC10, AC11)
+#   status_combination    상태별 필수·금지 필드 조합 위반. generate_pact.md B절 표. (AC9, AC10)
+#   input_status_mismatch 채택 제출 건 안에 응답 누락이 있는데 needs_information + positions=[]가 아니거나,
+#                         누락이 없는데 needs_information + positions=[]이다. (AC4, AC9)
+#   unknown_reference     scenario_id, participant_ids, source_response_ids, required_changes.source_response_id가
+#                         입력에 없다. (AC5)
+#   evidence_mismatch     근거 응답의 상황이 항목의 scenario_id와 다르거나, 조항·대안의 participant_ids가
+#                         근거 응답 작성자 집합과 다르거나, required_changes.source_response_id가 그 항목의
+#                         source_response_ids에 없다. (AC5, AC6, AC8)
+#   positions_mismatch    positions가 필요한 상태에서 입력 응답마다 정확히 한 항목이 아니다(누락·중복·없는 ID). (AC5)
+#   quote_mismatch        position의 condition·reason·expressed_content가 해당 응답 memo의 정확한 발췌가 아니거나,
+#                         original_condition이 해당 응답 memo 또는 선택한 선택지 label의 정확한 발췌가 아니다. (AC6, AC8)
+#   unlinked_response     positions가 필요한 상태에서 어떤 입력 응답도 조항·조건부 대안·미해결 사유의
+#                         source_response_ids에 연결되지 않는다. (AC6)
+#   token_invalid         공유 문장의 {{participant:ID}}에서 ID가 입력 participant_ids에 없다. (AC13)
+#   particle_pair         공유 문장의 참여자 토큰 바로 뒤에 은/는, 이/가, 을/를, 과/와, 으로/로 쌍 대신
+#                         한쪽 조사만 붙었다. (AC13)
+#   humor_text            모델 출력에 고정 유머 문구 "너네 조합 꽝이니 여행 가지 마세요!"가 있다.
+#                         유머는 표시 단계에서만 붙인다. (AC7)
+#
+# 공통 처리 규칙
+#   json_invalid 또는 schema_violation이 나오면 그 뒤 규칙은 검사하지 않는다.
+#   status가 invalid_input, unsupported이면 참조·positions·연결 규칙을 검사하지 않는다.
+#   공유 문장 = action, proposed_conditions[], proposed_change, unresolved_conditions[].description, message.
+#
+# fixture 기준
+#   실제 출력: docs/spikes/grounded_pact_v11_regression_outputs.jsonl 의 run_id v11-regression-20261007
+#             (gpt-6.1-sol, 추론 low, 추천 프롬프트 v11, 스키마 v4). 저장소 기준 커밋 f699469.
+#   수기 작성: single_submission.json 하나. 모델 출력이 아니며 source.note에 표시한다.
+
+error_codes: [json_invalid, schema_violation, status_combination, input_status_mismatch, unknown_reference, evidence_mismatch, positions_mismatch, quote_mismatch, unlinked_response, token_invalid, particle_pair, humor_text]
+
+cases:
+  - name: p1_proposed_valid
+    fixture: p1_proposed
+    expect_valid: true
+    note: >-
+      정상. 세 사람의 응답을 모두 근거로 한 일반 조항 하나. 참조·근거 작성자·positions·조사 쌍이 모두 맞다.
+      잘못된 검증기가 정상 출력을 거부하지 않는지 확인한다. (AC5, AC6)
+
+  - name: p3_partial_with_exclusion_valid
+    fixture: p3_partial
+    expect_valid: true
+    note: >-
+      정상. A의 메모가 모호해 조항은 B·C만 대상으로 하고 A는 unresolved_conditions로 연결했다.
+      일부 조항과 제외 사유가 함께 있는 proposed가 허용되는지 확인한다. (AC6, AC9)
+
+  - name: r12_conditional_only_valid
+    fixture: r12_conditional_only
+    expect_valid: true
+    note: >-
+      정상. 일반 조항 없이 조건부 대안만 있는 conditional_only. original_condition이 R12_r2 메모의 정확한 발췌다. (AC8)
+
+  - name: e03_unresolved_valid
+    fixture: e03_unresolved
+    expect_valid: true
+    note: >-
+      정상. 두 사람의 한계가 정면으로 부딪혀 안이 없는 unresolved. 조건부 대안이 없고 막힌 조건과 message가 있다. (AC9)
+
+  - name: p2_missing_response_valid
+    fixture: p2_missing_response
+    expect_valid: true
+    note: >-
+      경계. 채택된 C의 응답이 입력에 없다. needs_information, clauses=null, positions=[]가 맞는 결과다.
+      입력 누락을 다른 상태로 처리하지 않는지 확인하는 input_status_mismatch 규칙의 정상 쪽이다. (AC4, AC9)
+
+  - name: e02_all_unclear_valid
+    fixture: e02_all_unclear
+    expect_valid: true
+    note: >-
+      경계. 6문항·3명·응답 18개, 메모가 모두 null이다. 응답은 빠짐없지만 해석할 정보가 없어
+      positions를 응답마다 두고 desired_action=null, 모든 응답을 unresolved_conditions에 연결했다.
+      memo가 null인 입력에서 검증기가 예외 없이 동작하는지도 확인한다. (AC9)
+
+  - name: p4_invalid_input_valid
+    fixture: p4_invalid_input
+    expect_valid: true
+    note: >-
+      경계. 입력에 없는 option_id가 있어 모델이 invalid_input을 냈다. clauses=null, positions=[], message가 있다.
+      invalid_input에서는 참조 규칙을 검사하지 않는다. (AC5)
+
+  - name: p5_unsupported_valid
+    fixture: p5_unsupported
+    expect_valid: true
+    note: >-
+      경계. 궁합 점수 요청이라 unsupported. 지원 밖 요청에 조항을 만들지 않았다. (AC7)
+
+  - name: single_submission_valid
+    fixture: single_submission
+    expect_valid: true
+    note: >-
+      경계. 방장 조기 생성으로 채택 제출 건이 1건뿐이다(SPEC: 1건 이상이면 생성 허용).
+      수기로 만든 fixture이며, 참여자 1명·응답 1개에서 근거 작성자 집합과 positions 규칙이 성립하는지 본다. (AC4)
+
+  - name: e01_fixed_particle_real
+    fixture: e01_multi_fixed_particle
+    expect_valid: false
+    must_include_errors: [particle_pair]
+    must_not_include_errors: [quote_mismatch, evidence_mismatch, unknown_reference, unlinked_response, positions_mismatch, status_combination]
+    note: >-
+      금지 행동, 실제 모델 실패. v11 회귀 점검의 E01에서 "{{participant:sub_10}}이 모든 활동을"처럼 이/가 쌍 대신
+      한쪽 조사만 붙었다(TODO 1절). 이름 받침에 따라 조사가 틀리게 표시되므로 거부해야 한다.
+      must_not_include_errors로 같은 출력의 다른 부분, 즉 메모가 null일 때 선택지 label을 인용한
+      original_condition과 6문항 근거 연결은 정상으로 판정하는지 함께 확인한다. (AC13, AC8)
+
+  - name: truncated_json
+    fixture: p1_proposed
+    raw_output: '{"status":'
+    expect_valid: false
+    must_include_errors: [json_invalid]
+    note: >-
+      금지 행동. 출력이 중간에 끊겼다. 파싱 실패를 결과로 쓰지 않아야 한다. generate_pact.md D절 "추가" 행. (AC10)
+
+  - name: extra_key_rejected
+    fixture: p1_proposed
+    patch:
+      - {op: add, path: /output/invented, value: true}
+    expect_valid: false
+    must_include_errors: [schema_violation]
+    note: >-
+      금지 행동. 스키마 밖 키가 붙었다. 입력 속 지시로 임의 필드가 생기는 경우와 같은 결과다. (AC10, AC11)
+
+  - name: agreed_status_rejected
+    fixture: p1_proposed
+    patch:
+      - {op: replace, path: /output/status, value: agreed}
+    expect_valid: false
+    must_include_errors: [schema_violation]
+    note: >-
+      금지 행동. enum에 없는 status. 추천을 전원 합의로 표시하는 값이 통과하면 안 된다. (AC7, AC10)
+
+  - name: unresolved_with_clauses
+    fixture: p3_partial
+    patch:
+      - {op: replace, path: /output/status, value: unresolved}
+    expect_valid: false
+    must_include_errors: [status_combination]
+    note: >-
+      금지 행동. 조항이 있는데 status가 unresolved다. 일반 조항이 하나라도 있으면 proposed여야 하고,
+      이 조합이 통과하면 조항이 있는데도 유머 문구가 붙을 수 있다. (AC9)
+
+  - name: unresolved_with_conditional_alternative
+    fixture: e03_unresolved
+    patch:
+      - op: add
+        path: /output/conditional_alternatives
+        value:
+          - scenario_id: walk_or_ride
+            action: "이동 수단이 다르면 {{participant:sub_1}}이/가 차량 이동을 받아들일 수 있을 때 함께 차로 가는 방식을 검토해요."
+            participant_ids: [sub_1, sub_2]
+            source_response_ids: [e3_a, e3_b]
+            proposed_conditions: []
+            required_changes:
+              - source_response_id: e3_a
+                original_condition: "반드시 둘이 함께 걸어서 이동해야 해요."
+                proposed_change: "{{participant:sub_1}}이/가 차량 이동도 받아들이는 방안을 제안해요."
+    expect_valid: false
+    must_include_errors: [status_combination]
+    note: >-
+      금지 행동. unresolved에 조건부 대안이 들어 있다. 대안이 있으면 conditional_only여야 한다.
+      대안 자체의 참조·인용은 맞게 만들어 상태 조합만 실패하도록 했다. (AC9)
+
+  - name: fabricated_response_id
+    fixture: p1_proposed
+    patch:
+      - {op: add, path: /output/clauses/0/source_response_ids/-, value: rZ}
+    expect_valid: false
+    must_include_errors: [unknown_reference]
+    note: >-
+      금지 행동. 입력에 없는 응답 rZ를 근거로 인용했다. 실제 응답만 근거로 써야 한다. (AC5)
+
+  - name: cross_scenario_evidence
+    fixture: e02_all_unclear
+    patch:
+      - {op: replace, path: /output/unresolved_conditions/0/source_response_ids/0, value: e1_1_0}
+    expect_valid: false
+    must_include_errors: [evidence_mismatch]
+    note: >-
+      금지 행동. paid_activity의 미해결 사유에 priority_round 응답 e1_1_0을 근거로 넣었다.
+      다른 상황의 응답을 근거로 쓰면 안 된다. (AC5)
+
+  - name: obligation_on_excluded_participant
+    fixture: p3_partial
+    patch:
+      - {op: replace, path: /output/clauses/0/participant_ids, value: [A, B, C]}
+    expect_valid: false
+    must_include_errors: [evidence_mismatch]
+    note: >-
+      금지 행동. 모호해서 제외한 A를 근거 없이 조항 적용 대상에 넣었다. 근거 응답(rB, rC)의 작성자와
+      적용 대상이 달라진다. 제외된 사람에게 의무를 부과하는 결과다. (AC6)
+
+  - name: position_missing
+    fixture: p1_proposed
+    patch:
+      - {op: remove, path: /output/positions/2}
+    expect_valid: false
+    must_include_errors: [positions_mismatch]
+    note: >-
+      금지 행동. rC의 입장 추출이 빠졌다. positions는 응답마다 정확히 하나여야 한다. (AC5)
+
+  - name: invented_condition
+    fixture: p1_proposed
+    patch:
+      - {op: add, path: /output/positions/1/position/condition, value: "너무 피곤해서 쉬어야 해."}
+    expect_valid: false
+    must_include_errors: [quote_mismatch]
+    note: >-
+      금지 행동. B의 메모에 없는 피로 상태를 condition으로 지어냈다. 메모의 정확한 발췌가 아니다. (AC6)
+
+  - name: original_condition_not_quoted
+    fixture: r12_conditional_only
+    patch:
+      - {op: replace, path: /output/conditional_alternatives/0/required_changes/0/original_condition, value: "왼쪽 목적지로 가도 괜찮아."}
+    expect_valid: false
+    must_include_errors: [quote_mismatch]
+    note: >-
+      금지 행동. 변경 대상 조건을 원문과 반대로 바꿔 적었다. sub_2는 왼쪽을 원하지 않는다고 썼다.
+      원문 인용이 아니면 조건 변경 제안을 검증할 수 없다. (AC8)
+
+  - name: excluded_response_dropped
+    fixture: p3_partial
+    patch:
+      - {op: remove, path: /output/unresolved_conditions}
+    expect_valid: false
+    must_include_errors: [unlinked_response]
+    note: >-
+      금지 행동. A의 응답을 조항에서 빼고 제외 사유도 남기지 않았다. 응답자가 설명 없이 사라진다.
+      모든 응답은 조항·조건부 대안·미해결 사유 중 하나에 연결돼야 한다. (AC6)
+
+  - name: missing_response_but_proposed
+    fixture: p1_proposed
+    patch:
+      - {op: remove, path: /input/responses/2}
+    expect_valid: false
+    must_include_errors: [input_status_mismatch]
+    note: >-
+      금지 행동. 채택된 C의 응답이 입력에 없는데 C까지 포함한 proposed가 나왔다. 응답 누락은
+      needs_information, positions=[]로 처리해야 한다. 없는 rC를 인용하고 적용 대상이 근거 작성자와 달라지므로 unknown_reference, evidence_mismatch도 함께 나올 수 있다. (AC4)
+
+  - name: unknown_participant_token
+    fixture: p1_proposed
+    patch:
+      - {op: replace, path: /output/clauses/0/action, value: "여유 시간에 하고 싶은 일이 다르면 잠깐 따로 시간을 보내는 걸 추천해요. {{participant:D}}은/는 저녁 전에 숙소를 정리해요."}
+    expect_valid: false
+    must_include_errors: [token_invalid]
+    note: >-
+      금지 행동. 입력에 없는 참여자 D를 공유 문장에 등장시켰다. 화면에서 치환할 이름이 없고
+      응답하지 않은 사람에게 행동을 부과한다. (AC13, AC6)
+
+  - name: humor_in_model_output
+    fixture: e03_unresolved
+    patch:
+      - {op: replace, path: /output/message, value: "함께 걷기와 함께 차량 타기 조건을 모두 지키는 안은 찾지 못했어요. 너네 조합 꽝이니 여행 가지 마세요!"}
+    expect_valid: false
+    must_include_errors: [humor_text]
+    note: >-
+      금지 행동. 모델이 유머 문구를 직접 썼다. 유머는 unresolved 화면에서 표시 로직이 설명과 함께만 붙인다.
+      모델 출력에 들어가면 공유 이미지·다른 상태로 새어 나갈 수 있다. (AC7)
