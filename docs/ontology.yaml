@@ -1,21 +1,17 @@
 # 여행 갈등 조율의 미니 온톨로지
 # classes는 인터뷰 개념 6개이며 evidence는 실제 로그만 참조한다.
-# output_contracts는 제품 출력 모델 9개이다. 속성은 JSON Schema와 일치시킨다.
-# 출력 모델의 설계 출처는 design_sources로 구분하며 인터뷰에서 발견한 클래스로 세지 않는다.
-version: 5
+# 제품 출력 모델과 설계 출처는 SPEC.md 5절 출력 모델 표와 JSON Schema를 따른다.
+version: 6
 
 evidence_sources:
   로그 1: {path: research/records/log-01.md}
   로그 2: {path: research/records/log-02.md}
   로그 4: {path: research/records/log-04.md}
   로그 6: {path: research/records/log-06.md}
+  로그 8: {path: research/records/log-08.md}
   로그 9: {path: research/records/log-09.md}
+  로그 11: {path: research/records/log-11.md}
   로그 12: {path: research/records/log-12.md}
-
-design_sources:
-  제품 기획: {path: SPEC.md, sections: [3. 핵심 기능, 4. 범위, 5. 인터페이스], note: 서비스 기획이며 인터뷰 근거와 구분한다.}
-  질문 출력: {path: ../src/travel/prompts/prepare_scenarios.md, sections: [B. 스키마 규칙, C. 모델 전송부]}
-  협약 출력: {path: ../src/travel/prompts/generate_pact.md, sections: [B. 스키마 규칙, C. 모델 전송부]}
 
 classes:
   # 인터뷰에서 도출한 개념
@@ -24,6 +20,7 @@ classes:
     evidence: [로그 1, 로그 2, 로그 6, 로그 9]
     attributes:
       role_in_trip: {type: string, description: 해당 여행에서 맡았다고 설명된 준비·예약 등의 역할, examples: [일정 준비, 항공권과 렌터카 예약, 계획 총괄], note: 역할 집중만으로 부담이나 불공정을 추정하지 않는다., evidence: [로그 1, 로그 2, 로그 6, 로그 9]}
+      preparation_burden: {type: string, description: 조사·예약·조율 등 준비를 맡으며 겪었다고 설명된 부담, note: 본인 진술과 동행 부담에 대한 전언을 구분한다. 시간·비용은 기록된 경우에만 적는다., evidence: [로그 8, 로그 11]}
     relations:
       - {participates_in: TravelSituation, evidence: [로그 1, 로그 2, 로그 6, 로그 9]}
 
@@ -32,7 +29,7 @@ classes:
     evidence: [로그 1, 로그 2, 로그 6, 로그 9]
     attributes:
       trigger: {type: string, description: 조율이 필요해진 계기, examples: [피로로 귀가 요청, 비로 미뤄진 일정, 루지 취소 제안], evidence: [로그 1, 로그 2, 로그 9]}
-      constraints: {type: list, description: 해당 장면에서 선택 범위를 제한한다고 설명된 조건, examples: [노을까지 남은 시간, 렌터카 한 대, 다음 일정], note: 참여자가 어렵다고 판단한 조건과 객관적으로 불가능한 조건을 구분한다., evidence: [로그 2, 로그 6]}
+      constraints: {type: list, description: 해당 장면에서 선택 범위를 제한한다고 설명된 조건, examples: [노을까지 남은 시간, 렌터카 한 대, 다음 일정], note: '참여자가 어렵다고 판단한 조건과 객관적으로 불가능한 조건을 구분한다. 로그 6은 log-06.md 25·82행(참여자가 이후 일정을 설명).', evidence: [로그 2, 로그 6]}
     relations:
       - {originally_planned: Activity, evidence: [로그 1, 로그 2, 로그 9]}
       - {has_position: ParticipantPosition, evidence: [로그 1, 로그 2, 로그 6, 로그 9]}
@@ -62,11 +59,11 @@ classes:
 
   AdjustmentOption:
     description: 특정 상황에서 기존 일정을 유지·변경하기 위해 검토하거나 제안한 행동 묶음
-    evidence: [로그 1, 로그 2, 로그 4, 로그 9]
+    evidence: [로그 1, 로그 2, 로그 4, 로그 6, 로그 9]
     attributes:
       summary: {type: string, description: 활동의 유지·취소·대체·순서를 포함한 제안 내용, examples: [남은 일정 대신 귀가, 쇼핑 후 해변 이동, 루지 대신 카페 방문], evidence: [로그 1, 로그 2, 로그 9]}
       conditions: {type: list, description: 조정안을 받아들이기 위해 제시한 조건, examples: [쇼핑을 20분으로 제한, 따로 식사한 뒤 만나기], note: 'TravelSituation.constraints는 주어진 제약이고, 이 속성은 제안한 약속이다. 실행 여부는 Decision.reported_result와 구분한다.', evidence: [로그 2, 로그 4]}
-      participation: {type: string, description: 함께 이동하거나 잠시 따로 행동하는 등 제안된 참여 방식, examples: [함께 행동, 따로 식사 후 만나기], note: 예시는 고정 enum이 아니다. 따로 행동했다고 갈등이나 관계 악화를 뜻하지 않는다., evidence: [로그 2, 로그 4, 로그 12]}
+      participation: {type: enum, description: 함께 이동하거나 잠시 따로 행동하는 등 제안된 참여 방식, values: [함께 행동, 시간 나누기, 별도 행동], note: 따로 행동했다고 갈등이나 관계 악화를 뜻하지 않는다., evidence: [로그 2, 로그 4, 로그 12]}
     relations:
       - {for_situation: TravelSituation, evidence: [로그 1, 로그 2, 로그 4, 로그 9]}
       - {proposed_by: Traveler, evidence: [로그 1, 로그 2, 로그 4, 로그 9]}
@@ -79,37 +76,12 @@ classes:
     attributes:
       method: {type: string, description: 선택에 이른 조율 방식, examples: [변경 제안 수락, 시간 제한에 동의, 다수결], note: 다수결·수락 자체를 전원 만족이나 자발적 동의의 증거로 삼지 않는다., evidence: [로그 1, 로그 2, 로그 6, 로그 9]}
       reported_result: {type: string, description: 결정 후 실제로 했거나 하지 못했다고 전해진 행동, examples: [쇼핑 후 해변 방문, 루지 취소 후 카페 방문, 두 팀으로 나눠 식사], evidence: [로그 2, 로그 9, 로그 12]}
-      respondent_evaluation: {type: string, description: 이 결정을 전한 참여자 본인의 만족·아쉬움에 대한 회고, note: 'reported_by의 평가만 담는다. 선택 만족과 과정 만족을 구분하고, 동행 전원의 평가로 확대하지 않는다.', evidence: [로그 1, 로그 2, 로그 6, 로그 9, 로그 12]}
+      respondent_evaluation: {type: string, description: 이 결정을 전한 참여자 본인의 만족·아쉬움에 대한 회고, note: 'reported_by의 평가만 담는다. 선택 만족과 과정 만족을 구분하고, 동행 전원의 평가로 확대하지 않는다. 로그 12는 log-12.md 29·56행(트러블이 없었다는 회고)이며 선택 만족은 미확인이다.', evidence: [로그 1, 로그 2, 로그 6, 로그 9, 로그 12]}
     relations:
       - {for_situation: TravelSituation, evidence: [로그 1, 로그 2, 로그 6, 로그 9]}
       - {selects: AdjustmentOption, evidence: [로그 1, 로그 2, 로그 6, 로그 9]}
       - {reported_by: Traveler, evidence: [로그 1, 로그 2, 로그 6, 로그 9, 로그 12]}
 
-
-# 도메인 의미와 제품 필드의 연결. 값의 단순 복사 규칙이 아니다.
-field_mappings:
-  - domain: [TravelSituation.trigger, TravelSituation.constraints, Activity.name, Activity.place]
-    input: [scenario_pool.scene, scenario_pool.core_constraints, scenario_pool.options]
-    output: [Scenario.scene, Scenario.question, ScenarioOption.label]
-    meaning: 인터뷰에서 발견한 상황·행동 개념으로 가상 문항을 설계하고 표현을 각색한다. 실제 여행의 일정·예약 사실로 변환하지 않는다.
-  - domain: [ParticipantPosition.desired_action, ParticipantPosition.condition, ParticipantPosition.reason]
-    input: [responses.option_id, responses.memo]
-    output: [ResponsePosition.position, PactClause.action, ConditionalAlternative.action, ConditionChange.original_condition, ConditionChange.proposed_change]
-    meaning: 선택과 메모에서 바람·한계·이유를 해석한다. 선택을 수정한 메모가 우선이며 새 이유를 만들지 않는다. 메모 자체를 실제 발언으로 간주하지 않으며, 본인이 실제 전달했다고 명시한 관련 발언만 expressed_content로 추출한다.
-  - domain: [AdjustmentOption.summary, AdjustmentOption.participation, AdjustmentOption.conditions]
-    input: [scenarios.core_constraints, responses]
-    output: [PactClause.action, PactClause.participant_ids, PactClause.proposed_conditions, ConditionalAlternative.required_changes]
-    meaning: 조정안의 행동·참여·조건 개념을 추천 설계에 사용한다. 입력의 기존 한계는 보존하고 AI가 새로 제안한 약속만 proposed_conditions로 분리한다. 원래 조건 변경은 required_changes이며 수락을 뜻하지 않는다.
-  - domain: [Traveler]
-    input: [participant_profiles, participant_ids, responses.response_id]
-    output: [PactClause.participant_ids, PactClause.source_response_ids]
-    meaning: 프로필과 제출 건은 제품 식별자다. 같은 이름의 별도 제출은 서로 다른 participant_id이며 인터뷰 인원이나 실제 사람 수로 합치지 않는다.
-  - domain: []
-    output: [ScenarioSet.status, ScenarioSet.clarification_questions, ScenarioSet.message, Scenario.template_id, ScenarioOption.option_id, PactRecommendation.status, PactRecommendation.message, PactRecommendation.unresolved_conditions]
-    meaning: 상태·식별·처리 안내·추적을 위한 제품 필드다. 인터뷰에서 발견한 어휘로 세지 않으며 상세 타입과 사용처는 출력 계약·프롬프트를 따른다.
-  - domain: [Decision]
-    output: []
-    meaning: 추천 생성은 실제 결정·실행 결과를 만들지 않으므로 이번 출력에서 사용하지 않는다.
 
 # 클래스 속성은 유지하고 파싱 시 미확인 값과 선택 필드를 구분한다.
 schema_bindings:
@@ -120,121 +92,11 @@ schema_bindings:
     omitted_when_unknown: [condition, reason, expressed_content]
     use: 선택·메모에서 입장을 추출해 원문 및 추천과 대조한다. expressed_content는 본인이 실제 전달했다고 명시한 관련 발언만 추출한다.
 
-# 문항과 추천 협약서의 입출력. domain_basis는 설계에 사용한 인터뷰 개념이다.
-output_contracts:
-  ScenarioSet:
-    domain_basis: [TravelSituation]
-    description: 여행 전 상황 문항의 선정·각색 결과
-    schema: ../src/travel/schemas/scenario_set.schema.json
-    design_source: [제품 기획]
-    attributes:
-      status: {type: enum, description: 출력의 사용 가능 상태. 실행 오류와 정보 부족을 구분한다., design_source: [질문 출력], values: [ready, needs_information, unsupported, invalid_input]}
-      scenarios: {type: [array, 'null'], description: 선정·각색한 문항. 미확정이면 null., design_source: [질문 출력]}
-      clarification_questions: {type: array, description: 진행에 필요한 부족 정보만 묻는 질문., design_source: [질문 출력]}
-      message: {type: string, description: 정상 생성하지 못한 이유와 다음 동작., design_source: [질문 출력]}
-    relations:
-      - {contains: Scenario, design_source: [제품 기획]}
-
-  Scenario:
-    domain_basis: [TravelSituation]
-    description: TravelSituation을 각색한 가상 문항
-    design_source: [제품 기획]
-    attributes:
-      template_id: {type: string, description: 사람이 준비한 원본 문항의 식별자., design_source: [질문 출력]}
-      scene: {type: string, description: 핵심 제약을 유지해 각색한 장면., design_source: [질문 출력]}
-      question: {type: string, description: 본인이 원하는 행동을 묻는 질문., design_source: [질문 출력]}
-      options: {type: array, description: 원본 ID와 의미를 보존한 선택지., design_source: [질문 출력]}
-    relations:
-      - {models: TravelSituation, design_source: [제품 기획]}
-
-  ScenarioOption:
-    domain_basis: [Activity, ParticipantPosition]
-    description: 가상 상황에서 사용자가 원하는 행동의 선택지
-    design_source: [제품 기획]
-    attributes:
-      option_id: {type: string, description: 원본 문항 안에서 유일한 선택지 ID., design_source: [질문 출력]}
-      label: {type: string, description: 선택지의 표시 문구. 의미 변경 금지., design_source: [질문 출력]}
-    relations:
-      - {expresses: Activity, design_source: [제품 기획]}
-
-  PactRecommendation:
-    domain_basis: [ParticipantPosition, AdjustmentOption]
-    description: 가상 상황 응답을 바탕으로 한 여행 조율 규칙의 추천. 실제 결정인 Decision과 구분한다.
-    schema: ../src/travel/schemas/pact_recommendation.schema.json
-    design_source: [제품 기획]
-    attributes:
-      status: {type: enum, description: 출력의 사용 가능 상태. 실행 오류와 정보 부족을 구분한다., design_source: [협약 출력], values: [proposed, conditional_only, needs_information, unresolved, unsupported, invalid_input]}
-      positions: {type: array, description: 응답별 ParticipantPosition 추출과 원본 연결. 서버 검증용이며 공유에서 제외한다., design_source: [협약 출력]}
-      clauses: {type: [array, 'null'], description: 적용 대상의 원래 조건을 충족하는 추천 조항. 일부 결과를 허용하며 만들지 못하면 null., design_source: [협약 출력]}
-      conditional_alternatives: {type: array, description: 조건 변경을 전제로 하는 별도 제안. 현재 조건을 충족했다고 간주하지 않음., design_source: [협약 출력]}
-      unresolved_conditions: {type: array, description: 부족하거나 서로 충돌하여 해결하지 못한 조건., design_source: [협약 출력]}
-      message: {type: string, description: 정상 생성하지 못한 이유와 다음 동작., design_source: [협약 출력]}
-    relations:
-      - {contains: PactClause, design_source: [제품 기획]}
-
-  ResponsePosition:
-    domain_basis: [ParticipantPosition]
-    description: 추출한 입장과 원본 응답의 연결
-    design_source: [협약 출력]
-    attributes:
-      response_id: {type: string, description: 입장을 추출한 실제 입력 응답 ID., design_source: [협약 출력]}
-      position: {type: object, description: ParticipantPosition 클래스와 같은 네 속성의 파싱 결과., design_source: [협약 출력]}
-    relations:
-      - {extracts: ParticipantPosition, design_source: [협약 출력]}
-
-  PactClause:
-    domain_basis: [AdjustmentOption, Traveler]
-    description: AdjustmentOption을 바탕으로 제안하는 운영 조항
-    design_source: [제품 기획]
-    attributes:
-      scenario_id: {type: string, description: 근거가 된 가상 문항의 template_id., design_source: [협약 출력]}
-      action: {type: string, description: 유사 상황에서 누구의 바람을 어떻게 조율할지 담은 추천., design_source: [협약 출력]}
-      participant_ids: {type: array, description: 이 조항의 적용 대상인 제출 건 ID. 같은 이름의 별도 제출도 구분한다., design_source: [협약 출력]}
-      source_response_ids: {type: array, description: 근거가 된 실제 입력 응답 ID. 인용만으로 조건 충족이 증명되지는 않음., design_source: [협약 출력]}
-      proposed_conditions: {type: array, description: 응답에 없고 AI가 새로 제안한 조율 절차·약속., design_source: [협약 출력]}
-    relations:
-      - {suggests: AdjustmentOption, design_source: [제품 기획]}
-      - {applies_to: Traveler, design_source: [제품 기획]}
-
-  ConditionalAlternative:
-    domain_basis: [AdjustmentOption]
-    description: 원래 조건 일부를 변경해야 가능한 조정안
-    design_source: [제품 기획]
-    attributes:
-      scenario_id: {type: string, description: 근거가 된 가상 문항의 template_id., design_source: [협약 출력]}
-      action: {type: string, description: 유사 상황에서 누구의 바람을 어떻게 조율할지 담은 추천., design_source: [협약 출력]}
-      participant_ids: {type: array, description: 이 조항의 적용 대상인 제출 건 ID. 같은 이름의 별도 제출도 구분한다., design_source: [협약 출력]}
-      source_response_ids: {type: array, description: 근거가 된 실제 입력 응답 ID. 인용만으로 조건 충족이 증명되지는 않음., design_source: [협약 출력]}
-      proposed_conditions: {type: array, description: 응답에 없고 AI가 새로 제안한 조율 절차·약속., design_source: [협약 출력]}
-      required_changes: {type: array, description: 이 대안을 사용하려면 바꿔야 하는 원래 조건., design_source: [협약 출력]}
-    relations:
-      - {suggests: AdjustmentOption, design_source: [제품 기획]}
-
-  ConditionChange:
-    domain_basis: [ParticipantPosition]
-    description: 조건부 대안에 필요한 변경 사항
-    design_source: [제품 기획]
-    attributes:
-      source_response_id: {type: string, description: 원래 조건을 담은 응답 ID. 작성자는 이 ID로 조회한다., design_source: [협약 출력]}
-      original_condition: {type: string, description: 서버 검증용 원문 인용. 메모가 수정한 조건을 우선하며 공유 응답·화면·이미지에서는 제외한다., design_source: [협약 출력]}
-      proposed_change: {type: string, description: 원래 조건을 어떻게 바꿔야 가능한지 설명., design_source: [협약 출력]}
-    relations: []
-
-  UnresolvedCondition:
-    domain_basis: [TravelSituation, ParticipantPosition]
-    description: 모호하거나 충돌하여 추천에서 제외한 조건과 사유
-    design_source: [제품 기획]
-    attributes:
-      scenario_id: {type: string, description: 근거가 된 가상 문항의 template_id., design_source: [협약 출력]}
-      source_response_ids: {type: array, description: 근거가 된 실제 입력 응답 ID. 인용만으로 조건 충족이 증명되지는 않음., design_source: [협약 출력]}
-      description: {type: string, description: 미해결 조건과 그 이유. 대안 부재를 증명한 것으로 보지 않음., design_source: [협약 출력]}
-    relations: []
-
 # 용어: 친구·동행·일행 = Traveler. 특정 장면의 희망·이유·컨디션 = ParticipantPosition.
 # 조율 방식은 Decision.method, 분리 행동은 AdjustmentOption.participation에 담는다.
 # 기록 규칙: 본인 진술·전해 들은 말·추측을 구분한다. 침묵을 동의로 채우지 않는다.
 # 인터뷰 개념 범위: 상황별 입장과 제약, 활동, 조정안, 결정·실행 결과.
-# 제품 설계 범위: 인터뷰 개념을 가상 문항과 추천 협약서의 출력 계약으로 확장한다.
+# 제품 설계 범위: 가상 문항과 추천 협약서의 출력 계약은 SPEC.md 5절과 JSON Schema에 둔다.
 # 외부 참조: 지도·이동 경로, 영업·예약 정보는 여행 상황의 배경 맥락이며 서비스에서 조회하지 않는다.
 # 범위 밖: 예약·결제·정산 실행, 실시간 최적 동선, 성격·궁합 점수.
 # 핵심 흐름: TravelSituation → ParticipantPosition → AdjustmentOption → Decision.
