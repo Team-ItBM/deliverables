@@ -8,13 +8,13 @@
 
 ## 2. 도메인 용어집
 
-인터뷰 대표어는 온톨로지의 `classes`, 제품 출력 필드는 `output_contracts`에서 발췌한다. 전체 정의·관계·근거는 원문을 참조한다.
+인터뷰 대표어는 온톨로지의 `classes`, 제품 출력 필드는 JSON Schema와 [SPEC 5절 출력 모델](docs/SPEC.md#출력-모델)에서 발췌한다. 전체 정의·관계·근거는 원문을 참조한다.
 
-- `Traveler`: `role_in_trip`.
+- `Traveler`: `role_in_trip`, `preparation_burden`.
 - `TravelSituation`: `trigger`, `constraints`.
 - `ParticipantPosition`: `condition`, `desired_action`, `reason`, `expressed_content`.
 - `Activity`: `name`, `place`.
-- `AdjustmentOption`: `summary`, `conditions`, `participation`.
+- `AdjustmentOption`: `summary`, `conditions`, `participation` (`함께 행동`, `시간 나누기`, `별도 행동`).
 - `Decision`: `method`, `reported_result`, `respondent_evaluation`.
 - `ScenarioSet`: `status` (`ready`, `needs_information`, `unsupported`, `invalid_input`), `scenarios`. `Scenario`: `template_id`, `scene`, `question`, `options`.
 - `ScenarioOption`: `option_id`, `label`.
@@ -37,7 +37,7 @@
 
 ## 4. 금지 사항
 
-- 테스트·골든 케이스·기대값을 임의로 바꾸거나 `skip`, `xfail`, 케이스 삭제로 완료 조건을 줄이지 않는다. 사용자가 요청한 기준 변경은 관련 AC와 함께 검토한다.
+- 테스트 코드·골든 케이스·fixture·기대값은 사람이 승인한 경우에만 바꾸며, `skip`, `xfail`, 케이스 삭제로 완료 조건을 줄이지 않는다. 사용자가 요청한 기준 변경은 관련 AC와 함께 검토한다.
 - 수행하지 않은 검증을 통과로 보고하거나 원문에 없는 사실·수치를 만들지 않는다. 인터뷰·관찰은 사람이 수행하며, 본인 진술·전언·추측·관찰·팀 해석과 모의·실제 인터뷰를 구분한다. 같은 사람의 여러 사건을 여러 인터뷰로 세지 않는다.
 - 문제 정의·도메인 경계·파싱 규칙·AC·절대 규칙·골든 케이스·평가 지표의 미결정 내용을 팀 결정으로 확정하지 않는다. 요청받은 문서 정리·수정·검증은 이 경계 안에서 진행한다.
 - 비밀키·실명·연락처·녹음 등 비식별화하지 않은 원자료를 저장소에 넣지 않는다. `.env`와 내부 실행 자료를 보호한다.
@@ -47,7 +47,7 @@
 - `positions`는 같은 추천 호출에서 추출한 서버 검증용 `ParticipantPosition`이며 공유하지 않는다. 입력 `memo`는 원문이고 선택 이유는 `ParticipantPosition.reason`이다. 실제 전달했다고 명시한 발언만 `expressed_content`로 추출하며 메모를 자동 저장하지 않는다. AI의 새 약속은 `proposed_conditions`, 실제 실행 결과는 `Decision.reported_result`다.
 - 용어·필드는 온톨로지와 스키마의 이름을 쓴다. 타입·enum은 JSON Schema, 상태·참조는 후처리, 의미는 사람이 확인한 기준으로 검증한다. 외부 호출은 검증·표시 로직과 분리한다.
 - 구현 전에 대응 골든 케이스를 확인한다. 정렬·상태 판정은 동일 입력에서 같아야 하며 동점 처리도 명시한다.
-- 온톨로지 변경은 스키마·스펙·코드·테스트에, AC 변경은 골든 케이스·평가 기준에 반영한다. 인터뷰 개념에는 로그 `evidence`, 출력 계약에는 `design_source`를 연결한다.
+- 온톨로지 변경은 스키마·스펙·코드·테스트에, AC 변경은 골든 케이스·평가 기준에 반영한다. 인터뷰 개념에는 로그 `evidence`, 출력 계약에는 SPEC 5절 출력 모델 표의 설계 출처를 연결한다.
 - 프롬프트 전송부(`<!-- prompt:start -->`~`<!-- prompt:end -->`)를 바꾸면 `prompt_version`을 올리고 변경 이력을 버전별 한 줄로 쓴다([3강 버전 규칙](references/course/03/강의03_구조화출력_작성지침.md#파싱-프롬프트-파일은-어떻게-쓰이나)). 본문에는 최신 점검만 두고 과거 실행 기록은 `.local-work/`에 보존한다.
 
 ## 6. 완료의 정의
@@ -58,11 +58,12 @@
 
 ## 7. 운영 정보
 
-모델은 GPT-6.1 Sol (`gpt-6.1-sol`, 이하 Sol)을 사용한다. 이 저장소는 조사·스펙·모델 출력 계약을 관리한다. 서비스 실행·테스트·린트 명령은 구현 코드의 설정을 따른다. 모바일 확인은 아이폰 Safari와 안드로이드 Chrome 실제 기기로 수행한다. 실제 확인한 명령과 통과 조건을 이 절에 기록한다. 문서 점검: `git diff --check`, 변경 범위 확인: `git status --short`.
+모델은 GPT-6.1 Sol (`gpt-6.1-sol`, 이하 Sol)을 사용한다. 이 저장소는 조사·스펙·모델 출력 계약을 관리한다. 서비스 실행·테스트·린트 명령은 구현 코드의 설정을 따른다. 모바일 확인은 아이폰 Safari와 안드로이드 Chrome 실제 기기로 수행한다. 실제 확인한 명령과 통과 조건을 이 절에 기록한다. 문서 점검: `git diff --check`, 변경 범위 확인: `git status --short`. 골든 테스트(추천 출력 검증기): `python -m pytest tests/test_pact_golden.py -q -rs`. 기능 수용 조건은 골든 케이스 25개 전수 통과와 skip·xfail 0건이며, 검증기 구현 전에는 로더 검사 5개 통과와 골든 케이스 25개 skip이 정상이다.
 
 - `docs/`: 문제·스펙·온톨로지. `research/`는 인터뷰·관찰, `spikes/`는 실험 기록.
 - `src/travel/schemas/`, `src/travel/prompts/`: 제품 출력 계약·프롬프트.
 - `references/course/`: 강의 작성지침 원본. `.local-work/`: 내부 분석·임시 검증 자료.
+- `tests/`: 골든 테스트. 골든 케이스와 fixture는 `tests/harness/`에 둔다.
 - 개발 위임 기록은 `docs/prompts/`, 평가 프롬프트는 `evals/`에 필요할 때 둔다.
 
 용어집 확인(2026-09-30): 별도 세션에서 `memo`, `ParticipantPosition.reason`, `PactClause.proposed_conditions`, `Decision.reported_result`를 맞게 선택하고, 메모를 `expressed_content`로 바로 저장하지 않음을 확인했다. 용어집을 발췌로 정리한 뒤에도 같은 결과를 얻었다. 확인 범위는 해당 질의의 필드 선택이다.
