@@ -36,6 +36,7 @@
 - `ScenarioTemplate`은 pool 항목 하나(`template_id`, `decision_key`, `topic`, `title`, `purpose`, `scene`, `question`, `options`, `core_constraints`)를 그대로 돌려주는 파생 타입이다. `topic`은 선정 규칙에 쓰지 않는 참고용 분류지만, 원본을 그대로 돌려준다는 계약을 지키고 v6에서 pool 항목 전체를 입력하던 것과 같은 정보를 주기 위해 포함한다. 온톨로지 클래스가 아니며, 각색 결과인 출력 모델 `Scenario`의 원본이다. `TravelSituation`·`Activity`를 각색한다는 SPEC 5절의 연결을 따른다.
 - 모델 입력의 pool은 목록 `ScenarioIndexEntry`(`template_id`, `title`, `purpose`, `decision_key`)로 줄인다. 모델은 목록에서 후보를 고르고 이 도구로 원본을 열어 기간·인원 적합성과 핵심 제약을 확인한 뒤 각색한다.
 - 연결 함수: `get_scenario_template` → `pool.py`의 `lookup_template(template_id)`(문항 프롬프트의 함수 표).
+- 도구 정의의 파라미터는 `template_id`(string, 필수) 하나이며 다른 인자는 받지 않는다. 허용값 제한(`enum`)과 strict 모드는 스파이크(5절)에서 Sol API 지원을 확인한 뒤 정한다.
 - 출력 계약: 성공은 `ScenarioTemplate`, 실패는 `ToolError`(`{error_code, retryable, message}`)다. `ToolError`도 온톨로지 클래스가 아닌 도구 결과용 파생 타입이다. 없는 ID는 `not_found`(재시도 불가), 형식 오류는 `validation`(재시도 불가).
 
 **쓰기 도구는 두지 않는다.** 방 생성, 응답 마감, 재생성, 결과 선택·편집·저장, 푸시, 만료 삭제는 상태를 바꾸지만 모두 사용자 조작이나 서버 이벤트로 코드가 실행한다. 방장만 편집·저장하고(AC12) 추천을 확정·합의로 처리하지 않는다(AC7)는 경계를 지키기 위해 모델에 쓰기 권한을 주지 않는다. 따라서 사용자 승인 대상이 되는 모델 도구도 없다.

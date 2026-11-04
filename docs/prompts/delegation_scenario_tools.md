@@ -54,7 +54,7 @@
 
 5단계 위임 프롬프트다. 아직 실행하지 않았다. 실행할 때 이 블록을 그대로 붙여 넣고, 고쳐서 넣었다면 실제로 넣은 텍스트로 바꾸고 고친 이유를 §2에 적는다.
 
-판정 기준은 기준 커밋 `c027358`의 `tests/test_tools.py`다. 3절 표에 파라미터 스키마를 둘지는 아직 정하지 않았다. 그래서 이 프롬프트는 시그니처를 그대로 옮긴 `template_id`(string, 필수) 하나만 두게 하고, 테스트는 이를 검사하지 않는다.
+판정 기준은 기준 커밋 `c027358`의 `tests/test_tools.py`다. 파라미터 스키마는 ARCHITECTURE 3절에 정했고(2026-11-04, 전민규 승인), 테스트는 이를 검사하지 않아 §3의 9번에서 코드로 확인한다.
 
 ```text
 프롬프트 2: get_scenario_template 도구 코드 위임
@@ -79,7 +79,7 @@ src/travel/tools/scenario_tools.py 하나만 만든다.
 - TOOL_DEFINITION: name, description, parameters를 가진 dict.
   - name은 "get_scenario_template"
   - description은 ARCHITECTURE 3절 표의 설명 칸 문장을 한 글자도 바꾸지 않고 쓴다. 함수 docstring에도 같은 문장을 둔다.
-  - parameters는 JSON Schema object로, 시그니처를 그대로 옮긴 template_id(type string, required) 하나만 둔다.
+  - parameters는 JSON Schema object로, ARCHITECTURE 3절대로 template_id(type string, required) 하나만 두고 additionalProperties는 false로 한다. enum과 strict 모드는 넣지 않는다.
 - ToolError의 필드는 error_code, retryable, message 세 개뿐이다. message는 비어 있지 않은 한국어 문장이다.
 
 ## 지킬 것
@@ -281,7 +281,7 @@ e1은 `docs/ARCHITECTURE.md`를 `.local-work/fault_injection/`에 백업하고 �
 | # | 확인할 것 | 근거 | 통과 조건 | 결과 |
 |---|---|---|---|---|
 | 8 | docstring의 설명 문장 | 강의 6 5단계, §1-2 | 함수 docstring이 ARCHITECTURE 3절 표의 설명 칸과 같음. 테스트는 `TOOL_DEFINITION`의 설명만 비교한다 | |
-| 9 | 파라미터 스키마 | §1-2 | `TOOL_DEFINITION.parameters`에 `template_id`(string, 필수) 하나만 있음. 3절 표의 스키마 결정은 아직 남아 있다 | |
+| 9 | 파라미터 스키마 | ARCHITECTURE 3절 | `TOOL_DEFINITION.parameters`에 `template_id`(string, 필수) 하나만 있고 `additionalProperties`가 false이며 `enum`, strict 모드가 없음 | |
 | 10 | 예외 범위 | ARCHITECTURE 6절, §1-2 | `KeyError`만 `not_found`로 바꾸고, `except Exception`처럼 다른 예외를 감추는 코드가 없음 | |
 | 11 | 인자 정규화 | §2-3 수용 해석 | `strip`, `lower` 같은 변환이 없음 | |
 | 12 | 부작용 | ARCHITECTURE 3절 부작용 "없음(읽기)" | 파일 쓰기, 전역 상태 변경, 네트워크 호출, 로그 출력이 없음. 테스트는 pool 불변만 본다 | |
