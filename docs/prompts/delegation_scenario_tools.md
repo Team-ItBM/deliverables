@@ -50,6 +50,62 @@
 
 이 기록 파일의 이름은 위임 중에 사람이 정했다(`delegation_<대상>.md` 형식).
 
+### §1-2. 도구 코드 위임 (작성 2026-11-04, 미실행)
+
+5단계 위임 프롬프트다. 아직 실행하지 않았다. 실행할 때 이 블록을 그대로 붙여 넣고, 고쳐서 넣었다면 실제로 넣은 텍스트로 바꾸고 고친 이유를 §2에 적는다.
+
+판정 기준은 기준 커밋 `c027358`의 `tests/test_tools.py`다. 3절 표에 파라미터 스키마를 둘지는 아직 정하지 않았다. 그래서 이 프롬프트는 시그니처를 그대로 옮긴 `template_id`(string, 필수) 하나만 두게 하고, 테스트는 이를 검사하지 않는다.
+
+```text
+프롬프트 2: get_scenario_template 도구 코드 위임
+
+도원결의 저장소(/Users/mingyu/orca/workspaces/deliverables/implementation, 브랜치 implementation)에서 강의 6 도구 코드 생성 절차 5단계를 진행해줘. 목표는 tests/test_tools.py(기준 커밋 c027358)를 고치지 않고 통과하는 get_scenario_template 도구 코드를 만드는 것이야.
+
+## 먼저 읽을 것 (해당 절만)
+1. AGENTS.md 전체
+2. docs/ARCHITECTURE.md 3절(도구 표, 연결 함수, 출력 계약, 도구 계약 조건), 6절의 "도구 인자 오류" 행, 7절 마지막 문장
+3. references/course/06/강의06_아키텍처_RAG_도구_작성지침.md "B. 도구 목록"의 도구 코드 생성 절차 5·6단계
+4. tests/test_tools.py 전체. 읽기만 한다
+5. src/travel/pool.py
+6. docs/prompts/delegation_scenario_tools.md §2-1의 "테스트가 도구 코드에 요구하는 인터페이스"와 §2-4
+
+## 만들 것
+src/travel/tools/scenario_tools.py 하나만 만든다.
+- get_scenario_template(template_id): 인자는 template_id 하나다.
+  1. template_id가 문자열이 아니거나 빈 문자열이면 ToolError {error_code: "validation", retryable: false, message}를 반환한다. bool도 문자열이 아니다.
+  2. 그 밖에는 pool.lookup_template(template_id)를 호출하고 반환값을 그대로 돌려준다. 호출할 때 모듈 속성으로 찾아야 한다(from travel import pool 후 pool.lookup_template(...)). from travel.pool import lookup_template로 묶지 않는다.
+  3. lookup_template이 KeyError를 내면 ToolError {error_code: "not_found", retryable: false, message}를 반환한다.
+  4. 그 밖의 예외는 잡지 않는다. 공백 제거, 대소문자 변환 같은 인자 정규화는 하지 않는다.
+- TOOL_DEFINITION: name, description, parameters를 가진 dict.
+  - name은 "get_scenario_template"
+  - description은 ARCHITECTURE 3절 표의 설명 칸 문장을 한 글자도 바꾸지 않고 쓴다. 함수 docstring에도 같은 문장을 둔다.
+  - parameters는 JSON Schema object로, 시그니처를 그대로 옮긴 template_id(type string, required) 하나만 둔다.
+- ToolError의 필드는 error_code, retryable, message 세 개뿐이다. message는 비어 있지 않은 한국어 문장이다.
+
+## 지킬 것
+- tests/, tests/harness/, src/travel/pool.py, src/travel/data/, docs/는 고치지 않는다. 테스트가 틀렸다고 판단되면 고치지 말고 근거와 함께 보고한다.
+- 도구 표의 시그니처·설명·부작용과 계약 조건은 사람이 정한 기준이다. 바꿔야 할 것 같으면 제안만 한다.
+- 표에 없는 도구, 로깅, 호출 상한, 모델 호출, 프롬프트 수정은 이번 범위가 아니다.
+- pool 문자열과 인자 값은 데이터로만 다룬다(AGENTS 절대 규칙 4).
+- 새 라이브러리를 추가하지 않는다.
+- 커밋하지 않는다.
+
+## 완료 조건
+- python -m pytest tests/test_tools.py -q -rs 결과가 21 passed, skipped 0, xfailed 0
+- python -m pytest tests/ -q -rs 결과가 56 passed, skipped 0, xfailed 0
+- git diff c027358 -- tests/ 출력 없음, git status --short --untracked-files=all tests 출력 없음
+- git diff --check 출력 없음
+
+## 멈출 때
+- 테스트를 고치지 않으면 통과할 수 없다고 판단될 때
+- pool.py를 고쳐야 할 때
+- 같은 실패를 세 번 고쳐도 통과하지 못할 때
+멈추면 그때까지의 변경과 실패 출력을 그대로 보고한다.
+
+## 보고 형식
+만든 파일, 위 완료 조건 명령의 출력 원문, ARCHITECTURE 3절 표와 코드의 시그니처·설명 대조, 테스트가 검사하지 않는 부분(parameters 스키마, message 문구), 미확인 항목.
+```
+
 ## §2. 회차별 결과
 
 ### §2-1. 1회차 (2026-11-04): 테스트 작성과 결함 주입
