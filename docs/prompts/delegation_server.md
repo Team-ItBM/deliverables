@@ -719,3 +719,28 @@ YAML 생성 스크립트와 실행 출력은 `.local-work/server_harness/`에 �
 - 수용 뒤 실행: `python -m pytest tests/test_server_*.py -q -rs`는 29 passed, 87 skipped(케이스 86개 서버 미구현, DB fixture 1개 테스트 DB 없음). `python -m pytest tests/ -q -rs`는 166 passed, 87 skipped, 실패 0.
 - 판정 수용은 남았다. 서버 구현 뒤 작은 흐름 범위(방 생성 → 문항 → 제출 → 마감 → 저장 출력 추천 → 방장 선택 → 참여자 공개)부터 결함 주입을 하고, 기능을 늘리며 d0~d28, C2·C7을 끝낸다. 케이스 본문은 아직 한 번도 실행되지 않았다.
 - 이후 `tests/`의 변경은 사람이 승인한다(AGENTS.md 4절).
+
+### §2-3. REG-N04 생성 완료 시점 통제 (2026-11-05, 3회차(PR #15 2차 리뷰 반영))
+
+사람이 승인한 하니스 수정 회차다(전민규, 2026-11-05). 에이전트 Claude가 테스트 코드만 고쳤다. 케이스·기대값과 다른 케이스는 바꾸지 않았다.
+
+| 회차 | 결과 | 무엇이 문제였나 | 무엇을 고쳤나 (프롬프트/케이스/테스트 코드) |
+|---|---|---|---|
+| 3 | 케이스 86개 수집·skip(서버 미구현). 하니스 검사 30개 중 29개 통과(DB fixture는 TEST_DATABASE_URL 없음으로 skip) | REG-N04의 추천 출력이 즉시 반환된다. retry가 먼저 202를 받고 생성까지 끝내면 정상 결과가 2개가 되어, 뒤늦은 regenerate는 정상 순서에서도 `invalid_state`가 아니라 `regeneration_limit`를 받는다. 올바른 서버도 실패할 수 있었다 | 테스트 코드: `test_reg_n04_concurrent_retry_and_regenerate` |
+
+**바꾼 것**
+
+- 회마다 추천 재생 항목을 `srv.replay.hold("pact", po.pact_item())`로 넣는다. 두 요청을 동시에 보낸 뒤, 승자의 생성이 붙잡혀 있는 동안 두 HTTP 응답을 확인한다(`concurrent_statuses` [202, 409], 진 요청의 `error_code` `invalid_state`). 그다음 `hold.wait_started()`로 승자의 호출이 시작됐는지 확인하고 풀어 준 뒤 두 앱의 작업을 기다린다. 마지막에 `calls_added`(추천 1회)와 `normal_results`(2개)를 본다.
+- 기대값 `concurrent_statuses`, `error_code`, `calls_added`, `normal_results`와 반복 10회, 앱 두 개 구성은 그대로다. YAML과 §0-1 표는 바꾸지 않았다.
+- 붙잡은 호출은 테스트가 중간에 실패해도 정리 때 `ReplayClient.close()`가 풀어 준다(1회차와 같다).
+
+**결함 계획에 미치는 영향**
+
+- d26(`retry`와 `regenerate`가 서로를 막지 않음)의 검출 근거가 분명해졌다. 두 요청이 모두 받아들여지면 둘째 요청이 202가 되어 `concurrent_statuses`에서 실패한다. 둘째 시도가 추천을 부르면 빈 대기열 실패로도 드러난다.
+- 반대로 이 수정 전에는 정상 구현이 d0(통과 가능 확인)에서 REG-N04를 실패할 수 있었다. 이제 d0의 기대(86 passed, skip 0)와 맞는다. 다른 d 항목은 바뀌지 않았다.
+
+**완료 조건 실행 결과**
+
+- `python -m pytest tests/ -q -rs`: 166 passed, 87 skipped(서버 케이스 86, DB fixture 1), 실패 0.
+- `git diff --check`: 출력 없음. `src/`는 이 회차에 바꾸지 않았다(2회차의 `scenarios.py` 한 줄만 남아 있다).
+- 서버가 없어 REG-N04 본문은 실행되지 않았다. 판정 수용 때 확인한다.

@@ -3,6 +3,8 @@
 정상·실패 결과 수는 방장 결과 목록의 state로 센다. 재생성 실패는 timeout 3회(최초 + 재시도 2회)로 만든다.
 재생성 결과는 방장이 고르기 전까지 참여자 결과 조회에 나오지 않는다(결정 28·32, REG-P04).
 REG-N04는 response_closure의 동시성 케이스처럼 같은 DB와 같은 재생 클라이언트로 앱 두 개를 연다.
+승자의 추천 생성은 Hold로 붙잡아 두 HTTP 응답을 받은 뒤에 푼다. 승자가 먼저 끝나면 진 요청이 정상 순서에서도
+regeneration_limit를 받을 수 있어서다(3회차).
 """
 
 import json
@@ -187,15 +189,18 @@ def test_reg_n04_concurrent_retry_and_regenerate(srv, expect):
         assert first.room(room)["room_status"] == "failed", f"{round_no}회: 준비 상태가 failed가 아니다"
         assert _count(first, room, "normal") == 1
         before = srv.replay.counts()
-        srv.replay.push("pact", po.pact_item())
+        # 승자의 생성이 끝나기 전에 두 응답을 받도록 추천 출력을 붙잡는다
+        hold = srv.replay.hold("pact", po.pact_item())
         retrier, regenerator = (first, second) if round_no % 2 == 0 else (second, first)
         responses = run_concurrently(lambda: retrier.retry(room), lambda: regenerator.regenerate(room))
-        first.join()
-        second.join()
         assert sorted(r.status_code for r in responses) == expect["concurrent_statuses"], \
             f"{round_no}회: {[r.status_code for r in responses]}"
         loser = max(responses, key=lambda r: r.status_code)
         assert_error(loser, loser.status_code, expect["error_code"])
+        hold.wait_started()
+        hold.release()
+        first.join()
+        second.join()
         assert_calls(srv.replay, expect["calls_added"], before=before)
         assert _count(first, room, "normal") == expect["normal_results"], f"{round_no}회: 정상 결과 수"
 
