@@ -2,7 +2,7 @@
 
 ## 1. 문제
 
-친구·연인·가족 등 동행과 자유여행을 하는 사람이 일정·활동을 조율할 때 바람과 한계를 충분히 말하거나 반영하기 어려워하며, 일부는 조율 뒤에도 아쉬움이나 준비 부담을 겪는다. 조율 결과와 남은 부담의 근거는 [문제 정의서](PROBLEM.md)에 정리한다.
+친구·연인·가족 등 동행과 자유여행을 하는 사람은 일정·활동을 함께 정할 때 서로 바람과 한계가 갈리는 일을 겪고, 일부는 바람을 말하지 못하거나 말해도 반영되지 않아 조율 뒤에도 아쉬움이나 준비 부담을 겪는다. 조율 결과와 남은 부담의 근거는 [문제 정의서](PROBLEM.md)에 정리한다.
 
 ## 2. 타깃 사용자
 
@@ -63,7 +63,7 @@ AC14의 모바일 접근성은 모든 흐름에 적용한다.
 
 이 절은 프레임워크와 HTTP 경로에 독립적인 논리 입출력 계약이다. 이름 선택은 인증이 아니므로 방장 권한은 방 생성 시 발급하는 별도 권한으로 서버에서 확인한다.
 
-온톨로지의 `classes`는 인터뷰 개념, `output_contracts`는 제품 출력 모델이다. `TravelSituation`과 `Activity`를 가상 문항·선택지로 각색하고, 응답에서 드러난 `ParticipantPosition`을 바탕으로 `AdjustmentOption`에 해당하는 추천 조항을 만든다. 제품용 프로필·제출 식별자를 인터뷰에서 발견한 클래스로 세지 않는다.
+온톨로지의 `classes`는 인터뷰 개념이고, 제품 출력 모델은 아래 [출력 모델](#출력-모델) 표와 JSON Schema가 정한다. `TravelSituation`과 `Activity`를 가상 문항·선택지로 각색하고, 응답에서 드러난 `ParticipantPosition`을 바탕으로 `AdjustmentOption`에 해당하는 추천 조항을 만든다. 제품용 프로필·제출 식별자를 인터뷰에서 발견한 클래스로 세지 않는다.
 
 | 작업 | 입력 | 출력·동작 |
 |---|---|---|
@@ -78,9 +78,27 @@ AC14의 모바일 접근성은 모든 흐름에 적용한다.
 | 푸시 등록·발송 | 알림 권한·구독, 방의 완료·생성 이벤트 | 허용된 구독에만 발송하고 같은 이벤트의 중복 알림을 막는다. |
 | 만료 처리 | 방 생성 시각 + 30일 | 서버 자료 삭제 및 링크 접근·작업 거부. |
 
+### 출력 모델
+
+필드·타입·허용값의 정본은 각 JSON Schema다. 설계 출처의 제품 기획은 이 문서 3~5절, 문항 프롬프트와 추천 프롬프트는 각 파일의 B·C절이다. 인터뷰 개념은 설계에 참고한 온톨로지 클래스이며, 출력 모델을 인터뷰에서 발견한 클래스로 세지 않는다.
+
+| 출력 모델 | 스키마 | 설계 출처 | 설계에 사용한 인터뷰 개념 |
+|---|---|---|---|
+| `ScenarioSet` | [문항 스키마](../src/travel/schemas/scenario_set.schema.json) | 제품 기획, [문항 프롬프트](../src/travel/prompts/prepare_scenarios.md) | `TravelSituation` |
+| `Scenario` | 문항 스키마 `Scenario` | 제품 기획, 문항 프롬프트 | `TravelSituation.trigger`·`constraints`, `Activity.name`·`place` (pool의 `scene`·`core_constraints`를 각색) |
+| `ScenarioOption` | 문항 스키마 `ScenarioOption` | 제품 기획, 문항 프롬프트 | `Activity`, `ParticipantPosition` |
+| `PactRecommendation` | [추천 스키마](../src/travel/schemas/pact_recommendation.schema.json) | 제품 기획, [추천 프롬프트](../src/travel/prompts/generate_pact.md) | `ParticipantPosition`, `AdjustmentOption` |
+| `ResponsePosition` | 추천 스키마 `ResponsePosition` | 추천 프롬프트 | `ParticipantPosition`의 네 속성 |
+| `PactClause` | 추천 스키마 `PactClause` | 제품 기획, 추천 프롬프트 | `AdjustmentOption.summary`·`participation`·`conditions`, `ParticipantPosition`, `Traveler` |
+| `ConditionalAlternative` | 추천 스키마 `ConditionalAlternative` | 제품 기획, 추천 프롬프트 | `AdjustmentOption`, `ParticipantPosition` |
+| `ConditionChange` | 추천 스키마 `ConditionChange` | 제품 기획, 추천 프롬프트 | `ParticipantPosition.desired_action`·`condition`·`reason` |
+| `UnresolvedCondition` | 추천 스키마 `UnresolvedCondition` | 제품 기획, 추천 프롬프트 | `TravelSituation`, `ParticipantPosition` |
+
+`status`·`message`·`clarification_questions`·`template_id`·`option_id`는 상태·식별·안내를 위한 제품 필드이며 인터뷰 어휘로 세지 않는다. `Decision`은 추천 출력에서 사용하지 않는다.
+
 ### 필드 연결과 검증 경계
 
-- 문항 프롬프트 v6는 [문항 스키마 v2](../src/travel/schemas/scenario_set.schema.json), 추천 프롬프트 v11은 [추천 스키마 v4](../src/travel/schemas/pact_recommendation.schema.json)를 사용한다. 추천은 같은 호출에서 `ParticipantPosition`도 추출한다. 추가 LLM 호출 없이 원본·입장·조항을 대조한다.
+- 문항 프롬프트 v7은 [문항 스키마 v2](../src/travel/schemas/scenario_set.schema.json), 추천 프롬프트 v12는 [추천 스키마 v4](../src/travel/schemas/pact_recommendation.schema.json)를 사용한다. 추천은 같은 호출에서 `ParticipantPosition`도 추출한다. 추가 LLM 호출 없이 원본·입장·조항을 대조한다.
 - `profile_id`는 등록 프로필, `display_name`은 이름·별명이다. 문항의 `{{profile:profile_id}}` 표기는 코드가 조회해 본인에게 ‘당신’, 다른 사람에게 등록한 이름으로 바꾼다. 모두 같은 문항·선택지 ID와 의미를 유지하며 선택 프로필 정보를 그대로 노출하지 않는다. 표시 이름·‘당신’의 받침에 맞게 이/가·은/는·과/와를 처리한다.
 - [pool 데이터](../src/travel/data/scenario_pool.json)는 `pool_version`과 `scenario_pool`을 저장한다. 모델에는 문항 배열만 전달하고 출처·작성 근거는 입력에서 제외한다. 숙박·다음 날·2박 등 장면의 적용 조건은 여행 기간과 대조해 선정한다.
 - pool의 `decision_key`는 같은 판단을 묻는 문항의 식별자다. 각 문항에 부여한 키를 유지하고 같은 키의 문항을 함께 선정하지 않는다. 주제 자체는 중복을 금지하는 기준이 아니다.

@@ -16,8 +16,8 @@
 | `src/travel/data/scenario_pool.json` | 문항 pool v2(50개) | 강의 4 SPEC | |
 | `src/travel/schemas/scenario_set.schema.json` | 문항 출력 계약 v2 | 강의 3 | |
 | `src/travel/schemas/pact_recommendation.schema.json` | 추천 출력 계약 v4 | 강의 3 | |
-| `src/travel/prompts/prepare_scenarios.md` | 문항 선정·각색 프롬프트 v6 | 강의 3 | **수정 대상**: pool 전체 입력 → 목록 + 도구 |
-| `src/travel/prompts/generate_pact.md` | 입장 추출·추천 생성 프롬프트 v11 | 강의 3 | |
+| `src/travel/prompts/prepare_scenarios.md` | 문항 선정·각색 프롬프트 v7 | 강의 3 | **수정 대상**: pool 전체 입력 → 목록 + 도구 |
+| `src/travel/prompts/generate_pact.md` | 입장 추출·추천 생성 프롬프트 v12 | 강의 3 | |
 | `src/travel/scenarios.py` | 문항 단계 오케스트레이션, 후처리(`select_unique_decisions`, `route_scenario_result`) | 강의 3 함수 인터페이스 | **구현 대상** |
 | `src/travel/pool.py` | pool 로드·목록 생성·`lookup_template` | 강의 3 함수 인터페이스 | **구현 대상** |
 | `src/travel/tools/scenario_tools.py` | `get_scenario_template` 도구(모델 호출 → `lookup_template` 연결) | 강의 6 | **구현 대상** |
@@ -116,6 +116,6 @@ RAG·벡터 검색, 모델 쓰기 도구, 전체 에이전트 루프·멀티 에
 
 이 설계에 따라 다음을 함께 고친다(AGENTS 5절). 진행 상태는 [TODO](../TODO.md)에서 관리한다.
 
-- `prepare_scenarios.md`: 입력을 pool 전체에서 목록 + 도구로 바꾸고 `prompt_version`을 7로 올린다.
+- `prepare_scenarios.md`: 입력을 pool 전체에서 목록 + 도구로 바꾸고 `prompt_version`을 8로 올린다.
 - SPEC F2·5절 인터페이스: 문항 선정·각색 입력과 도구 사용을 반영한다.
 - 3절 도구 계약 테스트를 코드 위임 전에 확정한다.

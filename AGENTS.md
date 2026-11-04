@@ -8,13 +8,13 @@
 
 ## 2. 도메인 용어집
 
-인터뷰 대표어는 온톨로지의 `classes`, 제품 출력 필드는 `output_contracts`에서 발췌한다. 전체 정의·관계·근거는 원문을 참조한다.
+인터뷰 대표어는 온톨로지의 `classes`, 제품 출력 필드는 JSON Schema와 [SPEC 5절 출력 모델](docs/SPEC.md#출력-모델)에서 발췌한다. 전체 정의·관계·근거는 원문을 참조한다.
 
-- `Traveler`: `role_in_trip`.
+- `Traveler`: `role_in_trip`, `preparation_burden`.
 - `TravelSituation`: `trigger`, `constraints`.
 - `ParticipantPosition`: `condition`, `desired_action`, `reason`, `expressed_content`.
 - `Activity`: `name`, `place`.
-- `AdjustmentOption`: `summary`, `conditions`, `participation`.
+- `AdjustmentOption`: `summary`, `conditions`, `participation` (`함께 행동`, `시간 나누기`, `별도 행동`).
 - `Decision`: `method`, `reported_result`, `respondent_evaluation`.
 - `ScenarioSet`: `status` (`ready`, `needs_information`, `unsupported`, `invalid_input`), `scenarios`. `Scenario`: `template_id`, `scene`, `question`, `options`.
 - `ScenarioOption`: `option_id`, `label`.
@@ -47,7 +47,7 @@
 - `positions`는 같은 추천 호출에서 추출한 서버 검증용 `ParticipantPosition`이며 공유하지 않는다. 입력 `memo`는 원문이고 선택 이유는 `ParticipantPosition.reason`이다. 실제 전달했다고 명시한 발언만 `expressed_content`로 추출하며 메모를 자동 저장하지 않는다. AI의 새 약속은 `proposed_conditions`, 실제 실행 결과는 `Decision.reported_result`다.
 - 용어·필드는 온톨로지와 스키마의 이름을 쓴다. 타입·enum은 JSON Schema, 상태·참조는 후처리, 의미는 사람이 확인한 기준으로 검증한다. 외부 호출은 검증·표시 로직과 분리한다.
 - 구현 전에 대응 골든 케이스를 확인한다. 정렬·상태 판정은 동일 입력에서 같아야 하며 동점 처리도 명시한다.
-- 온톨로지 변경은 스키마·스펙·코드·테스트에, AC 변경은 골든 케이스·평가 기준에 반영한다. 인터뷰 개념에는 로그 `evidence`, 출력 계약에는 `design_source`를 연결한다.
+- 온톨로지 변경은 스키마·스펙·코드·테스트에, AC 변경은 골든 케이스·평가 기준에 반영한다. 인터뷰 개념에는 로그 `evidence`, 출력 계약에는 SPEC 5절 출력 모델 표의 설계 출처를 연결한다.
 - 프롬프트 전송부(`<!-- prompt:start -->`~`<!-- prompt:end -->`)를 바꾸면 `prompt_version`을 올리고 변경 이력을 버전별 한 줄로 쓴다([3강 버전 규칙](references/course/03/강의03_구조화출력_작성지침.md#파싱-프롬프트-파일은-어떻게-쓰이나)). 본문에는 최신 점검만 두고 과거 실행 기록은 `.local-work/`에 보존한다.
 
 ## 6. 완료의 정의
