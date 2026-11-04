@@ -78,4 +78,21 @@ src/travel/pact.py 의 validate_pact_output(pact_input, raw_output) 를 구현�
 
 ### §2-2. 기능 위임
 
-(미실행)
+| 회차 | 결과 | 무엇이 문제였나 | 무엇을 고쳤나 (프롬프트/컨텍스트/코드) |
+|---|---|---|---|
+| 1 | 골든 케이스 25/25 통과, 로더 검사 5개 통과(`30 passed`), skip·xfail 0 | 없음. 규칙이 정확하지 않은 3가지를 에이전트가 정하고 확인을 요청했다. | 없음. 3가지 모두 수용하고 문서에 반영했다. |
+
+- 실행: 2026-11-04, Claude Code(데스크톱 앱), 권한 모드 수동. 기준 `f853b04`(`lecture05`). 프롬프트는 §1-2.
+- 변경 범위: `src/travel/pact.py`만 추가. 테스트·케이스·fixture·스키마·프롬프트·`requirements.txt` 변경 없음, 추가 패키지 설치 없음(에이전트 보고, 사람이 `git status`·`git diff`로 확인).
+- 구조(에이전트 보고): `validate_pact_output`이 `parse_output` → `validate_schema`(jsonschema Draft 7)를 거치고, 둘 중 하나가 실패하면 멈춘다. 그 밖에는 `route_pact_result(status)`로 분기해 `check_status_combination`, `check_input_status`, `check_evidence`, `validate_positions`, `check_linked_responses`, `check_participant_tokens`, `check_humor_text` 순으로 오류를 모은다. `lookup_scenario`, `lookup_response_evidence`는 입력 조회가 필요해 `InputIndex`의 메서드로 두었다.
+- 케이스별 통과 이유(에이전트 보고 요약)
+  - 정상·경계 9개: 오류 없음. 참조, 작성자 집합, 응답별 positions, 조사 쌍, 상태 조합이 모두 맞다. `p2_missing_response_valid`는 응답 누락에 맞는 needs_information·positions=[], `e02_all_unclear_valid`는 null 메모에서도 18개 응답이 모두 연결, `p4`·`p5`는 오류 상태라 참조 검사를 건너뛴다.
+  - `e01_fixed_particle_real`: 조건부 대안 두 곳의 `{{participant:sub_10}}이`로 `particle_pair` 2건. 선택지 label 인용은 `quote_mismatch`가 아니다.
+  - 형식: `truncated_json` → `json_invalid`, `extra_key_rejected`·`agreed_status_rejected` → `schema_violation`.
+  - 상태 조합: `unresolved_with_clauses`, `unresolved_with_conditional_alternative` → `status_combination`.
+  - 근거: `fabricated_response_id` → `unknown_reference`, `cross_scenario_evidence` → `evidence_mismatch`(+`unlinked_response`), `obligation_on_excluded_participant` → `evidence_mismatch`.
+  - 입장·인용: `position_missing` → `positions_mismatch`, `invented_condition`·`original_condition_not_quoted` → `quote_mismatch`.
+  - 연결·누락: `excluded_response_dropped` → `unlinked_response`, `missing_response_but_proposed` → `input_status_mismatch`(+ note가 허용한 다른 코드).
+  - 공유 문장: `unknown_participant_token` → `token_invalid`, `humor_in_model_output` → `humor_text`.
+- 에이전트가 정하고 확인을 요청한 것과 사람의 판단: [강의 5 문서 E절](강의05_위임대상_골든케이스.md#e-검증-루프-기록) 미명세 항목 1~3. 모두 코드를 수용했다.
+- 수용: 커밋 `fa35cea`. 비교 기준 `7fcf818`. 상세 검토는 [강의 5 문서 F절](강의05_위임대상_골든케이스.md#f-구현-코드).
