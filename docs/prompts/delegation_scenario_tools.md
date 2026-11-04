@@ -1,6 +1,6 @@
 # 위임 기록: 문항 원본 조회 도구 (`get_scenario_template`)
 
-대상: `src/travel/tools/scenario_tools.py`의 `get_scenario_template(template_id)`. 도구 표와 계약 조건은 [아키텍처 설계서](../ARCHITECTURE.md#3-도구-목록) 3절에 있다. 이 문서는 강의 6 도구 코드 생성 절차 4단계(도구 계약 테스트)의 위임 프롬프트, 결함 주입 결과, 수용 기록을 보존한다. 5단계(도구 코드 위임)와 6단계(도구 코드 수용)는 아직 진행하지 않았다.
+대상: `src/travel/tools/scenario_tools.py`의 `get_scenario_template(template_id)`. 도구 표와 계약 조건은 [아키텍처 설계서](../ARCHITECTURE.md#3-도구-목록) 3절에 있다. 이 문서는 강의 6 도구 코드 생성 절차 4단계(도구 계약 테스트)의 위임 프롬프트, 결함 주입 결과, 수용 기록을 보존한다. 5단계(도구 코드 위임)와 6단계(도구 코드 수용)도 기록한다(§1-2, §2-5, §3).
 
 이 파일은 에이전트가 자동으로 읽지 않는다. 위임할 때 해당 블록을 직접 전달한다.
 
@@ -50,9 +50,9 @@
 
 이 기록 파일의 이름은 위임 중에 사람이 정했다(`delegation_<대상>.md` 형식).
 
-### §1-2. 도구 코드 위임 (작성 2026-11-04, 미실행)
+### §1-2. 도구 코드 위임 (작성 2026-11-04, 실행 2026-11-04)
 
-5단계 위임 프롬프트다. 아직 실행하지 않았다. 실행할 때 이 블록을 그대로 붙여 넣고, 고쳐서 넣었다면 실제로 넣은 텍스트로 바꾸고 고친 이유를 §2에 적는다.
+5단계 위임 프롬프트다. 2026-11-04에 이 블록을 고치지 않고 넣었다(§2-5).
 
 판정 기준은 기준 커밋 `c027358`의 `tests/test_tools.py`다. 파라미터 스키마는 ARCHITECTURE 3절에 정했고(2026-11-04, 전민규 승인), 테스트는 이를 검사하지 않아 §3의 9번에서 코드로 확인한다.
 
@@ -255,7 +255,17 @@ e1은 `docs/ARCHITECTURE.md`를 `.local-work/fault_injection/`에 백업하고 �
 
 **새 기준 커밋**: 전민규가 변경안을 승인했고 결과가 실행 전 기대와 모두 같아 `c027358`을 새 기준으로 한다. 도구 코드 수용 때 `git diff c027358 -- tests/`로 테스트 미변경을 확인한다. 도구가 `lookup_template`을 호출하는지는 이제 테스트가 검사하므로 6단계 코드 리뷰 항목에서 뺀다. `lookup_template` 단독 테스트는 목록 생성을 구현할 때 그 계약과 함께 정한다.
 
-## §3. 6단계 수용 체크리스트 (작성 2026-11-04, 미사용)
+### §2-5. 4회차 (2026-11-04): 도구 코드 위임과 수용
+
+**위임**: §1-2 프롬프트를 고치지 않고 새 세션에 넣었다. 에이전트가 `src/travel/tools/scenario_tools.py` 하나를 만들었고, 멈춤 조건에 걸리지 않았다. 처음 실행에서 21 passed였고 테스트를 고친 회차는 없다.
+
+**확인**: §3 체크리스트 1~13을 모두 통과했다. 2~13은 위임한 에이전트가 수용 요청을 받고 명령을 다시 실행하고 코드를 읽어 확인했다. 결과는 §3 결과 칸에 있다. 같은 에이전트가 코드를 쓰고 확인했으므로 독립 리뷰는 아니다.
+
+**수용**: 전민규가 수용했다. 도구 코드 커밋은 `01da8ef`(`scenario_tools.py` SHA-256 `c675e5b7…`)이고, 위임 직전 커밋은 `2fb0b31`, 테스트 기준 커밋은 `c027358`(`tests/test_tools.py` SHA-256 `50818c55…`, 변경 없음)이다.
+
+미확인 항목은 두 가지다. `TOOL_DEFINITION` 형식이 Sol API 도구 정의와 맞는지, 모델이 실제로 이 도구를 호출하는지는 도구 스파이크(TODO 6강)에서 `enum`·strict와 함께 확인한다.
+
+## §3. 6단계 수용 체크리스트 (작성 2026-11-04, 사용 2026-11-04)
 
 §1-2 위임이 끝난 뒤 사람이 확인한다. 에이전트가 보고한 출력을 그대로 믿지 않고 명령을 직접 다시 실행한다. 결과 칸은 실제로 확인한 내용으로만 채우고, 확인하지 못한 항목은 비워 둔 채 이유를 적는다. 꺾쇠 안의 값은 실제 커밋으로 바꾼다.
 
@@ -263,38 +273,38 @@ e1은 `docs/ARCHITECTURE.md`를 `.local-work/fault_injection/`에 백업하고 �
 
 | # | 확인할 것 | 방법 | 통과 조건 | 결과 |
 |---|---|---|---|---|
-| 1 | 위임을 새 세션에서 실행했는가 | 실행 기록 확인 | 테스트를 작성한 세션과 다른 세션 | |
-| 2 | 실제로 넣은 프롬프트가 §1-2와 같은가 | §1-2와 대조 | 같거나, 다르면 §1-2를 실제 텍스트로 바꾸고 이유를 §2에 적음 | |
+| 1 | 위임을 새 세션에서 실행했는가 | 실행 기록 확인 | 테스트를 작성한 세션과 다른 세션 | 통과. 위임 세션은 §1-2 프롬프트로 시작했고 테스트 작성 이력이 없다. 에이전트 쪽 대화 기준이며, 전민규가 이 한계를 알고 수용했다 |
+| 2 | 실제로 넣은 프롬프트가 §1-2와 같은가 | §1-2와 대조 | 같거나, 다르면 §1-2를 실제 텍스트로 바꾸고 이유를 §2에 적음 | 통과. 넣은 텍스트와 §1-2 블록을 `diff`로 비교해 차이가 없다 |
 
 ### 명령으로 확인 (구조 검사)
 
 | # | 확인할 것 | 명령 | 통과 조건 | 결과 |
 |---|---|---|---|---|
-| 3 | 도구 계약 테스트 | `python -m pytest tests/test_tools.py -q -rs` | 21 passed, skipped 0, xfailed 0 | |
-| 4 | 전체 테스트 | `python -m pytest tests/ -q -rs` | 56 passed, skipped 0, xfailed 0 | |
-| 5 | 테스트 미변경 | `git diff c027358 -- tests/`, `git status --short --untracked-files=all tests` | 둘 다 출력 없음 | |
-| 6 | 변경 범위 | `git status --short --untracked-files=all`, `git diff <위임 직전 커밋> --stat` | 새 파일은 `src/travel/tools/scenario_tools.py` 하나이고 추적 파일 변경 없음 | |
-| 7 | 공백 오류 | `git diff --check` | 출력 없음 | |
+| 3 | 도구 계약 테스트 | `python -m pytest tests/test_tools.py -q -rs` | 21 passed, skipped 0, xfailed 0 | 통과. `21 passed`, skip·xfail 요약 없음 |
+| 4 | 전체 테스트 | `python -m pytest tests/ -q -rs` | 56 passed, skipped 0, xfailed 0 | 통과. `56 passed`, skip·xfail 요약 없음 |
+| 5 | 테스트 미변경 | `git diff c027358 -- tests/`, `git status --short --untracked-files=all tests` | 둘 다 출력 없음 | 통과. 둘 다 출력 없음 |
+| 6 | 변경 범위 | `git status --short --untracked-files=all`, `git diff <위임 직전 커밋> --stat` | 새 파일은 `src/travel/tools/scenario_tools.py` 하나이고 추적 파일 변경 없음 | 통과. 위임 직전 커밋 `2fb0b31` 기준 `--stat` 출력 없음, 미추적은 `src/travel/tools/scenario_tools.py` 하나 |
+| 7 | 공백 오류 | `git diff --check` | 출력 없음 | 통과. 출력 없음. 미추적 새 파일은 `git diff --no-index --check /dev/null <파일>`로 따로 보고 출력 없음 |
 
 ### 코드를 읽고 확인 (테스트가 검사하지 않는 부분)
 
 | # | 확인할 것 | 근거 | 통과 조건 | 결과 |
 |---|---|---|---|---|
-| 8 | docstring의 설명 문장 | 강의 6 5단계, §1-2 | 함수 docstring이 ARCHITECTURE 3절 표의 설명 칸과 같음. 테스트는 `TOOL_DEFINITION`의 설명만 비교한다 | |
-| 9 | 파라미터 스키마 | ARCHITECTURE 3절 | `TOOL_DEFINITION.parameters`에 `template_id`(string, 필수) 하나만 있고 `additionalProperties`가 false이며 `enum`, strict 모드가 없음 | |
-| 10 | 예외 범위 | ARCHITECTURE 6절, §1-2 | `KeyError`만 `not_found`로 바꾸고, `except Exception`처럼 다른 예외를 감추는 코드가 없음 | |
-| 11 | 인자 정규화 | §2-3 수용 해석 | `strip`, `lower` 같은 변환이 없음 | |
-| 12 | 부작용 | ARCHITECTURE 3절 부작용 "없음(읽기)" | 파일 쓰기, 전역 상태 변경, 네트워크 호출, 로그 출력이 없음. 테스트는 pool 불변만 본다 | |
-| 13 | `message` 문구 | AGENTS 절대 규칙 4 | 비어 있지 않은 한국어 문장. 인자 원문을 넣었다면 그대로 둘지 사람이 판단하고 결과 칸에 적음 | |
+| 8 | docstring의 설명 문장 | 강의 6 5단계, §1-2 | 함수 docstring이 ARCHITECTURE 3절 표의 설명 칸과 같음. 테스트는 `TOOL_DEFINITION`의 설명만 비교한다 | 통과. 3절 표 설명 칸을 읽어 docstring·`TOOL_DEFINITION.description`과 비교해 둘 다 같다 |
+| 9 | 파라미터 스키마 | ARCHITECTURE 3절 | `TOOL_DEFINITION.parameters`에 `template_id`(string, 필수) 하나만 있고 `additionalProperties`가 false이며 `enum`, strict 모드가 없음 | 통과. `{type: object, properties: {template_id: {type: string}}, required: [template_id], additionalProperties: false}`. 최상위 키는 `name`, `description`, `parameters` |
+| 10 | 예외 범위 | ARCHITECTURE 6절, §1-2 | `KeyError`만 `not_found`로 바꾸고, `except Exception`처럼 다른 예외를 감추는 코드가 없음 | 통과. `except`는 `except KeyError:` 한 곳뿐이다 |
+| 11 | 인자 정규화 | §2-3 수용 해석 | `strip`, `lower` 같은 변환이 없음 | 통과. 문자열 변환 호출 없음 |
+| 12 | 부작용 | ARCHITECTURE 3절 부작용 "없음(읽기)" | 파일 쓰기, 전역 상태 변경, 네트워크 호출, 로그 출력이 없음. 테스트는 pool 불변만 본다 | 통과. import는 `travel.pool`뿐이고 `open`, `print`, `logging`, `global`, 네트워크 호출이 없다 |
+| 13 | `message` 문구 | AGENTS 절대 규칙 4 | 비어 있지 않은 한국어 문장. 인자 원문을 넣었다면 그대로 둘지 사람이 판단하고 결과 칸에 적음 | 통과. validation "template_id는 비어 있지 않은 문자열이어야 합니다.", not_found "문항 목록에 없는 template_id입니다. 목록 안에서 다시 고르세요." 인자 원문을 넣지 않는다 |
 
 ### 수용 후 기록
 
 | # | 할 일 | 위치 | 결과 |
 |---|---|---|---|
-| 14 | 회차 결과, 수용자, 기준 커밋을 적는다 | 이 문서 §2 | |
-| 15 | `scenario_tools.py` 행을 구현됨으로, `test_tools.py` 행의 skip 문구를 실제 결과로 고친다 | ARCHITECTURE 2절 | |
-| 16 | 도구 계약 테스트의 확인 결과를 21개 통과로 고친다 | AGENTS.md 7절 | |
-| 17 | 도구 구현·수용 항목을 완료로 표시한다 | TODO 6강 | |
-| 18 | 도구 코드 커밋과 문서 커밋을 나눠 남긴다 | git | |
+| 14 | 회차 결과, 수용자, 기준 커밋을 적는다 | 이 문서 §2 | 완료(§2-5) |
+| 15 | `scenario_tools.py` 행을 구현됨으로, `test_tools.py` 행의 skip 문구를 실제 결과로 고친다 | ARCHITECTURE 2절 | 완료 |
+| 16 | 도구 계약 테스트의 확인 결과를 21개 통과로 고친다 | AGENTS.md 7절 | 완료 |
+| 17 | 도구 구현·수용 항목을 완료로 표시한다 | TODO 6강 | 완료 |
+| 18 | 도구 코드 커밋과 문서 커밋을 나눠 남긴다 | git | 완료. 도구 코드 `01da8ef`, 문서는 이 기록을 담은 다음 커밋 |
 
 1~13 중 하나라도 통과하지 못하면 수용하지 않는다. 테스트를 고치지 않고 위임 프롬프트를 보완해 다시 위임하며, 그 회차를 §2에 적는다.
