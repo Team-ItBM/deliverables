@@ -204,7 +204,7 @@ S1~S6은 v6·pool v2 시점 출력이고 입력에 자기 pool 8개가 들어 �
 8. 미확인 항목과 §0·§0-1에 대한 제안
 ```
 
-### §1-2. 문항 출력 검증기 위임 (작성 2026-11-04, 미실행)
+### §1-2. 문항 출력 검증기 위임 (작성 2026-11-04, 실행 2026-11-04)
 
 강의 5 D절 기능 위임이다. 새 세션에 이 블록을 그대로 붙여 넣는다. 고쳐서 넣었다면 실제 텍스트로 바꾸고 이유를 §2에 적는다.
 
@@ -415,7 +415,7 @@ src/travel/scenarios.py 하나만 새로 만든다.
 
 **수용** (2026-11-04)
 
-사람이 위 확인 항목 1~4를 보고 그대로 수용했다. patch 값 결정, 에이전트가 더한 로더 조건과 인터페이스 4·5번, 기준 커밋 `0ca3f58` 표기를 받아들였고, AGENTS.md 7절에 문항 골든 테스트 명령과 수용 조건을 적었다. 수용 대상은 커밋 `7b05f72`의 하니스에 N12 근거 주석 한 줄을 고친 상태다. 이후 `tests/`의 변경은 사람이 승인한다(AGENTS.md 4절). §1-2 위임의 비교 기준은 이 수용 기록을 담은 커밋이다.
+사람이 위 확인 항목 1~4를 보고 그대로 수용했다. 수용 전에 전민규가 결함 주입을 다시 실행해 같은 결과를 확인했다. patch 값 결정, 에이전트가 더한 로더 조건과 인터페이스 4·5번, 기준 커밋 `0ca3f58` 표기를 받아들였고, AGENTS.md 7절에 문항 골든 테스트 명령과 수용 조건을 적었다. 수용 대상은 커밋 `7b05f72`의 하니스에 N12 근거 주석 한 줄을 고친 상태다. 이후 `tests/`의 변경은 사람이 승인한다(AGENTS.md 4절). §1-2 위임의 비교 기준은 이 수용 기록을 담은 커밋이다.
 
 **§0·§0-1에 대한 제안** (2026-11-04 사람 지시로 §0-1에 최소 반영)
 
@@ -423,3 +423,106 @@ src/travel/scenarios.py 하나만 새로 만든다.
 - 표 비고와 V12의 "결정 n"에 §0 또는 §0-1 출처를 붙였다(N16·N22·N25는 §0, V12·N28~N31은 §0-1).
 - V09·V12의 "…이 없어야 한다"를 must_not 표기로 바꿨다. YAML 기대값은 이미 같아 바뀌지 않았다.
 - 기본안의 "N14에는 must_not을 두지 않는다"를 N14·N25로 넓혔다. N25의 `duplicate_decision`도 함께 나올 수 있다.
+
+### §2-2. 문항 출력 검증기 위임 (2026-11-04, 1회차)
+
+§1-2 블록을 고치지 않고 그대로 실행했다(에이전트 Claude). 사람이 2026-11-04에 수용했다(아래 "수용").
+
+| 회차 | 결과 | 무엇이 문제였나 | 무엇을 고쳤나 (프롬프트/케이스/테스트 코드) |
+|---|---|---|---|
+| 1 | 문항 골든 테스트 50 passed(골든 케이스 43, 로더 검사 7), 전체 134 passed, skip·xfail 0. 첫 실행에서 통과 | 완료 조건 "추적 파일 변경 없음"이 맞지 않았다. 작업 중 사람이 이 파일 §2-1 "수용" 문단에 한 줄을 더했기 때문이다(아래 "위임 직전 상태") | 없음. 사람이 2026-11-04에 수용했다(아래 "수용") |
+
+**위임 직전 상태**
+
+- HEAD `14b84ae7107a90e2a815e68e1d7fa28c4d9ebd50`, `git status --short --untracked-files=all`은 출력이 없었다.
+- 작업 중 이 파일 §2-1 "수용" 문단에 "수용 전에 전민규가 결함 주입을 다시 실행해 같은 결과를 확인했다."가 더해졌다. 에이전트는 고치지 않았고 되돌리지도 않았다. §0·§0-1의 판정 규칙은 바뀌지 않았다.
+- 스킬 `kar-plain`(글 모드, 한국어)과 `humanizer`(embedded)를 Skill 도구로 불러 docstring과 보고 문장에 적용했다.
+- 에이전트는 구현 전에 입력 키 구조를 보려고 `ex1_ready` fixture를 셸에서 한 번 출력했다. 구현 코드는 YAML과 fixture를 읽지 않는다.
+
+**만든 파일**
+
+| 파일 | 내용 |
+|---|---|
+| `src/travel/scenarios.py` | `validate_scenario_output`, `route_scenario_result`, 단계별 검사 함수, `PoolIndex`, `STATUS_ROUTES`, `PROFILE_TOKEN` |
+
+호출 순서: `parse_output` → `validate_schema` → `check_status_combination` → `route_scenario_result(status)`. `check_input`이 참이고 `scenarios`가 리스트이면 `PoolIndex(scenario_input)`를 만들고 `check_count` → `check_templates`(unknown 다음 duplicate) → `check_decisions` → `check_options` → `check_profile_tokens` → `check_scene_lines`를 차례로 부른다. 파싱·스키마 단계에서 실패하면 멈추고, 그 뒤 단계의 오류는 모두 모은다.
+
+**완료 조건 실행 결과**
+
+| 명령 | 결과 |
+|---|---|
+| `python -m pytest tests/test_scenario_golden.py -q -rs` | `50 passed in 0.15s` |
+| `python -m pytest tests/ -q -rs` | `134 passed in 0.20s` |
+| `git diff 14b84ae -- tests/` | 출력 없음 |
+| `git status --short --untracked-files=all tests` | 출력 없음 |
+| `git status --short --untracked-files=all` | ` M docs/prompts/delegation_scenarios.md`, `?? src/travel/scenarios.py` |
+| `git diff --check` | 출력 없음 |
+| `git diff --no-index --check /dev/null src/travel/scenarios.py` | 출력 없음 |
+
+**케이스별 실제 오류**
+
+에이전트가 케이스마다 `(code, path)`를 출력해 확인했다. 오류가 없는 케이스는 V01~V12다.
+
+| 케이스 | 실제 errors (code, path) | 내는 함수 |
+|---|---|---|
+| V01·V02 | 없음 | 입력 대조 6개가 모두 통과 |
+| V03~V08 | 없음 | 상태 조합이 맞고, ready가 아니라 입력 대조를 하지 않음 |
+| V09·V10 | 없음 | 토큰 ID `p1`·`p2`가 등록 ID |
+| V11 | 없음 | 어떤 검사도 `request`를 읽지 않음 |
+| V12 | 없음 | ready의 `message`를 검사하지 않음 |
+| N01·N02 | `json_invalid` `` | `parse_output` |
+| N03 | `schema_violation` `` | `validate_schema`(추가 키) |
+| N04 | `schema_violation` `/status` | 같음(enum) |
+| N05 | `schema_violation` `/scenarios` | 같음(minItems). 여기서 멈춰 `count_mismatch` 없음 |
+| N06 | `schema_violation` `/scenarios/0/options/0` | 같음(필수 키) |
+| N07 | `status_combination` `/message` | `check_status_combination` |
+| N08 | `status_combination` `/clarification_questions` | 같음 |
+| N09 | `status_combination` `/scenarios` | 같음(invalid_input인데 문항 있음) |
+| N10 | `status_combination` `/scenarios` | 같음(ready인데 null). 리스트가 아니라 입력 대조 생략 |
+| N11 | `count_mismatch` `/scenarios` | `check_count` |
+| N12·N13 | `unknown_template` `/scenarios/0/template_id` | `check_templates`. `check_options`·`check_scene_lines`는 pool에 없는 항목을 건너뜀 |
+| N14·N27 | `duplicate_template`, `duplicate_decision` `/scenarios/1/template_id` | `check_templates`, `check_decisions` |
+| N15 | `duplicate_decision` `/scenarios/1/template_id` | `check_decisions` |
+| N16~N19 | `option_mismatch` `/scenarios/0/options` | `check_options`(리스트 전체 비교) |
+| N20·N30·N31 | `unknown_profile_token` `/scenarios/0/scene` | `check_profile_tokens`. N30은 빈 ID, N31은 ID `"p1 "` |
+| N21 | `unknown_profile_token` `/scenarios/0/question` | 같음 |
+| N22 | `unknown_profile_token` `/scenarios/0/options/0/label` | 같음 |
+| N23·N24 | `scene_line_mismatch` `/scenarios/0/scene` | `check_scene_lines`(줄 수, 빈 줄) |
+| N25 | `duplicate_template`, `duplicate_decision` `/scenarios/1/template_id`, `option_mismatch` `/scenarios/2/options` | 오류를 모두 모음 |
+| N26 | `schema_violation` `` | 스키마 단계에서 멈춰 `duplicate_template` 없음 |
+| N28 | `status_combination` `/clarification_questions` | `check_status_combination` |
+| N29 | `scene_line_mismatch` `/scenarios/1/scene` | `check_scene_lines`(끝 줄바꿈이 빈 줄) |
+
+**테스트가 검사하지 않는 부분** (에이전트가 `.local-work/scenario_validator/check_extra.py`로 확인)
+
+- `route_scenario_result`: 상태 4개가 §1-2의 dict를 돌려주고, `"done"`은 `KeyError`를 낸다.
+- 입력 미변경: 43개 케이스 모두 호출 전 깊은 복사본과 호출 뒤 입력이 같다.
+- 같은 입력의 같은 결과: 43개 케이스를 두 번씩 호출해 결과가 같았다. `valid == (not errors)`도 43개 모두 맞았다.
+- errors 순서와 path: 위 표의 출력이 검사 단계 순서와 배열 순서를 따르고, path는 JSON Pointer다. detail 문구는 따로 검토하지 않았다.
+- ready가 아닌 상태의 입력 대조 생략: `ex2_needs_information`에 `requested_count=99`, 빈 pool을 넣어도 `valid=True`, errors가 없었다.
+
+**에이전트가 정한 것** (§0·§0-1·§1-2에 없던 판단)
+
+1. pool에 같은 `template_id`가 여러 번 있으면 처음 항목을 쓴다(`pact.py`와 같다).
+2. pool 항목의 `decision_key`가 문자열이 아니면 `duplicate_decision` 계산에서 세지 않는다.
+3. `duplicate_template`·`duplicate_decision`은 두 번째로 나온 항목에 붙이고 path는 `/scenarios/i/template_id`다.
+4. `unknown_template` 항목도 토큰 검사는 한다. §0-1 결정 4가 건너뛰라고 정한 검사는 선택지와 scene뿐이다.
+5. 한 scene에 빈 줄과 줄 수 불일치가 함께 있으면 `scene_line_mismatch`를 한 번만 내고, 빈 줄을 먼저 본다.
+6. 토큰 정규식은 `\{\{\s*profile\s*:([^{}]*)\}\}`다. `{{` 바로 뒤의 공백도 허용한다. ID 안에 `{`·`}`가 있는 토큰은 찾지 않는다.
+7. 스키마 오류는 경로와 메시지로 정렬한다(`pact.py`와 같다).
+
+**미확인 항목**
+
+- 확인한 것은 로컬 테스트와 구조 검사다. v8·pool v3의 실제 모델 출력에는 실행하지 않았다. 의미 판정과 제품 동작은 범위 밖이다.
+- 이 저장소에 정한 린트·CI 명령이 없어 실행하지 않았다.
+
+**사람이 수용할 때 확인할 항목**
+
+1. 위 "에이전트가 정한 것" 1~7을 받아들일지.
+2. 케이스별 실제 오류가 §0-1의 기대와 같은 이유로 나오는지.
+3. 작업 중 바뀐 §2-1 "수용" 문단이 사람의 변경이 맞는지.
+4. AGENTS.md 7절의 문항 골든 테스트 기록("골든 케이스 43개는 검증기가 없어 skip됐다")을 이번 결과로 바꿀지.
+
+**수용** (2026-11-04)
+
+사람이 위 확인 항목 1~4를 보고 수용했다. 에이전트가 정한 판단 1~7을 받아들였고, 케이스별 실제 오류가 §0-1의 기대와 같은 이유로 나오는 것을 확인했다. 작업 중 바뀐 §2-1 "수용" 문단은 사람의 변경이 맞다. AGENTS.md 7절의 문항 골든 테스트 결과를 "로더 검사 7개를 포함해 50개가 통과했다"로 바꿨다. 수용 대상은 위임 직전 HEAD `14b84ae`에 `src/travel/scenarios.py`를 더한 커밋 `b10a351`이다. 이후 `scenarios.py`의 판정 동작 변경은 사람이 승인한다.
