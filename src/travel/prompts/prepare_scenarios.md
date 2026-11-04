@@ -997,7 +997,7 @@ v2 호출에서는 Draft7 스키마를 Responses API의 `text.format.type=json_s
 |---|---|---|
 | 입력 `participant_profiles` | `validate_profiles(profiles, trip.party_size)` | 하드: 필수 이름·별명, 고유 profile_id, 인원수와 배열 크기 일치 |
 | 입력 `gender`, `age_band`, `mbti` | `prepare_scenarios(participant_profiles=…)` | 선택. 문항 개인화에만 사용하며 타입·선호·한계 추정 금지 |
-| 입력 `scenario_pool[].decision_key` | `select_unique_decisions(pool, requested_count)` | 하드: 같은 판단을 하나만 선정. 주제별 고정 비중 없음 |
+| 입력 `scenario_pool[].decision_key` | `validate_scenario_output(scenario_input, raw_output)`의 `duplicate_decision` 검사 | 하드: 같은 판단을 하나만 선정. 주제별 고정 비중 없음 |
 | 출력의 `{{profile:profile_id}}` 토큰 | `render_profile_tokens(text, viewer_profile_id, profiles)` | 하드: 등록 ID만 허용. 뷰별로 본인은 '당신', 친구는 이름·별명으로 표시 |
 | `status` | `route_scenario_result(status)`: 표시·추가 수집·범위 안내 | 분기 필수. 생성 성공과 스키마 통과는 별개 |
 | `scenarios` | `render_questions(scenarios)` | ready에서만 사용. 6~8개와 요청 수 일치 검사 |
