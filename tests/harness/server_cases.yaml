@@ -1,0 +1,809 @@
+# 서버 계약 골든 케이스 (강의 5 산출물: 서버 위임의 완료 기준)
+#
+# 대상
+#   src/travel/server/ 의 HTTP API(§0-B 경로 12개)와 render.py의 토큰 치환 함수.
+#   테스트는 travel.server.app.create_app(settings, llm_client, push_sender, sleeper, clock)으로 앱을 만들고
+#   FastAPI TestClient로 요청한다. 모델 호출은 재생 클라이언트, 푸시는 가짜 발송기로 대신한다(§0-E).
+#   함수 단위 케이스(PRF-N02, EXP-P01, EXP-N01, EXP-N02)는 render.py 함수를 직접 부른다.
+#   모델 출력 품질(AC6~AC9, AC11), retention(AC19), mobile_access(AC14)는 범위 밖이다.
+#
+# 근거 문서
+#   docs/prompts/delegation_server.md §0(인터페이스 기본안), §0-1(골든 케이스 80개), "결정한 것" 1~27.
+#     세 부분 모두 2026-11-04에 사람이 수용했고, 결정 24~27은 2026-11-05에 반영했다.
+#   docs/SPEC.md 4절 처리 정책, 5절, 6절 AC2~AC4·AC10·AC12·AC13·AC15~AC18
+#   docs/ARCHITECTURE.md 2절, 5절, 6절, 8절
+#   재생 입력: tests/harness/fixtures/scenario/ex1_ready.json, s2.json, s4.json, s5.json(§0-F).
+#   추천 출력은 tests/harness/server/pact_outputs.py가 받은 model_input으로 만든다. 저장소 기준 커밋 f9cc461.
+#
+# 케이스 필드
+#   id        : §0-1 표의 ID 그대로. P는 통과해야 하는 케이스, N은 실패를 정확히 내야 하는 케이스다.
+#   case_id   : 아래 case_ids 10개 중 하나. tests/test_server_<case_id>.py에 그 케이스의 테스트 함수가 있다.
+#   kind      : pass(ID가 P) 또는 fail(ID가 N).
+#   ac        : 절 머리의 AC와 근거 칸에 나온 AC.
+#   basis     : §0-1 근거 칸 원문.
+#   note      : §0-1 기대 결과 칸 원문. 판정 키로 옮기지 못한 문장은 테스트 코드의 단언문과 주석으로 옮겼다.
+#   checkpoints: 한 케이스 안에서 시점이나 변형마다 기대값이 다를 때 쓴다. [{at: <이름>, <판정 키>...}].
+#               at 이름은 테스트 코드가 그 시점에 부르는 이름이다. 케이스 최상위 판정 키는 케이스 전체에 적용한다.
+#   입력·조작 값(이름, 인원, 반복 20회, 시각 4분 59초 등)은 판정 키가 아니라서 테스트 코드에 둔다.
+#
+# 판정 키 (값은 §0-1 기대 결과 칸의 고정값이다. 테스트는 케이스의 판정 키를 모두 읽어야 하며, 읽지 않은 키가 남으면 실패한다)
+#   http_status        : 조작 대상 요청의 HTTP 상태. 목록이면 그중 하나. 동시 요청 케이스에서는 진 요청의 상태다.
+#   error_code         : 오류 응답 {"error": {"code"}}의 code, 또는 render.py 함수가 낸 RenderError.code. error_codes 안의 값.
+#   concurrent_statuses: 동시에 보낸 요청들의 HTTP 상태를 정렬한 목록.
+#   calls              : 방 하나에서 단계(scenarios, pact)별 재생 클라이언트 호출 수. 여러 방을 쓰는 케이스는 방마다 센다.
+#   calls_added        : 조작 대상 요청 하나가 늘린 단계별 호출 수.
+#   unchanged          : 조작 전후로 같아야 하는 관찰값 이름. room_status, submitted_count, included_count, results(방장 결과 목록),
+#                        selected_result(참여자 결과 조회의 result_id), calls(단계별 호출 수), model_input(추천 호출 기록),
+#                        submission(그 참여자 응답의 option_id·memo를 추천 model_input에서 확인), original_result(AI 원본의 방장
+#                        결과 목록 항목과 results 행), previous_edit(이전 수정본의 results 행).
+#   room_status, scenario_status, failure_reason: 방 조회 응답의 값. failure_reason은 failure_reasons 안의 값.
+#   rooms_created      : 요청 뒤 rooms 표의 행 수.
+#   expires_after_days : 방 생성 응답의 expires_at - created_at 일수.
+#   scenario_notice_keys: 방장 토큰을 붙인 방 조회의 scenario_notice에 있어야 하는 키.
+#   privacy_notice     : 세션 생성 응답 privacy_notice와 글자까지 같아야 하는 문장.
+#   privacy_scan       : 공용 검사 함수(tests/harness/server/privacy.py)로 확인할 대상. 테스트 코드가 검사 범위(응답, 로그, 푸시 본문)를
+#                        주석으로 밝힌다. forbidden_keys(§0-A 6의 키), profile_keys(gender·age_band·mbti 키), memo_markers(메모 표지의
+#                        연속 15자, 문항 공개 문구와 겹친 부분 제외), original_conditions(추천 출력의 original_condition 값),
+#                        profile_values(선택 프로필 값, 문항 문장에 이미 있는 값 제외), names(이름·별명), option_labels(선택지 문구).
+#   token_display      : 문항 뷰를 받은 profile_id → 토큰 profile_id → 표시된 이름.
+#   same_outside_tokens: true면 비교하는 뷰끼리 scenario_id·option_id 목록과 순서, 토큰 밖 문자열이 같다.
+#   text_includes, text_excludes: 비교 대상 문장(문항 뷰 또는 공유 결과 문장) 어딘가에 있어야/없어야 하는 문자열.
+#   rendered           : 이름 → 토큰 뒤 조사 쌍 은/는, 이/가, 을/를, 과/와, 으로/로 순서로 치환한 결과 5개.
+#   rendered_by_submission: 같은 이름 제출을 제출 순서로 놓았을 때 각 토큰(은/는)이 치환된 결과.
+#   submitted_count    : 마지막 제출 응답 또는 방 조회의 submitted_count.
+#   distinct_participant_ids: 제출 응답들의 서로 다른 participant_id 수.
+#   model_input_participant_count, model_input_response_count: 추천 호출 model_input의 participant_ids 수와 responses 수.
+#   included_count     : 공유 결과의 included_count. 목록이면 그중 하나.
+#   excluded_names_count: 공유 결과 excluded_names의 길이.
+#   excluded_names_include_profiles: excluded_names에 있어야 하는 등록 이름의 profile_id.
+#   duplicate_name_notice: profile_id → 세션 생성 응답의 duplicate_name_notice.
+#   has_submission     : profile_id → 방 조회 profiles[].has_submission.
+#   result_attempts    : 방장 결과 목록 results의 항목 수.
+#   normal_results, failed_results: 방장 결과 목록에서 state가 normal, failed인 항목 수.
+#   result_kind, result_label: 공유 결과의 kind, label.
+#   source_result      : 수정본 source_result_id가 가리키는 판. ai_original 또는 latest_edit(직전 수정본).
+#   shared_result      : 참여자 결과 조회가 보여주는 결과. latest_edit 또는 last_selected.
+#   new_result_rows    : 조작 뒤 늘어난 results 표 행 수.
+#   repair_error_codes : 두 번째 추천 호출의 repair_errors에 있어야 하는 code.
+#   waits              : 가짜 대기 함수가 기록한 초 목록과 정확히 같다.
+#   backoff_waits      : 가짜 대기 함수 기록의 기준값. 각 기록은 기준값 이상, 기준값 + settings.retry_jitter_seconds 이하다.
+#   has_humor, humor_text, humor_explanation: 공유 결과의 humor 유무와 text·explanation.
+#   push_sent          : 그 시점에 늘어난 발송 수. host(방장 구독), participant_each(참여자 구독마다), total(전체).
+#   host_push_text     : 방장 구독 발송 본문의 text에 들어 있어야 하는 문자열.
+#   push_payload_keys  : 발송 본문(JSON 객체)의 키 집합과 정확히 같아야 하는 목록(결정 25).
+#   subscription_by_send_status: 가짜 발송기가 돌려준 상태 → 발송 뒤 push_subscriptions 행(removed 또는 kept).
+#   notification_records_per_pair: notifications 표에서 (event, subscription_id) 쌍마다 있어야 하는 행 수.
+#
+# 로더 규칙 (tests/test_server_harness.py)
+#   위 필드와 판정 키 밖의 키는 거부한다. id 형식은 <3글자>-<P|N><두 자리>이고 중복을 허용하지 않는다.
+#   pass 케이스에는 error_code를 두지 않는다. fail 케이스에는 기대 오류(error_code 또는 400 이상의 http_status),
+#   기대 상태(room_status, scenario_status, failure_reason) 또는 금지 검사(privacy_scan, push_sent,
+#   notification_records_per_pair, push_payload_keys)가 있어야 한다.
+#
+# 오류 코드 (§0-D 13개. 이 밖의 코드를 케이스에 쓰면 로더 오류)
+#   invalid_input 422, needs_information 422, host_forbidden 403, not_found 404, room_closed 409, no_submissions 409,
+#   invalid_state 409, regeneration_limit 409, session_used 409, idempotency_conflict 409, edit_not_allowed 422,
+#   memo_quote 422, render_failed 500
+#
+# 케이스 ID (사람이 정한 범위 10개)
+#   scenario_input(AC2), profile_rendering(AC15), response_privacy(AC3), response_closure(AC4), duplicate_name(AC16),
+#   host_edit(AC12), regeneration(AC17), output_validation(AC10), result_export(AC13), push_events(AC18)
+
+error_codes: [invalid_input, needs_information, host_forbidden, not_found, room_closed, no_submissions, invalid_state, regeneration_limit, session_used, idempotency_conflict, edit_not_allowed, memo_quote, render_failed]
+
+failure_reasons: [output_invalid, call_error, interrupted]
+
+case_ids: [scenario_input, profile_rendering, response_privacy, response_closure, duplicate_name, host_edit, regeneration, output_validation, result_export, push_events]
+
+cases:
+  # scenario_input (AC2)
+  - id: INP-P01
+    case_id: scenario_input
+    kind: pass
+    ac: ["AC2"]
+    basis: "SPEC 5절 방 생성, F1"
+    http_status: 201
+    expires_after_days: 30
+    calls: {"scenarios": 1}
+    scenario_status: "ready"
+    note: "201, `expires_at = created_at + 30일`. 문항 호출 1회, 모델 입력의 `participant_profiles`가 요청과 같다. 완료 뒤 `scenario_status: ready`"
+  - id: INP-P02
+    case_id: scenario_input
+    kind: pass
+    ac: ["AC2"]
+    basis: "AC2 \"선택 정보 생략\", 처리 정책 \"프로필·개인화\""
+    http_status: 201
+    note: "201. 모델 입력 프로필에 `gender`·`age_band`·`mbti` 키가 없다(null로 채우지 않는다)"
+  - id: INP-P03
+    case_id: scenario_input
+    kind: pass
+    ac: ["AC2"]
+    basis: "ARCHITECTURE 5절 입력 한도 경계"
+    http_status: 201
+    note: "둘 다 201"
+  - id: INP-P04
+    case_id: scenario_input
+    kind: pass
+    ac: ["AC2"]
+    basis: "SPEC 상태별 처리 `ScenarioSet` 행, 문항 프롬프트 \"필드와 함수 인자\"의 `route_scenario_result`"
+    checkpoints:
+      - {"at": "s2", "scenario_status": "needs_information", "scenario_notice_keys": ["message", "clarification_questions"]}
+      - {"at": "s5", "scenario_status": "unsupported", "scenario_notice_keys": ["message"]}
+      - {"at": "s4", "scenario_status": "invalid_input", "scenario_notice_keys": ["message"]}
+    note: "`scenario_status`가 출력 상태와 같다. 방장 조회의 `scenario_notice`에 `message`가 있고, `needs_information`이면 `clarification_questions`도 있다. 방장 토큰이 없는 조회에는 `scenario_notice`가 없다"
+  - id: INP-N01
+    case_id: scenario_input
+    kind: fail
+    ac: ["AC2"]
+    basis: "ARCHITECTURE 5절 입력 한도"
+    http_status: 422
+    error_code: "invalid_input"
+    rooms_created: 0
+    calls: {"scenarios": 0}
+    note: "422 `invalid_input`. 방을 만들지 않고 문항 호출 0회"
+  - id: INP-N02
+    case_id: scenario_input
+    kind: fail
+    ac: ["AC2"]
+    basis: "AC2 \"수 불일치\", SPEC 5절 \"프로필 수는 설정 인원과 같다\""
+    http_status: 422
+    error_code: "invalid_input"
+    calls: {"scenarios": 0}
+    note: "422 `invalid_input`, 문항 호출 0회"
+  - id: INP-N03
+    case_id: scenario_input
+    kind: fail
+    ac: ["AC2"]
+    basis: "AC2 \"중복 ID\""
+    http_status: 422
+    error_code: "invalid_input"
+    calls: {"scenarios": 0}
+    note: "422 `invalid_input`, 문항 호출 0회"
+  - id: INP-N04
+    case_id: scenario_input
+    kind: fail
+    ac: ["AC2"]
+    basis: "AC2 \"프로필 누락\", F1(이름·별명 필수), 문항 프롬프트 A절, 결정 2"
+    http_status: 422
+    error_code: "needs_information"
+    calls: {"scenarios": 0}
+    note: "422 `needs_information`, 문항 호출 0회"
+  - id: INP-N05
+    case_id: scenario_input
+    kind: fail
+    ac: ["AC2"]
+    basis: "AC2, 문항 프롬프트 D절 S2, 결정 2"
+    http_status: 422
+    error_code: "needs_information"
+    calls: {"scenarios": 0}
+    note: "422 `needs_information`, 문항 호출 0회"
+  - id: INP-N06
+    case_id: scenario_input
+    kind: fail
+    ac: ["AC2"]
+    basis: "AC2, 문항 프롬프트 A절(\"기간·목적지가 모호하면\"), D절 S3, 결정 2"
+    http_status: 422
+    error_code: "needs_information"
+    calls: {"scenarios": 0}
+    note: "422 `needs_information`, 문항 호출 0회"
+  - id: INP-N07
+    case_id: scenario_input
+    kind: fail
+    ac: ["AC2"]
+    basis: "SPEC 상태별 처리(\"`scenarios=null`\"), F3"
+    http_status: 409
+    error_code: "invalid_state"
+    note: "409 `invalid_state`"
+
+  # profile_rendering (AC15)
+  - id: PRF-P01
+    case_id: profile_rendering
+    kind: pass
+    ac: ["AC15"]
+    basis: "AC15, F2, SPEC 5절 필드 연결"
+    token_display: {"p1": {"p1": "당신", "p2": "지수"}, "p2": {"p1": "민준", "p2": "당신"}}
+    same_outside_tokens: true
+    note: "`p1` 뷰는 `{{profile:p1}}`을 `당신`, `{{profile:p2}}`를 `지수`로, `p2` 뷰는 반대로 바꾼다. 두 뷰의 `scenario_id`, `option_id` 목록·순서, 토큰 밖 문자열이 같다"
+  - id: PRF-P02
+    case_id: profile_rendering
+    kind: pass
+    ac: ["AC15"]
+    basis: "AC15 판정 방법"
+    text_includes: ["민준이", "민준은", "민준과", "지수가", "지수는", "지수와", "당신이", "당신은", "당신과"]
+    text_excludes: ["당신가", "당신는", "당신와"]
+    note: "`민준이/민준은/민준과`, `지수가/지수는/지수와`, `당신이/당신은/당신과`. 어느 뷰에도 `당신가`·`당신는`·`당신와`가 없다"
+  - id: PRF-P03
+    case_id: profile_rendering
+    kind: pass
+    ac: ["AC15"]
+    basis: "AC15 \"이름 변경에 따른 뷰 비교\""
+    same_outside_tokens: true
+    note: "같은 프로필 위치의 뷰끼리 이름 치환 부분만 다르고 나머지 구조·문자열이 같다"
+  - id: PRF-P04
+    case_id: profile_rendering
+    kind: pass
+    ac: ["AC15"]
+    basis: "SPEC 5절 \"이름에 포함된 토큰을 다시 해석하지 않는다\"(참여자 토큰 문장을 프로필 토큰에도 적용. 결정 3)"
+    text_includes: ["{{profile:p2}}"]
+    note: "그 이름은 글자 그대로 표시되고 다시 치환되지 않는다"
+  - id: PRF-N01
+    case_id: profile_rendering
+    kind: fail
+    ac: ["AC15", "AC3"]
+    basis: "AC15, AC3, 규칙 3"
+    privacy_scan: ["profile_keys", "profile_values"]
+    note: "방 조회·세션 응답 어디에도 세 키가 없다. 세 값은 문항 문장에 이미 있는 경우를 빼고 나오지 않는다"
+  - id: PRF-N02
+    case_id: profile_rendering
+    kind: fail
+    ac: ["AC15"]
+    basis: "AC15 \"없는 프로필 토큰을 거부\", SPEC 5절. 모델 출력 단계는 검증기 `unknown_profile_token`이 먼저 막는다"
+    error_code: "render_failed"
+    note: "`render_failed`. 부분 치환 문장을 돌려주지 않는다"
+
+  # response_privacy (AC3)
+  - id: PRV-P01
+    case_id: response_privacy
+    kind: pass
+    ac: ["AC3"]
+    basis: "AC3 판정 방법 첫 문장. 결정 13"
+    privacy_notice: "선택과 메모 원문은 다른 사람에게 공개되지 않아요. 다만 답변에 담긴 바람과 한계는 선택한 이름과 함께 추천 결과에 반영될 수 있어요."
+    note: "`privacy_notice`가 SPEC 처리 정책 \"응답·결과 공개\"의 문장과 글자까지 같다"
+  - id: PRV-N01
+    case_id: response_privacy
+    kind: fail
+    ac: ["AC3"]
+    basis: "AC3, ARCHITECTURE 2절 규칙 3 확인"
+    privacy_scan: ["forbidden_keys", "memo_markers", "original_conditions", "profile_values"]
+    note: "응답 JSON 어디에도 §0-A 6의 공개 금지 키가 없다. 메모 표지의 연속 15자, `original_condition` 값, 선택 프로필 값이 없다. 방장 응답도 같다"
+  - id: PRV-N02
+    case_id: response_privacy
+    kind: fail
+    ac: ["AC3"]
+    basis: "ARCHITECTURE 2절 \"제출 후 응답을 조회하는 API는 없다\", AC3 \"다른 응답 ID 조회\""
+    http_status: [404, 405]
+    note: "제출·응답을 돌려주는 GET 경로가 없고 요청은 404 또는 405다"
+  - id: PRV-N03
+    case_id: response_privacy
+    kind: fail
+    ac: ["AC3", "AC10"]
+    basis: "AC3, AC10, ARCHITECTURE 6절 후처리 위반"
+    repair_error_codes: ["memo_quote"]
+    room_status: "failed"
+    failure_reason: "output_invalid"
+    http_status: 409
+    error_code: "invalid_state"
+    note: "두 번 모두 검증기 `memo_quote`, `room_status: failed`(`output_invalid`). 결과 조회는 409 `invalid_state`이고 그 문장은 어떤 응답에도 없다"
+  - id: PRV-N04
+    case_id: response_privacy
+    kind: fail
+    ac: ["AC3"]
+    basis: "ARCHITECTURE 8절 마스킹. AC3 밖이라 결정 17"
+    privacy_scan: ["memo_markers", "names", "profile_values"]
+    note: "메모 표지, 이름·별명, 선택 프로필 값이 없다"
+
+  # response_closure (AC4)
+  - id: CLS-P01
+    case_id: response_closure
+    kind: pass
+    ac: ["AC4"]
+    basis: "AC4, F4, 처리 정책 \"제출·자동 생성\""
+    checkpoints:
+      - {"at": "during_generation", "room_status": "generating"}
+      - {"at": "done", "room_status": "ready", "calls": {"pact": 1}, "model_input_participant_count": 3, "model_input_response_count": 18, "included_count": 3, "excluded_names_count": 0}
+    note: "세 번째 제출 뒤 `generating` → `ready`. 추천 호출 1회, 모델 입력 `participant_ids` 3개, 응답 3×6개. `included_count: 3`, `excluded_names: []`"
+  - id: CLS-P02
+    case_id: response_closure
+    kind: pass
+    ac: ["AC4"]
+    basis: "AC4 \"같은 이름의 별도 제출을 각각 집계\", SPEC 5절 필드 연결(\"중복 이름으로 인원이 채워졌다면 안내\")"
+    distinct_participant_ids: 3
+    excluded_names_include_profiles: ["p3"]
+    checkpoints:
+      - {"at": "after_second", "calls": {"pact": 0}}
+      - {"at": "after_third", "calls": {"pact": 1}}
+    note: "3건째에 자동 생성. `participant_id` 3개가 모두 다르다. `excluded_names`에 `p3`의 이름이 있다"
+  - id: CLS-P03
+    case_id: response_closure
+    kind: pass
+    ac: ["AC4"]
+    basis: "AC4 \"1건 이상은 허용\", 처리 정책 \"조기 생성·마감\""
+    http_status: 202
+    model_input_participant_count: 1
+    included_count: 1
+    excluded_names_count: 2
+    note: "202, 모델 입력 `participant_ids` 1개, `included_count: 1`, `excluded_names` 2개"
+  - id: CLS-P04
+    case_id: response_closure
+    kind: pass
+    ac: ["AC4"]
+    basis: "ARCHITECTURE 5절 입력 한도, F3 \"선택 메모\""
+    http_status: 201
+    submitted_count: 3
+    note: "모두 201이고 제출 수에 들어간다"
+  - id: CLS-N01
+    case_id: response_closure
+    kind: fail
+    ac: ["AC4"]
+    basis: "AC4 \"조기 생성 0건은 거부\""
+    http_status: 409
+    error_code: "no_submissions"
+    room_status: "open"
+    calls: {"pact": 0}
+    note: "409 `no_submissions`. `room_status: open`, 추천 호출 0회"
+  - id: CLS-N02
+    case_id: response_closure
+    kind: fail
+    ac: ["AC4"]
+    basis: "AC4 \"이후 제출·수정은 거부\""
+    http_status: 409
+    error_code: "room_closed"
+    unchanged: ["submitted_count", "model_input", "included_count"]
+    note: "409 `room_closed`. 제출 수·모델 입력·`included_count`가 그대로다"
+  - id: CLS-N03
+    case_id: response_closure
+    kind: fail
+    ac: ["AC4"]
+    basis: "AC4 \"동시 제출·조기 요청에서도 최초 생성은 한 번\", ARCHITECTURE 5절 상태 기계. 반복 횟수는 결정 18"
+    calls: {"pact": 1}
+    result_attempts: 1
+    included_count: [2, 3]
+    http_status: 409
+    error_code: "room_closed"
+    note: "회마다 추천 호출 1회, 최초 결과 시도 1개. `included_count`는 받아들여진 제출 수(2 또는 3)와 같고, 진 요청은 409 `room_closed`다"
+  - id: CLS-N04
+    case_id: response_closure
+    kind: fail
+    ac: ["AC4"]
+    basis: "AC4, ARCHITECTURE 6절 동시 요청"
+    concurrent_statuses: [202, 409]
+    error_code: "room_closed"
+    calls: {"pact": 1}
+    note: "하나는 202, 하나는 409 `room_closed`. 추천 호출 1회"
+  - id: CLS-N05
+    case_id: response_closure
+    kind: fail
+    ac: ["AC4", "AC5"]
+    basis: "AC4 \"유효한 제출 수\", SPEC 처리 정책 \"한 제출 건은 전체 문항의 답변 묶음\", AC5, 규칙 5"
+    http_status: 422
+    error_code: "invalid_input"
+    submitted_count: 1
+    calls: {"pact": 0}
+    note: "모두 422 `invalid_input`. 제출 수 1 그대로, 자동 생성 없음"
+
+  # duplicate_name (AC16)
+  - id: DUP-P01
+    case_id: duplicate_name
+    kind: pass
+    ac: ["AC16", "AC3"]
+    basis: "AC16, 처리 정책 \"입장·중복 이름\", AC3 \"이름 재선택\""
+    duplicate_name_notice: {"p1": true, "p2": false}
+    has_submission: {"p1": true}
+    privacy_scan: ["memo_markers"]
+    note: "`p1`은 `duplicate_name_notice: true`, `p2`는 `false`. 방 조회의 `p1.has_submission: true`. 두 세션 응답 모두 이전 선택·메모가 없다"
+  - id: DUP-P02
+    case_id: duplicate_name
+    kind: pass
+    ac: ["AC16"]
+    basis: "AC16 \"같은 이름의 두 제출은 별도 ID\""
+    http_status: 201
+    submitted_count: 2
+    note: "201, 첫 제출과 다른 `participant_id`. 제출 수 2"
+  - id: DUP-P03
+    case_id: duplicate_name
+    kind: pass
+    ac: ["AC16"]
+    basis: "AC16 \"전송 재시도는 동일 건\", SPEC 5절 필드 연결, 결정 24"
+    http_status: 200
+    unchanged: ["submitted_count"]
+    note: "200, 첫 응답과 같은 `participant_id`. 제출 수 그대로"
+  - id: DUP-N01
+    case_id: duplicate_name
+    kind: fail
+    ac: ["AC16"]
+    basis: "결정 14"
+    http_status: 409
+    error_code: "idempotency_conflict"
+    unchanged: ["submission"]
+    note: "409 `idempotency_conflict`. 처음 저장한 제출이 그대로다"
+  - id: DUP-N02
+    case_id: duplicate_name
+    kind: fail
+    ac: ["AC16"]
+    basis: "AC16 \"기존 제출 열람·수정은 허용하지 않는다\", SPEC 4절 비포함"
+    http_status: 409
+    error_code: "session_used"
+    unchanged: ["submission"]
+    note: "409 `session_used`. 기존 제출이 그대로다"
+  - id: DUP-N03
+    case_id: duplicate_name
+    kind: fail
+    ac: ["AC16"]
+    basis: "결정 14"
+    http_status: 422
+    error_code: "invalid_input"
+    note: "422 `invalid_input`"
+  - id: DUP-N04
+    case_id: duplicate_name
+    kind: fail
+    ac: ["AC16"]
+    basis: "SPEC 5절 입장·이름 선택"
+    http_status: 404
+    error_code: "not_found"
+    note: "404 `not_found`"
+
+  # host_edit (AC12)
+  - id: EDT-P01
+    case_id: host_edit
+    kind: pass
+    ac: ["AC12"]
+    basis: "AC12, 처리 정책 \"방장 편집\", ARCHITECTURE 2절 규칙 2"
+    http_status: 201
+    result_kind: "host_edited"
+    source_result: "ai_original"
+    unchanged: ["original_result"]
+    note: "201, 새 `result_id`, `kind: host_edited`, `source_result_id`는 원본. 원본 결과의 방장 조회 응답과 DB 행이 편집 전과 같다"
+  - id: EDT-P02
+    case_id: host_edit
+    kind: pass
+    ac: ["AC12"]
+    basis: "AC12, 처리 정책 \"방장 편집\"(원본 검증 결과를 품질 보증으로 쓰지 않는다), 규칙 2"
+    result_label: "방장 수정"
+    note: "`label: \"방장 수정\"`. 검증 결과 필드와 합의·수락 필드가 없다. `pact_status`는 원본과 같다"
+  - id: EDT-P03
+    case_id: host_edit
+    kind: pass
+    ac: ["AC12"]
+    basis: "결정 6(최신 수정본에서 시작), AC12 원본 보존, 규칙 2"
+    http_status: 201
+    source_result: "latest_edit"
+    unchanged: ["original_result", "previous_edit"]
+    shared_result: "latest_edit"
+    note: "201, 새 수정본의 `source_result_id`는 EDT-P01 수정본이다. 새 수정본에 EDT-P01의 `/clauses/0/action` 변경이 남아 있다. AI 원본과 EDT-P01 수정본 행은 그대로다. 참여자 결과 조회는 새 수정본을 보여준다"
+  - id: EDT-N01
+    case_id: host_edit
+    kind: fail
+    ac: ["AC12"]
+    basis: "AC12 \"방장 이름 선택만 한 요청은 거부\", ARCHITECTURE 5절"
+    http_status: 403
+    error_code: "host_forbidden"
+    unchanged: ["room_status", "results", "calls"]
+    note: "모두 403 `host_forbidden`. 상태·결과·호출 수가 그대로다"
+  - id: EDT-N02
+    case_id: host_edit
+    kind: fail
+    ac: ["AC12"]
+    basis: "ARCHITECTURE 5절(토큰은 방마다 발급)"
+    http_status: 403
+    error_code: "host_forbidden"
+    note: "403 `host_forbidden`"
+  - id: EDT-N03
+    case_id: host_edit
+    kind: fail
+    ac: ["AC12"]
+    basis: "AC12 \"추가 막음\""
+    http_status: 422
+    error_code: "edit_not_allowed"
+    new_result_rows: 0
+    note: "422 `edit_not_allowed`, 새 결과 행 없음"
+  - id: EDT-N04
+    case_id: host_edit
+    kind: fail
+    ac: ["AC12"]
+    basis: "AC12 \"삭제 막음\""
+    http_status: 422
+    error_code: "edit_not_allowed"
+    note: "422 `edit_not_allowed`"
+  - id: EDT-N05
+    case_id: host_edit
+    kind: fail
+    ac: ["AC12"]
+    basis: "AC12 \"근거·적용 대상 변경을 막고\", 결정 4"
+    http_status: 422
+    error_code: "edit_not_allowed"
+    note: "각각 422 `edit_not_allowed`"
+  - id: EDT-N06
+    case_id: host_edit
+    kind: fail
+    ac: ["AC12"]
+    basis: "AC12 \"적용 대상 변경\", 결정 5"
+    http_status: 422
+    error_code: "edit_not_allowed"
+    note: "422 `edit_not_allowed`"
+  - id: EDT-N07
+    case_id: host_edit
+    kind: fail
+    ac: ["AC12", "AC3"]
+    basis: "AC3 \"방장 수정본에 같이 적용\", SPEC 5절 \"이 기준은 방장 수정본에도 적용\", 규칙 3"
+    http_status: 422
+    error_code: "memo_quote"
+    new_result_rows: 0
+    note: "422 `memo_quote`, 새 결과 행 없음"
+  - id: EDT-N08
+    case_id: host_edit
+    kind: fail
+    ac: ["AC12"]
+    basis: "[에이전트 안]"
+    http_status: 404
+    error_code: "not_found"
+    note: "404 `not_found`"
+
+  # regeneration (AC17)
+  - id: REG-P01
+    case_id: regeneration
+    kind: pass
+    ac: ["AC17"]
+    basis: "AC17 \"입력 불변·두 결과 보존\", 처리 정책 \"재생성·실패\""
+    http_status: 202
+    normal_results: 2
+    unchanged: ["original_result"]
+    note: "202 → 정상 결과 2개. 두 추천 호출의 `model_input`이 정규화한 JSON으로 같다. 최초 결과가 그대로 남는다"
+  - id: REG-P02
+    case_id: regeneration
+    kind: pass
+    ac: ["AC17"]
+    basis: "AC17 \"선택\", SPEC 5절"
+    http_status: 200
+    shared_result: "last_selected"
+    note: "각각 200. 참여자 결과 조회가 마지막에 고른 결과를 보여준다"
+  - id: REG-P03
+    case_id: regeneration
+    kind: pass
+    ac: ["AC17"]
+    basis: "AC17 \"실패 재시도는 재생성 횟수를 소비하지 않는다\", ARCHITECTURE 5절(실패 행은 세지 않는다)"
+    checkpoints:
+      - {"at": "after_failed_regeneration", "failed_results": 1, "normal_results": 1}
+      - {"at": "after_second_regeneration", "http_status": 202, "normal_results": 2}
+    note: "첫 재생성은 실패 행으로 남고 정상 결과는 1개. 다시 요청하면 202이고 성공해 정상 결과 2개"
+  - id: REG-N01
+    case_id: regeneration
+    kind: fail
+    ac: ["AC17"]
+    basis: "AC17 \"세 번째 정상 생성 거부\""
+    http_status: 409
+    error_code: "regeneration_limit"
+    unchanged: ["calls"]
+    note: "409 `regeneration_limit`. 추천 호출 수 그대로"
+  - id: REG-N02
+    case_id: regeneration
+    kind: fail
+    ac: ["AC17"]
+    basis: "ARCHITECTURE 5절 상태 기계"
+    http_status: 409
+    error_code: "invalid_state"
+    calls_added: {"pact": 1}
+    note: "409 `invalid_state`, 추천 호출 1회 추가에 그친다"
+  - id: REG-N03
+    case_id: regeneration
+    kind: fail
+    ac: ["AC17"]
+    basis: "SPEC 5절 결과 선택"
+    unchanged: ["selected_result"]
+    checkpoints:
+      - {"at": "unknown_result", "http_status": 404, "error_code": "not_found"}
+      - {"at": "failed_result", "http_status": 409, "error_code": "invalid_state"}
+    note: "각각 404 `not_found`, 409 `invalid_state`. 선택이 바뀌지 않는다"
+
+  # output_validation (AC10)
+  - id: OUT-P01
+    case_id: output_validation
+    kind: pass
+    ac: ["AC10"]
+    basis: "AC10, SPEC 상태별 처리 \"이유를 붙여 최대 1회 재요청\""
+    room_status: "ready"
+    calls: {"pact": 2}
+    repair_error_codes: ["json_invalid"]
+    normal_results: 1
+    note: "`ready`. 추천 호출 2회, 2회차 `repair_errors`에 `json_invalid`가 있고 `model_input`은 1회차와 같다. 정상 결과 1개라 재생성할 수 있다"
+  - id: OUT-P02
+    case_id: output_validation
+    kind: pass
+    ac: ["AC10"]
+    basis: "ARCHITECTURE 6절 후처리 위반 행"
+    room_status: "ready"
+    calls: {"pact": 2}
+    repair_error_codes: ["unknown_reference"]
+    note: "`ready`, 추천 호출 2회, `repair_errors`에 `unknown_reference`"
+  - id: OUT-P03
+    case_id: output_validation
+    kind: pass
+    ac: ["AC10"]
+    basis: "SPEC 처리 정책 \"재생성·실패\", 상태별 처리 마지막 문단"
+    http_status: 202
+    room_status: "ready"
+    normal_results: 1
+    note: "202 → `ready`. `model_input`이 OUT-N01 1회차와 같다. 정상 결과 1개라 재생성이 1회 남는다"
+  - id: OUT-P04
+    case_id: output_validation
+    kind: pass
+    ac: ["AC10"]
+    basis: "ARCHITECTURE 6절 일시 오류(`Retry-After`)"
+    room_status: "ready"
+    waits: [5]
+    note: "`ready`. 대기 함수가 5초 대기를 한 번 기록한다"
+  - id: OUT-N01
+    case_id: output_validation
+    kind: fail
+    ac: ["AC10"]
+    basis: "AC10 \"다시 실패한 출력을 사용하지 않는다\", \"정상 결과 재생성 횟수 미소비\""
+    room_status: "failed"
+    failure_reason: "output_invalid"
+    calls: {"pact": 2}
+    normal_results: 0
+    http_status: 409
+    error_code: "invalid_state"
+    note: "`failed`(`output_invalid`). 추천 호출 정확히 2회, 정상 결과 0개. 결과 조회와 재생성은 409 `invalid_state`"
+  - id: OUT-N02
+    case_id: output_validation
+    kind: fail
+    ac: ["AC10"]
+    basis: "ARCHITECTURE 6절 일시 오류, SPEC 상태별 처리 \"호출 실패는 실행 오류\""
+    room_status: "failed"
+    failure_reason: "call_error"
+    calls: {"pact": 3}
+    backoff_waits: [1, 2]
+    normal_results: 0
+    note: "`failed`(`call_error`). 추천 호출 3회(최초 + 재시도 2회), 대기 기록 1초·2초(지터 범위 안). 정상 결과 0개"
+  - id: OUT-N03
+    case_id: output_validation
+    kind: fail
+    ac: ["AC10"]
+    basis: "ARCHITECTURE 5절 모델 호출 계약"
+    room_status: "failed"
+    failure_reason: "output_invalid"
+    calls: {"pact": 2}
+    note: "`failed`(`output_invalid`), 추천 호출 2회"
+  - id: OUT-N04
+    case_id: output_validation
+    kind: fail
+    ac: ["AC10"]
+    basis: "AC10을 문항 단계에도 적용(ARCHITECTURE 6절 출력 형식 오류 행)"
+    scenario_status: "failed"
+    calls: {"scenarios": 2}
+    http_status: 409
+    error_code: "invalid_state"
+    note: "`scenario_status: failed`, 문항 호출 2회. 세션 생성은 409 `invalid_state`"
+  - id: OUT-N05
+    case_id: output_validation
+    kind: fail
+    ac: ["AC10", "AC4"]
+    basis: "SPEC 상태별 처리(\"호출 실패는 실행 오류\"), ARCHITECTURE 6절 일시 오류, AC4(최초 생성은 한 번), 결정 12"
+    checkpoints:
+      - {"at": "4m59s", "room_status": "generating"}
+      - {"at": "5m", "room_status": "failed", "failure_reason": "call_error", "normal_results": 0}
+      - {"at": "after_late_output", "normal_results": 0}
+      - {"at": "retry", "http_status": 202}
+    note: "4분 59초에는 `generating` 그대로. 5분에 작업이 진행 중인 호출과 남은 재시도를 멈추고 `failed`(`call_error`), 정상 결과 0개. 뒤늦게 끝난 호출의 출력은 정상 결과로 저장하지 않는다. 방장 재시도는 202이고 `model_input`이 처음과 같다"
+  - id: OUT-N06
+    case_id: output_validation
+    kind: fail
+    ac: ["AC10"]
+    basis: "ARCHITECTURE 5절(\"`generating`에 설정 시간 이상 머문 방은 failed\"), 6절 생성 중 중단, 결정 12"
+    checkpoints:
+      - {"at": "9m59s", "room_status": "generating"}
+      - {"at": "10m", "room_status": "failed", "failure_reason": "interrupted", "normal_results": 0}
+      - {"at": "retry", "http_status": 202}
+    note: "9분 59초에는 `generating` 그대로. 10분에는 `failed`(`interrupted`), 정상 결과 0개. 방장 재시도는 202이고 `model_input`이 처음과 같다"
+
+  # result_export (AC13)
+  - id: EXP-P01
+    case_id: result_export
+    kind: pass
+    ac: ["AC13"]
+    basis: "AC13, SPEC 5절 필드 연결(ㄹ 받침은 로, 영문·숫자 별명은 '님')"
+    rendered: {"민준": ["민준은", "민준이", "민준을", "민준과", "민준으로"], "지수": ["지수는", "지수가", "지수를", "지수와", "지수로"], "하늘": ["하늘은", "하늘이", "하늘을", "하늘과", "하늘로"], "Alex": ["Alex님은", "Alex님이", "Alex님을", "Alex님과", "Alex님으로"], "7": ["7님은", "7님이", "7님을", "7님과", "7님으로"]}
+    note: "`민준은/이/을/과/으로`, `지수는/가/를/와/로`, `하늘은/이/을/과/로`, `Alex님은/이/을/과/으로`, `7님은/이/을/과/으로`"
+  - id: EXP-P02
+    case_id: result_export
+    kind: pass
+    ac: ["AC13"]
+    basis: "AC13 \"같은 이름의 제출 구분\", SPEC 5절. 번호 순서는 결정 9"
+    rendered_by_submission: ["민준(응답 1)은", "민준(응답 2)은"]
+    note: "`민준(응답 1)은`, `민준(응답 2)은`. 번호는 제출 순서, 조사는 이름 기준"
+  - id: EXP-P03
+    case_id: result_export
+    kind: pass
+    ac: ["AC13"]
+    basis: "SPEC 5절 \"이름에 포함된 토큰을 다시 해석하지 않는다\""
+    text_includes: ["{{participant:B}}"]
+    note: "그 이름이 글자 그대로 나오고 B로 다시 치환되지 않는다"
+  - id: EXP-P04
+    case_id: result_export
+    kind: pass
+    ac: ["AC13"]
+    basis: "AC13 판정 방법, 처리 정책 \"조기 생성·마감\""
+    result_label: "방장 수정"
+    privacy_scan: ["original_conditions"]
+    note: "공유 결과에 `included_count`, `excluded_names`, `proposed_changes`, `label: \"방장 수정\"`이 있고 `original_condition` 값이 없다. 참여자 응답과 방장 응답의 공유 결과가 같다"
+  - id: EXP-P05
+    case_id: result_export
+    kind: pass
+    ac: ["AC13", "AC7"]
+    basis: "SPEC 상태별 처리 마지막 문단. AC7 범위의 서버 표시 부분이라 결정 19"
+    checkpoints:
+      - {"at": "unresolved", "has_humor": true, "humor_text": "너네 조합 꽝이니 여행 가지 마세요!", "humor_explanation": "이번 응답 조건에서는 추천안을 찾지 못했습니다."}
+      - {"at": "proposed", "has_humor": false}
+      - {"at": "conditional_only", "has_humor": false}
+      - {"at": "needs_information", "has_humor": false}
+      - {"at": "failed", "has_humor": false}
+    note: "`unresolved`만 `humor.text`(\"너네 조합 꽝이니 여행 가지 마세요!\"), `humor.explanation`(\"이번 응답 조건에서는 추천안을 찾지 못했습니다.\"), `unresolved_conditions`가 함께 있다. 나머지와 `failed`에는 `humor`가 없다"
+  - id: EXP-N01
+    case_id: result_export
+    kind: fail
+    ac: ["AC13"]
+    basis: "AC13 \"없는 ID는 표시를 막는다\""
+    error_code: "render_failed"
+    note: "`render_failed`"
+  - id: EXP-N02
+    case_id: result_export
+    kind: fail
+    ac: ["AC13"]
+    basis: "AC13 \"남은 토큰은 표시를 막는다\", SPEC 5절(문항 토큰과 참여자 토큰은 별도 명단)"
+    error_code: "render_failed"
+    note: "`render_failed`"
+  - id: EXP-N03
+    case_id: result_export
+    kind: fail
+    ac: ["AC13"]
+    basis: "AC13, SPEC 5절 \"표시 오류\". 정상 경로에서는 검증기 `token_invalid`가 먼저 막는다"
+    http_status: 500
+    error_code: "render_failed"
+    note: "500 `render_failed`. 응답에 일부 문장도 없다"
+
+  # push_events (AC18)
+  - id: PSH-P01
+    case_id: push_events
+    kind: pass
+    ac: ["AC18"]
+    basis: "AC18, F6, 처리 정책 \"알림\""
+    push_sent: {"host": 1, "participant_each": 1, "total": 3}
+    host_push_text: "협약서가 준비됐어요"
+    note: "방장 구독에 \"협약서가 준비됐어요\" 1건, 참여자 구독마다 생성 알림 1건. 총 3건"
+  - id: PSH-P02
+    case_id: push_events
+    kind: pass
+    ac: ["AC18"]
+    basis: "처리 정책 \"알림\"(실패 시 완료와 실패, 이후 성공 시 생성 알림), AC18 \"실패 후 성공 알림\""
+    checkpoints:
+      - {"at": "after_failure", "push_sent": {"host": 1, "participant_each": 0}}
+      - {"at": "after_retry_success", "push_sent": {"host": 1, "participant_each": 1}}
+    note: "실패 때 방장에게 완료·실패를 묶은 알림 1건, 참여자 0건. 성공 때 방장·참여자 구독마다 생성 알림 1건"
+  - id: PSH-P03
+    case_id: push_events
+    kind: pass
+    ac: ["AC18"]
+    basis: "F6, 결정 11"
+    push_sent: {"host": 1, "participant_each": 1}
+    note: "방장·참여자 구독마다 생성 알림 1건"
+  - id: PSH-P04
+    case_id: push_events
+    kind: pass
+    ac: ["AC18"]
+    basis: "ARCHITECTURE 6절 푸시 발송 실패"
+    subscription_by_send_status: {"410": "removed", "500": "kept"}
+    room_status: "ready"
+    note: "410 구독은 삭제, 500 구독은 남고 기록만 한다. 방 상태는 `ready`, 다른 구독 발송은 그대로"
+  - id: PSH-N01
+    case_id: push_events
+    kind: fail
+    ac: ["AC18"]
+    basis: "AC18 \"이벤트 재처리 시 중복 방지\", ARCHITECTURE 6절 알림 중복"
+    push_sent: {"total": 0}
+    notification_records_per_pair: 1
+    note: "추가 발송 0건. 이벤트·구독 쌍마다 알림 기록 1개"
+  - id: PSH-N02
+    case_id: push_events
+    kind: fail
+    ac: ["AC18"]
+    basis: "ARCHITECTURE 2절 규칙 3(\"푸시 본문에는 상태 문구만\"), 규칙 3, 결정 25"
+    privacy_scan: ["names", "memo_markers", "option_labels", "profile_values"]
+    push_payload_keys: ["text", "url"]
+    note: "이름·별명, 메모 표지, 선택지 문구, 선택 프로필 값이 없고 상태 문구와 방 링크만 있다. 본문은 키가 `text`·`url` 둘인 JSON 객체이고 `url`에 `room_code`가 있으며 `host_token`이 없다"
+  - id: PSH-N03
+    case_id: push_events
+    kind: fail
+    ac: ["AC18"]
+    basis: "SPEC 5절 푸시 등록"
+    http_status: 422
+    error_code: "invalid_input"
+    note: "422 `invalid_input`"
