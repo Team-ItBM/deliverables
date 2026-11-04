@@ -206,4 +206,130 @@ S1~S6은 v6·pool v2 시점 출력이고 입력에 자기 pool 8개가 들어 �
 
 ## §2. 회차별 결과
 
-아직 없음.
+회차 기록의 단위는 골든 케이스다. 로더 검사는 따로 센다.
+
+### §2-1. 골든 케이스·테스트 하니스 위임 (2026-11-04, 1회차)
+
+§1-1 블록을 고치지 않고 그대로 실행했다(에이전트 Claude). 사람이 수용하기 전이며 `validate_scenario_output`은 구현하지 않았다.
+
+| 회차 | 결과 | 무엇이 문제였나 | 무엇을 고쳤나 (프롬프트/케이스/테스트 코드) |
+|---|---|---|---|
+| 1 | 골든 케이스 43개 수집·skip, 로더 검사 7개 통과. 결함 13가지와 로더 확인 9가지·YAML 연동 확인이 모두 기대한 검사에서 실패 | 로더 확인 1건에서 에이전트가 미리 적은 기대 실패 목록이 부족했다(아래 로더 확인 표) | 없음 |
+
+**위임 직전 상태**
+
+- HEAD `0ca3f583d72c4f61300cef159df77450c020f934`, `git status --short --untracked-files=all`은 ` M TODO.md` 한 줄이었다.
+- 작업 중 `TODO.md`의 `git diff --stat`이 `2 +-`에서 `5 +----`로 바뀌었다. 에이전트는 `TODO.md`를 고치지 않았으므로 다른 세션이나 사람의 변경으로 보고 그대로 두었다. 결함 주입 전후 비교는 바뀐 뒤의 상태를 기준으로 했다.
+
+**만든 파일**
+
+| 파일 | 내용 |
+|---|---|
+| `tests/harness/fixtures/scenario/*.json` 8개 | `ex1_ready`, `ex2_needs_information`, `s1_ready`, `s2`~`s6`. 각 `{source, input, output}`. `source`에는 원본 파일 경로와 절 이름, 모델·버전을 적었고 줄 번호는 쓰지 않았다 |
+| `tests/harness/scenario_cases.yaml` | 머리말(대상 함수, 근거 문서, 케이스 입력, 판정 키, 오류 코드 10개, fixture 기준), `error_codes`, 케이스 43개. 케이스마다 `# 근거:` 주석과 `note`를 달았다 |
+| `tests/test_scenario_golden.py` | 케이스 테스트 1개(43개로 파라미터화)와 로더 검사 7개 |
+
+결함 주입·추출에 쓴 스크립트와 임시 구현은 `.local-work/fault_injection/scenario_golden/`에 있다(`build_fixtures.py`, `verify_fixtures.py`, `build_cases.py`, `stub/travel/scenarios.py`, `run_faults.py`, `run_loader_checks.py`, `expected.json`).
+
+**fixture 원본 대조**
+
+`build_fixtures.py`로 옮긴 뒤 `verify_fixtures.py`가 원본을 다른 방식(정규식)으로 다시 추출해 비교했다. 8개 모두 `input`·`output`이 값과 키 순서까지 같았다. S2~S6 입력은 `base_inputs.S` 복사 → `remove` 최상위 키 삭제 → `replace` 최상위 키 교체로 만들었다. S1~S6 출력은 문항 프롬프트에 적힌 출력 SHA-256과도 일치했다. 8개 모두 스키마 v2 오류 0건, B절 규칙(요청 수, ID, `decision_key` 중복, 선택지 ID 순서, 토큰, `scene` 줄 수) 위반 0건이다.
+
+**§0-1이 정하지 않아 사람에게 물어 정한 patch 값** (2026-11-04)
+
+- 토큰 추가(V09, V10, N20~N22, N30, N31): 대상은 모두 `scenarios/0`이다. 해당 문자열(scene은 첫 줄) 맨 앞에 `"<토큰> "`을 붙여 replace한다.
+- N25의 순서 교환은 N16과 같이 `options/0`과 `options/1`을 바꾼다. N19의 선택지는 배열 끝(`/-`)에 add한다.
+- N29는 §1-1에 적힌 대로 기존 `scene` 끝에 `\n` 하나를 붙인 값으로 replace했다.
+- 큰 값(N09의 6문항, N14·N25·N26·N27의 `scenarios/0` 사본)은 `build_cases.py`가 `ex1_ready` fixture에서 읽어 그대로 넣었다.
+
+**테스트가 검증기에 요구하는 인터페이스** (§0에 없는 형식을 테스트가 정한 부분)
+
+1. `src/`를 `sys.path`에 두고 `travel.scenarios` 모듈의 `validate_scenario_output`을 위치 인자 두 개 `(scenario_input, raw_output)`로 부른다. `scenario_input`은 patch를 적용한 fixture `input` dict이고, `raw_output`은 `json.dumps(output, ensure_ascii=False)` 문자열 또는 케이스의 `raw_output`이다.
+2. 반환값은 dict여야 한다. `valid`는 `bool`이어야 하며 `is`로 비교하므로 `0`·`1`은 실패다. `errors`는 리스트이고 각 항목은 `code` 키가 있는 dict여야 한다.
+3. `code`는 집합으로 비교한다. 같은 코드가 여러 번 나와도 되고, `path`·`detail`은 비교하지 않는다.
+4. `valid`와 `errors`가 서로 맞는지(예: `valid=true`인데 errors가 있음)는 검사하지 않는다.
+5. 43개 케이스 어디서든 검증기가 예외를 내면 skip이 아니라 실패다. `travel`·`travel.scenarios` 모듈이 없거나 함수가 없을 때만 skip하고, 그 밖의 import 오류는 실패로 드러낸다.
+
+**케이스와 테스트 대응**
+
+- `test_scenario_case[<name>]`: 케이스에 있는 키만 검사한다. `expect_valid` → `valid`와 같음, `must_include_errors` → 모두 `code`에 있음, `must_not_include_errors` → 하나도 없음.
+- `must_not_include_errors`는 N05·N12·N26(표 비고의 must_not)과 V09·V12(표 "확인하는 것"의 "…이 없어야 한다")에 두었다. V09·V12는 해석이 들어간 부분이라 수용할 때 확인한다.
+- 로더 검사 7개(항상 실행):
+
+| 테스트 | 검사 |
+|---|---|
+| `test_cases_file_structure` | 최상위 키가 `error_codes`·`cases`뿐, `error_codes`가 중복 없는 문자열 10개 |
+| `test_loader_case_keys` | 허용 키 밖의 키 거부, 필수 키 `name`·`fixture`·`expect_valid` |
+| `test_loader_case_values` | 자료형, `expect_valid: false`면 `must_include_errors` 필요, 코드는 `error_codes` 안, 판정 목록이 비어 있지 않음, include·exclude 겹침 금지, `raw_output`과 `patch` 동시 사용 금지, `expect_valid: true`에 `must_include_errors` 금지 |
+| `test_loader_unique_names` | `name` 중복 금지 |
+| `test_loader_case_counts` | 43개, V·N 12·31개, ID가 V01~V12·N01~N31과 정확히 같음, V는 `expect_valid: true`·N은 `false` |
+| `test_loader_fixtures_and_patches` | fixture 파일이 있고 최상위 키가 `source`·`input`·`output`, patch가 예외 없이 적용되고 문서를 실제로 바꿈 |
+| `test_loader_baseline_fixtures_pass_schema` | patch·`raw_output`이 없는 기준 케이스가 서로 다른 fixture 8개를 쓰고 폴더의 fixture와 같으며, 그 `output`이 스키마 v2를 통과 |
+
+`test_loader_case_values`의 마지막 두 조건, `test_loader_case_counts`의 ID·접두어 조건, patch가 문서를 바꾸는지 보는 조건은 §1-1에 없던 것을 에이전트가 더했다.
+
+**수집과 실행**
+
+- `--collect-only -q`: 50 tests collected(로더 검사 7, 골든 케이스 43). 노드 이름은 YAML `name`과 같다.
+- `-q -rs`: 7 passed, 43 skipped. skip 사유는 43개 모두 "validate_scenario_output 없음: travel.scenarios 모듈을 찾을 수 없다"다.
+- `python -m pytest tests/ -q -rs`: 91 passed, 43 skipped. 기존 84개와 새 로더 검사 7개가 통과했고 실패는 0이다.
+
+**결함 주입** (실행 전 `expected.json`에 기대를 적고 실행했다)
+
+임시 구현 `stub/travel/scenarios.py`는 YAML과 fixture로 케이스마다 기대 결과(`expect_valid`, `must_include_errors` 코드)를 만들고, `SCENARIO_FAULT` 값에 따라 결함을 넣어 돌려준다. 골든 케이스에 없는 입력이 오면 예외를 낸다. `src/travel`에 `__init__.py`가 없어 `travel`이 네임스페이스 패키지이므로, `PYTHONPATH=.local-work/fault_injection/scenario_golden/stub`만으로 `travel.scenarios`가 잡힌다. 저장소 파일은 바꾸지 않았다.
+
+| # | 주입한 결함 | 실패해야 할 케이스 | 실제 결과 (실패 단언) |
+|---|---|---|---|
+| d0 | 통과 가능 확인: 기대 결과를 그대로 반환 | 없음, skip 0 | 50 passed, skip 0 |
+| d1 | 항상 `valid=true`, `errors=[]` | N01~N31 | 31 failed(`expect_valid` 31) |
+| d2 | `option_mismatch`를 `option_order_mismatch`로 반환 | N16~N19, N25 | 5 failed(`must_include_errors` 5) |
+| d3 | 스키마 실패 뒤에도 계속 검사 | N05, N26 | 2 failed(`must_not_include_errors`: N05 `count_mismatch`, N26 `duplicate_template`) |
+| d4 | 첫 오류에서 멈춤 | N25 | 1 failed(`must_include_errors` `option_mismatch` 누락) |
+| d5 | option_id 순서 무시(집합 비교) | N16, N25 | 2 failed(N16 `expect_valid`, N25 `must_include_errors`) |
+| d6 | template_id 소문자 정규화 | N13 | 1 failed(`expect_valid`) |
+| d7 | 입력 request 지시문에 따라 `valid=true` | N27 (V11은 통과) | 1 failed(N27 `expect_valid`) |
+| d8 | 과잉 거부: 항상 `valid=false`, 코드 10개 전부 | V01~V12, N05, N12, N26 | 15 failed(V 12개 `expect_valid`, N05·N12·N26 `must_not_include_errors`) |
+| d9 | `unknown_template` 항목도 선택지·scene 검사 | N12 | 1 failed(`must_not_include_errors`) |
+| d10 | scene 끝 줄바꿈 무시 | N29 | 1 failed(`expect_valid`) |
+| d11 | 토큰 ID 앞뒤 공백 제거 뒤 대조 | N31 | 1 failed(`expect_valid`) |
+| d12 | ready의 `message`를 `status_combination`으로 거부 | V12 | 1 failed(`expect_valid`) |
+
+13가지 모두 실패 집합이 기대와 같았다. 실패는 모두 위 단언문의 `AssertionError`였고 수집 오류나 다른 예외, skip은 없었다. d3·d9·d12는 must_not이 걸린 케이스(N05, N26, N12, V12)를 하나씩 확인한다.
+
+**로더 확인(부록 C7)과 YAML 연동 확인(C2)**
+
+저장소 YAML을 고치지 않으려고 스크래치 디렉터리에 테스트 파일·YAML·fixture·스키마 복사본 트리를 만들고, 변형을 하나씩 넣어 실행한 뒤 지웠다.
+
+| 넣은 것 | 기대 실패 | 실제 실패 |
+|---|---|---|
+| `expect_valid` 없이 `note`만 있는 케이스 | `case_keys` | `case_keys`, `case_counts`, `baseline_fixtures_pass_schema`. 기대 목록이 부족했다: patch 없는 케이스라 기준 케이스로 세어 fixture 9개가 되고, 케이스 수도 44개가 된다 |
+| `expect_valid: false`인데 `must_include_errors` 없음(N01) | `case_values` | `case_values` |
+| 오타 키 `must_include_error` | `case_keys`, `case_values` | `case_keys`, `case_values` |
+| `error_codes`에 없는 `made_up_code` | `case_values` | `case_values` |
+| 이미 있는 `name`(V02를 V01로) | `unique_names`, `case_counts` | `unique_names`, `case_counts` |
+| 없는 fixture | `fixtures_and_patches`, `baseline_fixtures_pass_schema` | 같음 |
+| 없는 키를 replace하는 patch | `fixtures_and_patches` | `fixtures_and_patches` |
+| 빈 `must_not_include_errors` | `case_values` | `case_values` |
+| 케이스 하나 삭제(N02) | `case_counts` | `case_counts` |
+| C2: 유효한 임시 케이스 `N99_c2_temp_case` 추가 | `case_counts`, 노드 수집 | `case_counts` 실패, `test_scenario_case[N99_c2_temp_case]` 수집 |
+
+변형 없는 복사본은 7 passed, 43 skipped였다.
+
+**원복 확인**
+
+주입은 환경 변수(`PYTHONPATH`, `SCENARIO_FAULT`, `SCENARIO_REPO`)와 저장소 밖 복사본으로만 했다. 끝난 뒤 셸에 `SCENARIO_` 변수가 없음을 확인했다. `git status --short --untracked-files=all`과 `git diff --stat`이 주입 전 기록(`.local-work/fault_injection/scenario_golden/status_before.txt`, `diffstat_before.txt`)과 같았다. `src/travel`에는 `scenarios.py`가 없다. 다시 실행해 7 passed, 43 skipped를 확인했다. 미구현 상태로 돌아간 것이며 기능 수용이 아니다.
+
+**사람이 수용할 때 확인할 항목**
+
+1. 위 patch 값 결정(토큰 위치, N25 교환, N19 추가 위치)이 의도와 같은지.
+2. V09·V12에 둔 `must_not_include_errors`가 §0-1의 뜻과 같은지.
+3. 에이전트가 더한 로더 조건과 인터페이스 4·5번(일관성 미검사, 예외는 실패)을 받아들일지.
+4. fixture `source`와 YAML 머리말의 기준 커밋 `0ca3f58`이 맞는지. 수용 후 기준 커밋을 정하고 `git diff <기준커밋> -- tests/`로 대조한다.
+5. AGENTS.md 7절에 새 테스트 명령과 수용 조건(케이스 43개 전수 통과, skip·xfail 0건)을 적을지. 이번 위임은 `docs/`의 §2 밖을 고치지 않아 적지 않았다.
+
+**§0·§0-1에 대한 제안** (고치지 않았다)
+
+- N12 비고의 "결정 5"는 없는 번호다. 내용상 §0-1 결정 4다. YAML 주석에는 둘 다 적었다.
+- 표 비고의 "결정 n"이 §0 결정인지 §0-1 결정인지 섞여 있다(N16·N22·N25는 §0, N28~N31은 §0-1). YAML 주석에는 출처를 나눠 적었다.
+- V09·V12의 "…이 없어야 한다"를 must_not 열로 옮겨 적으면 해석 차이가 없어진다.
+- N14에 must_not을 두지 않는다는 기본안처럼, N25의 `duplicate_decision`도 함께 나와도 된다는 문장을 더하면 기대가 분명해진다(지금도 must_not이 없어 동작은 같다).
