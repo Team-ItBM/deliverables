@@ -1,13 +1,13 @@
 # 도원결의 아키텍처 설계서
 
-> 상태: 2026-10-28 팀 확정, 2026-11-04 구현 현황 반영. 2절에서 구현된 것은 `src/travel/pact.py`의 후처리(강의 5)와 `src/travel/pool.py`의 pool 로드·목록 생성·`lookup_template`(강의 6), `src/travel/tools/scenario_tools.py`의 `get_scenario_template` 도구(강의 6)이며, 나머지 구현 대상 파일명은 예정 경로다. 구현 언어는 Python이다.
+> 상태: 2026-10-28 팀 확정, 2026-11-04 구현 현황 반영. 2절에서 구현된 것은 `src/travel/pact.py`의 후처리(강의 5)와 `src/travel/pool.py`의 pool 로드·목록 생성·`lookup_template`(강의 6), `src/travel/tools/scenario_tools.py`의 `get_scenario_template` 도구(강의 6)이며, 나머지 구현 대상 파일명은 예정 경로다. 서버·화면·인프라 구성은 2026-11-04 팀 결정이다. 모델 호출·도구·후처리·서버는 Python, 화면은 TypeScript(React), 인프라는 Terraform으로 쓴다.
 > 근거 문서: [SPEC](SPEC.md) · [온톨로지](ontology.yaml) · [AGENTS](../AGENTS.md) · [문항 프롬프트](../src/travel/prompts/prepare_scenarios.md) · [추천 프롬프트](../src/travel/prompts/generate_pact.md)
 
 ## 1. 한눈에 보는 데이터 흐름
 
-방장 입력(trip·프로필) → 문항 선정·각색(pool 목록 + `get_scenario_template` 도구) → 후처리·확정(`ScenarioSet`) → 각자 응답 제출 → 마감·입력 고정 → 추천 생성(`PactRecommendation`) → 후처리·근거 검증 → 방장 선택·편집 → 이미지 저장
+방장 입력(trip·프로필) → 문항 선정·각색(pool 목록 + `get_scenario_template` 도구) → 후처리·확정(`ScenarioSet`) → 각자 응답 제출 → 마감·입력 고정 → 추천 생성(`PactRecommendation`, 백그라운드) → 후처리·근거 검증 → 푸시 알림 → 방장 선택·편집 → 이미지 저장(결과 화면 캡처)
 
-모델 호출은 두 단계뿐이다. 문항 단계에서만 모델이 읽기 도구를 호출하고, 나머지 전환은 코드가 정한다.
+화면(SPA)은 서버 API만 호출하고, 서버가 토큰을 치환한 공유 문장을 받는다. 모델 호출은 두 단계뿐이다. 문항 단계에서만 모델이 읽기 도구를 호출하고, 나머지 전환은 코드가 정한다.
 
 ## 2. 구성 요소
 
@@ -23,10 +23,28 @@
 | `src/travel/tools/scenario_tools.py` | `get_scenario_template` 도구(모델 호출 → `lookup_template` 연결) | 강의 6 | 구현됨(2026-11-04 수용, `01da8ef`) |
 | `src/travel/pact.py` | 추천 단계 호출·후처리. 후처리 진입점 `validate_pact_output(pact_input, raw_output)`이 `validate_positions`, `route_pact_result` 등을 호출한다 | 강의 3 함수 인터페이스, 강의 5 | 후처리: 구현됨(강의 5) / 호출: 이후 |
 | `tests/harness/golden_cases.yaml`, `tests/test_pact_golden.py` | 추천 출력 검증기의 골든 케이스 30개와 테스트 하니스(형식·상태 조합·근거·인용·응답 연결·참여자 토큰과 조사·메모 인용) | 강의 5 | 반영됨, 30/30 통과 |
+| `tests/harness/scenario_cases.yaml`, `tests/harness/fixtures/scenario/`, `tests/test_scenario_golden.py` | 문항 출력 검증기의 골든 케이스 43개, 기준 fixture 8개, 테스트 하니스(형식·상태 조합·요청 수·문항 ID와 판단 중복·선택지 ID 순서·인물 토큰·`scene` 줄 수) | 강의 5 | 수용됨(2026-11-04, `14b84ae`). 43/43 통과 |
 | `tests/test_tools.py` | 도구 계약 테스트 | 강의 6 | 수용됨(2026-11-04). 21/21 통과 |
 | `tests/test_pool.py` | pool 계약 테스트(목록 생성·`lookup_template`) | 강의 6 | 수용됨(2026-11-04, `d790d26`). 28/28 통과 |
+| `src/travel/server/app.py`, `db.py`, `routes/` | FastAPI 앱, PostgreSQL 모델(rooms·profiles·submissions·responses·results·push_subscriptions·notifications·llm_calls), SPEC 5절 작업별 JSON API | 강의 4 SPEC 5절, 강의 6 | **예정** |
+| `src/travel/server/llm.py` | Sol 호출(Responses API, `text.format` json_schema strict, `tools` function strict, `store: false`)과 저장 출력 재생 모드 | 강의 3, 강의 6 | **예정** |
+| `src/travel/server/render.py` | profile·participant 토큰 치환과 조사 처리. 화면과 이미지가 같은 결과 텍스트를 쓴다 | 강의 4 SPEC 5절 | **예정** |
+| `src/travel/server/push.py` | Web Push(VAPID, pywebpush) 발송, 이벤트 단위 중복 방지 | 강의 4 SPEC 알림 정책 | **예정** |
+| `src/travel/server/admin.py` | 방 단위 삭제 명령(F7 전 수동 삭제, F7의 기반) | 강의 4 SPEC 만료 정책 | **예정** |
+| `web/` | Vite + React SPA(방 생성, 입장·이름 선택, 응답, 대기·상태, 결과·편집·저장), 서비스워커 `web/public/sw.js`, 결과 DOM 캡처(html-to-image)와 Web Share 저장 | 강의 4 SPEC F1~F6 | **예정** |
+| `config/llm.yaml` | 모델 ID, 프롬프트·스키마·pool 버전, 도구 호출 상한, 재시도, 동시 생성 상한, 호출 타임아웃, 비용 한도 | 강의 6 | **예정** |
+| `infra/` | Terraform: ECS Fargate(ALB 뒤 태스크 2개), RDS PostgreSQL, S3·CloudFront(SPA), ACM·Route 53, WAF, Secrets Manager, CloudWatch Logs. 서울 리전 | 강의 6 | **예정** |
+| `.github/workflows/` | PR 검사(ruff, pytest 전체, 서버 테스트용 Postgres 컨테이너, SPA 빌드·테스트), main 배포(ECR → 마이그레이션 → ECS). AWS 접근은 OIDC | 강의 5 검증 루프 | **예정** |
+| `tests/test_server_*.py`, `docs/prompts/delegation_server.md` | 서버 계약 테스트(SPEC 6절 케이스 ID: `response_privacy`, `response_closure`, `host_edit`, `result_export`, `duplicate_name`, `regeneration`, `push_events`)와 위임·결함 주입 기록 | 강의 5 | **예정** |
+| `docs/PRIVACY.md` | 개인정보 처리방침(SPA 방 생성·이름 선택 화면에서 링크) | 강의 4 SPEC 운영 정책 | 초안 작성(2026-11-04) |
 
 오케스트레이션은 별도 프레임워크 없이 함수 조합으로 둔다. 이유는 5절.
+
+**서버·화면 구성 결정(2026-11-04)과 절대 규칙 확인**
+
+- 서버 FastAPI, 화면 Vite + React SPA(FastAPI 또는 S3·CloudFront가 정적 파일을 서빙), 저장소 관리형 PostgreSQL(RDS), API는 JSON과 폴링, 푸시는 Web Push(VAPID), 이미지는 결과 DOM 캡처, 호스팅은 AWS를 Terraform으로 관리한다. 11/10 일정과 3인 팀, 기존 Python 검증기를 그대로 import하는 점을 근거로 골랐다.
+- 규칙 3(AC3): 공유용 응답 모델에 `memo`, `positions`, `original_condition`, 성별·나이대·MBTI 필드를 두지 않는다. 제출 후 응답을 조회하는 API는 없다(AC16). 푸시 본문에는 상태 문구만 넣는다. 로그는 8절의 마스킹을 따른다.
+- 규칙 2(AC7, AC12): 편집본은 `results`의 별도 행이고 원본 행은 바꾸지 않는다. 결과 응답에 결과 종류(AI 원본·방장 수정)를 넣어 화면과 이미지가 ‘방장 수정’을 표시한다. 어떤 화면 문구에도 합의·수락을 뜻하는 표현을 쓰지 않는다.
 
 ## 3. 도구 목록
 
@@ -75,6 +93,12 @@
 - **설정 분리**: 도구 호출 상한, 재시도 횟수·간격, 모델 ID와 프롬프트·스키마·pool 버전은 코드에 넣지 않고 `config/llm.yaml`에 둔다. evals와 운영 실험에서 이 값을 바꿔 측정한다.
 - **추천 단계**: 도구 없이 구조화 출력 1회. 입력은 마감 때 고정한 채택 제출·확정 문항이다.
 - **검증 필요(스파이크 대상)**: Sol 서비스 API에서 도구 호출과 `json_schema` 출력 형식을 한 호출에 함께 쓸 수 있는지, 도구 결과를 반영한 각색이 v6 회귀 기준(AC1)을 유지하는지 확인한다. 확인 전에는 v6 방식(pool 전체 입력)을 대체 경로로 둔다.
+- **서버 상태 기계**: `room.status`는 open → closed → generating → ready 또는 failed다. 전환은 `UPDATE ... WHERE status = 'open'` 한 문장으로 하여 마지막 제출과 조기 생성이 겹쳐도 입력 고정과 최초 생성을 한 번만 수행한다(AC4). 생성은 202 응답 뒤 프로세스 안 백그라운드 태스크로 실행하고 화면은 3~5초 간격으로 상태를 폴링한다. 재생성 가능 여부는 정상 결과 행 수로 계산하며 실패 행은 세지 않는다(AC10, AC17). 컨테이너가 여러 개여도 잠금은 DB에 있고, `generating`에 설정 시간 이상 머문 방은 failed로 돌린다.
+- **동시 생성 상한과 타임아웃**: 프로세스당 동시 LLM 호출 4건, 호출 타임아웃 90초를 `config/llm.yaml`에 둔다. 초과 요청은 대기 상태로 두고 화면에 ‘대기 중’을 표시한다. 실제 호출 10회를 측정한 뒤 값을 조정한다.
+- **방장 권한**: 방 생성 응답으로 128비트 난수 `host_token`을 발급하고 DB에는 해시만 저장한다. 방장 기기가 저장해 `X-Host-Token` 헤더로 보내며, 방장 전용 URL(`#` 뒤 토큰)로만 복구한다. 초대 링크에는 넣지 않고 화면에서 ‘초대 링크 복사’와 ‘방장 링크(나만 보관)’를 분리한다. 이름 선택은 어떤 권한도 주지 않는다(AC12). 로그인이 없어 분실 시 복구는 없다.
+- **입력 한도**: `memo`는 최대 300자, `party_size`는 2~8이다. 범위 밖은 `invalid_input`으로 안내한다(SPEC 5절).
+- **모델 호출 계약**: Responses API에 `text.format = {type: json_schema, strict: true}`, 도구는 `tools` function(strict)로 보내고 `store: false`로 응답 저장을 끈다. `max_tool_calls`는 내장 도구에만 적용되므로 도구 호출 상한 12회는 코드가 센다. `status: incomplete`와 refusal 콘텐츠는 형식 오류 경로(6절)로 보낸다. 테스트와 동료 로컬 실행용 저장 출력 재생 모드를 두며 README에 대체 사실을 밝힌다.
+- **과부하 방지**: CloudFront + WAF rate-based rule을 경로별로 두고(방 생성·생성 요청은 엄격, 폴링은 느슨), 앱에서는 방 단위 잠금·동시 상한·방당 $0.20과 전체 예산 한도를 검사해 초과 시 실행 오류로 중단한다. 클라이언트는 생성을 자동 재시도하지 않고 폴링만 백오프한다. 제출은 멱등 키로 재전송을 같은 건으로 처리한다.
 - **검증 필요(목록의 적합성 정보)**: 목록(`ScenarioIndexEntry`)의 제목·목적만으로는 숙박이 필요한 문항인지 드러나지 않는 경우가 있다(예: `morning_departure`, `luggage_drop`, `unequal_beds`). 당일치기 입력에서 도구 호출 상한 안에 적합한 문항을 모두 찾는지 위 스파이크에서 함께 확인한다. 부족하면 [pool 근거표](research/scenario_pool.md)에 문항별로 적힌 적용 조건(당일·숙박, 인원 등)을 pool 데이터 필드로 옮겨 목록에 넣거나 코드가 먼저 거르는 방식을 검토한다.
 
 ## 6. 실패 처리
@@ -90,6 +114,10 @@
 | 추천 미해결 | 조항·조건부 대안 없음 | `needs_information` 또는 `unresolved`로 막힌 조건을 설명. 조항을 지어내지 않는다(AC9) |
 | 동시 요청 | 마지막 제출과 조기 생성이 겹침 | 입력 고정과 최초 생성을 한 번만 수행(AC4) |
 | 알림 중복 | 같은 완료·생성 이벤트 재전송 | 이벤트 단위로 중복 발송을 막는다(AC18) |
+| 푸시 발송 실패 | 구독 만료(404·410), 푸시 서비스 오류 | 만료 구독은 삭제하고 그 밖은 기록만 한다. 화면에서 진행 상태·결과를 확인할 수 있다(SPEC 알림 정책) |
+| 이미지 생성 실패 | DOM 캡처 오류, 공유 미지원 | 텍스트로 오류를 안내하고 다시 시도 버튼을 둔다. 화면 결과는 유지한다(AC13, AC14) |
+| 생성 중 중단 | 컨테이너 재시작으로 `generating`에 머묾 | 설정 시간 뒤 failed로 돌리고 같은 고정 입력으로 재시도한다 |
+| 과부하 | 짧은 시간의 반복 요청, 예산 한도 도달 | WAF가 차단하고, 앱은 대기 상태 표시 또는 실행 오류로 중단한다(5절) |
 
 모든 실패는 실패로 표시한다. 재시도 결과를 받을 때도 입력은 바꾸지 않는다.
 
@@ -109,11 +137,12 @@
 - 도구 호출마다: `tool_call_id`, 도구 이름, `template_id`, 결과 코드, 지연 시간.
 - 후처리: 위반 유형과 차단 여부.
 - 마스킹: 메모 원문, 선택 프로필(성별·나이대·MBTI), 이름·별명은 로그에 남기지 않고 ID로 기록한다. 호출·도구 로그도 방 자료와 함께 생성 후 30일에 삭제한다(AC19).
+- 저장 위치: 구조화 JSON lines를 표준 출력으로 내보내 CloudWatch Logs에 모으고, `llm_calls` 테이블에 요청 ID·단계·모델·버전·토큰·지연·상태·비용 추정을 둔다. 방 삭제 시 함께 지운다.
 - 이 로그가 강의 7 evals와 TODO의 성능·비용 기준 측정의 입력이다.
 
 ## 9. 비범위
 
-RAG·벡터 검색, 모델 쓰기 도구, 전체 에이전트 루프·멀티 에이전트, 실시간 장소·영업·예약 조회와 예약·결제·정산, 파인튜닝, 로그인·실명 확인. SPEC 4절 비포함, 온톨로지 범위 밖과 같은 경계다.
+RAG·벡터 검색, 모델 쓰기 도구, 전체 에이전트 루프·멀티 에이전트, 실시간 장소·영업·예약 조회와 예약·결제·정산, 파인튜닝, 로그인·실명 확인, 외부 작업 큐·다중 리전. SPEC 4절 비포함, 온톨로지 범위 밖과 같은 경계다.
 
 ## 변경 영향
 
@@ -122,3 +151,4 @@ RAG·벡터 검색, 모델 쓰기 도구, 전체 에이전트 루프·멀티 에
 - `prepare_scenarios.md`: 입력을 pool 전체에서 목록 + 도구로 바꾸고 `prompt_version`을 9로 올린다.
 - SPEC F2·5절 인터페이스: 문항 선정·각색 입력과 도구 사용을 반영한다.
 - 3절 도구 계약 테스트를 코드 위임 전에 확정한다. 2026-11-04에 확정했다([위임 기록](prompts/delegation_scenario_tools.md)).
+- 2절의 예정 경로(서버·SPA·설정·인프라·CI·서버 테스트)를 만들고 README에 실행 방법을 쓴다. 서버 실행·테스트 명령은 실제로 확인한 뒤 AGENTS 7절에 적는다.
