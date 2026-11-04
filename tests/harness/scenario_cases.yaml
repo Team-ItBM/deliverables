@@ -9,7 +9,7 @@
 #   기간·인원 적합성, 핵심 제약·선택지 의미 보존, 개인화 적절성, validate_profiles, 렌더링, 모델 호출은 범위 밖이다(§0 #6).
 #
 # 근거 문서
-#   docs/prompts/delegation_scenarios.md §0(사람이 정한 인터페이스·오류 코드), §0-1(골든 케이스 43개와 결정 1~4)
+#   docs/prompts/delegation_scenarios.md §0(사람이 정한 인터페이스·오류 코드), §0-1(골든 케이스 46개와 결정 1~5)
 #   src/travel/prompts/prepare_scenarios.md B절(상태별 후처리 규칙), "필드와 함수 인자" 표, D절
 #   src/travel/schemas/scenario_set.schema.json (스키마 v2)
 #
@@ -22,6 +22,7 @@
 #     토큰 추가(V09, V10, N20~N22, N30, N31)는 scenarios/0의 해당 문자열(scene은 첫 줄) 맨 앞에 "<토큰> "을 붙여 replace한다.
 #     N25의 순서 교환은 N16과 같이 options/0과 options/1을 서로 바꾸고, N19의 선택지는 배열 끝에 add한다.
 #     N29는 기존 scene 문자열 끝에 \n 하나를 붙인 값으로 replace한다.
+#     N32~N34(2026-11-05 추가)는 scenarios/0 scene(3줄)의 둘째 줄을 공백 한 칸·탭·\r 하나로 바꾼 값으로 replace한다.
 #
 # 판정 키와 검사 범위
 #   expect_valid           : 결과의 valid 값과 정확히 같아야 한다. 모든 케이스의 필수 키.
@@ -45,7 +46,7 @@
 #                         {{, 공백, profile, 공백, :, ID, }} 순서로 찾고, :와 }} 사이 문자열이 등록 profile_id와
 #                         정확히 같지 않으면 위반이다. 빈 ID와 공백이 섞인 ID도 위반이다(§0-1 결정 3). (B절)
 #   scene_line_mismatch   scene을 \n으로 나눈 결과에 빈 줄이 있거나 줄 수가 원본과 다르다. 끝 줄바꿈 하나도
-#                         빈 줄이다(§0-1 결정 2). (B절)
+#                         빈 줄이다(§0-1 결정 2). 공백·탭·\r만 있는 줄도 빈 줄이다(§0-1 결정 5). (B절)
 #
 # fixture 기준 (8개, 원본 값을 바꾸지 않고 옮겼다. 각 파일의 source에 원본 위치가 있다)
 #   ex1_ready, ex2_needs_information: 문항 프롬프트 v8 C절 예시 1·2. AI가 작성한 합성 예시이며 모델 출력이 아니다.
@@ -468,3 +469,33 @@ cases:
     must_include_errors: [unknown_profile_token]
     note: >-
       경계. scenarios/0 scene 첫 줄 맨 앞에 {{ profile:p1 }}를 붙였다. profile 앞 공백은 허용해 찾지만 :와 }} 사이가 "p1 "이라 등록 ID p1과 정확히 같지 않다.
+
+  # 근거: §0-1 N32, §0-1 결정 5(공백만 있는 줄)
+  - name: N32_scene_space_only_line
+    fixture: ex1_ready
+    patch:
+      - {op: replace, path: /output/scenarios/0/scene, value: "가려던 곳이 문을 닫았어요\n \n가까운 곳에 카페와 숙소가 있어요"}
+    expect_valid: false
+    must_include_errors: [scene_line_mismatch]
+    note: >-
+      경계. 3줄인 scenarios/0 scene의 둘째 조건 줄을 공백 한 칸으로 바꿨다. 줄 수는 원본과 같지만 공백만 있는 줄도 빈 줄이다.
+
+  # 근거: §0-1 N33, §0-1 결정 5(공백만 있는 줄)
+  - name: N33_scene_tab_only_line
+    fixture: ex1_ready
+    patch:
+      - {op: replace, path: /output/scenarios/0/scene, value: "가려던 곳이 문을 닫았어요\n\t\n가까운 곳에 카페와 숙소가 있어요"}
+    expect_valid: false
+    must_include_errors: [scene_line_mismatch]
+    note: >-
+      경계. 3줄인 scenarios/0 scene의 둘째 조건 줄을 탭 하나로 바꿨다. 줄 수는 원본과 같다.
+
+  # 근거: §0-1 N34, §0-1 결정 5(공백만 있는 줄)
+  - name: N34_scene_carriage_return_only_line
+    fixture: ex1_ready
+    patch:
+      - {op: replace, path: /output/scenarios/0/scene, value: "가려던 곳이 문을 닫았어요\n\r\n가까운 곳에 카페와 숙소가 있어요"}
+    expect_valid: false
+    must_include_errors: [scene_line_mismatch]
+    note: >-
+      경계. 3줄인 scenarios/0 scene의 둘째 조건 줄을 캐리지리턴(\r) 하나로 바꿨다. \n으로 나누면 줄 수는 원본과 같다.

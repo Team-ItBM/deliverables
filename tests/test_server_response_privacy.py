@@ -17,33 +17,51 @@ case = pytest.mark.server_case
 SUBMISSION_WORDS = ("submission", "response")
 
 
-def _visible_payloads(app, room):
-    """PRV-N01의 조회 범위: 방 조회, 새 세션, 결과, 결과 목록을 방장 토큰 없이·붙여서 부른다.
-    결과 목록은 방장 경로라 토큰을 붙인 호출만 200이다."""
+def _session(app, room, host):
+    return app.post(f"/api/rooms/{room.code}/sessions", {"profile_id": "p1"}, room.host if host else None)
+
+
+def _visible_payloads(app, room, closed):
+    """PRV-N01의 조회 범위. 기본 방에서 두 명이 제출한 뒤(마감 전) 새 세션을 방장 토큰 없이·붙여 만든다.
+    세 번째 제출로 ready가 되면 방 조회, 결과, 결과 목록을 부르고, 마감 뒤 새 세션 요청의 오류 응답도 모은다.
+    결과 목록은 방장 경로라 토큰을 붙인 호출만 200이다. closed는 마감 뒤 새 세션의 기대(checkpoint closed_session)다."""
     payloads = []
+    app.replay.push("pact", po.pact_item())
+    for profile in room.profiles[:2]:
+        assert app.submit_new(room, profile["profile_id"]).resp.status_code == 201
+    for host in (False, True):
+        label = "방장" if host else "참여자"
+        session = _session(app, room, host)
+        assert session.status_code == 201, session.text[:300]
+        payloads.append((f"{label} 새 세션(마감 전)", session.json(), False))
+    assert app.submit_new(room, room.profiles[2]["profile_id"]).resp.status_code == 201
+    app.join()
     for host in (False, True):
         label = "방장" if host else "참여자"
         payloads.append((f"{label} 방 조회", app.room(room, host=host), False))
-        headers = room.host if host else None
-        session = app.post(f"/api/rooms/{room.code}/sessions", {"profile_id": "p1"}, headers)
-        assert session.status_code == 201, session.text[:300]
-        payloads.append((f"{label} 새 세션", session.json(), False))
         result = app.result(room, host=host)
         assert result.status_code == 200, result.text[:300]
         payloads.append((f"{label} 결과", result.json(), True))
     results = app.results(room)
     assert results.status_code == 200, results.text[:300]
     payloads.append(("방장 결과 목록", results.json(), True))
+    for host in (False, True):
+        label = "방장" if host else "참여자"
+        # note: "마감 뒤 새 세션은 409 room_closed이고 그 오류 응답도 같은 검사를 한다"
+        late = _session(app, room, host)
+        assert_error(late, closed["http_status"], closed["error_code"])
+        payloads.append((f"{label} 새 세션(마감 뒤)", late.json(), False))
     return payloads
 
 
-def _ready_and_scan(srv, targets):
+def _ready_and_scan(srv, targets, closed):
     app = srv.app
-    room, _ = app.ready_room()
+    _, room = app.create_room()
+    payloads = _visible_payloads(app, room, closed)
     srv.collect_original_conditions()
     assert srv.ctx.memos and srv.ctx.original_conditions, "메모 표지와 original_condition이 준비되지 않았다"
     problems = []
-    for where, payload, is_result in _visible_payloads(app, room):
+    for where, payload, is_result in payloads:
         problems += scan_private(payload, targets, srv.ctx, where, result_payload=is_result)
     return room, problems
 
@@ -60,7 +78,7 @@ def test_prv_p01_privacy_notice(srv, expect):
 @case("PRV-N01")
 def test_prv_n01_no_private_fields_in_any_get(srv, expect):
     # note: "응답 JSON 어디에도 §0-A 6의 공개 금지 키가 없다 ... 방장 응답도 같다"는 privacy_scan으로 검사한다
-    _, problems = _ready_and_scan(srv, expect["privacy_scan"])
+    _, problems = _ready_and_scan(srv, expect["privacy_scan"], expect.at("closed_session"))
     assert not problems, "\n".join(problems)
 
 
@@ -117,7 +135,7 @@ def test_prv_n03_memo_quote_output_never_used(srv, expect):
 def test_prv_n04_logs_and_llm_calls_masked(srv, expect, capfd):
     # 검사 범위: PRV-N01 흐름 동안의 표준 출력·표준 오류와 llm_calls 표의 모든 행
     capfd.readouterr()
-    _ready_and_scan(srv, ["forbidden_keys"])
+    _ready_and_scan(srv, ["forbidden_keys"], expect.at("closed_session"))
     captured = capfd.readouterr()
     rows = srv.sql("SELECT * FROM llm_calls")
     problems = scan_private(captured.out, expect["privacy_scan"], srv.ctx, "표준 출력")

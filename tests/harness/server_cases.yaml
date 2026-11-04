@@ -8,8 +8,9 @@
 #   모델 출력 품질(AC6~AC9, AC11), retention(AC19), mobile_access(AC14)는 범위 밖이다.
 #
 # 근거 문서
-#   docs/prompts/delegation_server.md §0(인터페이스 기본안), §0-1(골든 케이스 80개), "결정한 것" 1~27.
+#   docs/prompts/delegation_server.md §0(인터페이스 기본안), §0-1(골든 케이스 86개), "결정한 것" 1~35.
 #     세 부분 모두 2026-11-04에 사람이 수용했고, 결정 24~27은 2026-11-05에 반영했다.
+#     결정 28~35(PR #15 리뷰, 2회차)는 2026-11-05에 반영했다. 케이스가 80개에서 86개로 늘었다.
 #   docs/SPEC.md 4절 처리 정책, 5절, 6절 AC2~AC4·AC10·AC12·AC13·AC15~AC18
 #   docs/ARCHITECTURE.md 2절, 5절, 6절, 8절
 #   재생 입력: tests/harness/fixtures/scenario/ex1_ready.json, s2.json, s4.json, s5.json(§0-F).
@@ -35,7 +36,7 @@
 #   unchanged          : 조작 전후로 같아야 하는 관찰값 이름. room_status, submitted_count, included_count, results(방장 결과 목록),
 #                        selected_result(참여자 결과 조회의 result_id), calls(단계별 호출 수), model_input(추천 호출 기록),
 #                        submission(그 참여자 응답의 option_id·memo를 추천 model_input에서 확인), original_result(AI 원본의 방장
-#                        결과 목록 항목과 results 행), previous_edit(이전 수정본의 results 행).
+#                        결과 목록 항목에서 editable을 뺀 것과 results 행. 결정 33), previous_edit(이전 수정본의 results 행).
 #   room_status, scenario_status, failure_reason: 방 조회 응답의 값. failure_reason은 failure_reasons 안의 값.
 #   rooms_created      : 요청 뒤 rooms 표의 행 수.
 #   expires_after_days : 방 생성 응답의 expires_at - created_at 일수.
@@ -62,7 +63,9 @@
 #   normal_results, failed_results: 방장 결과 목록에서 state가 normal, failed인 항목 수.
 #   result_kind, result_label: 공유 결과의 kind, label.
 #   source_result      : 수정본 source_result_id가 가리키는 판. ai_original 또는 latest_edit(직전 수정본).
-#   shared_result      : 참여자 결과 조회가 보여주는 결과. latest_edit 또는 last_selected.
+#   shared_result      : 참여자 결과 조회가 보여주는 결과. latest_edit(보여줄 결과의 가장 최근 수정본), last_selected(마지막에 고른
+#                        결과) 또는 initial(최초 정상 결과와 그 수정본. 재생성 결과가 아니다).
+#   draft              : 참여자 결과 조회(GET /result)의 draft 값(결정 28·31).
 #   new_result_rows    : 조작 뒤 늘어난 results 표 행 수.
 #   repair_error_codes : 두 번째 추천 호출의 repair_errors에 있어야 하는 code.
 #   waits              : 가짜 대기 함수가 기록한 초 목록과 정확히 같다.
@@ -253,9 +256,11 @@ cases:
     case_id: response_privacy
     kind: fail
     ac: ["AC3"]
-    basis: "AC3, ARCHITECTURE 2절 규칙 3 확인"
+    basis: "AC3, ARCHITECTURE 2절 규칙 3 확인, §0-B 3(`room_closed`)"
     privacy_scan: ["forbidden_keys", "memo_markers", "original_conditions", "profile_values"]
-    note: "응답 JSON 어디에도 §0-A 6의 공개 금지 키가 없다. 메모 표지의 연속 15자, `original_condition` 값, 선택 프로필 값이 없다. 방장 응답도 같다"
+    checkpoints:
+      - {"at": "closed_session", "http_status": 409, "error_code": "room_closed"}
+    note: "응답 JSON 어디에도 §0-A 6의 공개 금지 키가 없다. 메모 표지의 연속 15자, `original_condition` 값, 선택 프로필 값이 없다. 방장 응답도 같다. 세션 성공 응답은 마감 전에 받은 응답으로 검사한다. 마감 뒤 새 세션은 409 `room_closed`이고 그 오류 응답도 같은 검사를 한다"
   - id: PRV-N02
     case_id: response_privacy
     kind: fail
@@ -280,7 +285,9 @@ cases:
     ac: ["AC3"]
     basis: "ARCHITECTURE 8절 마스킹. AC3 밖이라 결정 17"
     privacy_scan: ["memo_markers", "names", "profile_values"]
-    note: "메모 표지, 이름·별명, 선택 프로필 값이 없다"
+    checkpoints:
+      - {"at": "closed_session", "http_status": 409, "error_code": "room_closed"}
+    note: "메모 표지, 이름·별명, 선택 프로필 값이 없다. 흐름 안의 마감 뒤 새 세션은 PRV-N01처럼 409 `room_closed`다"
 
   # response_closure (AC4)
   - id: CLS-P01
@@ -436,13 +443,14 @@ cases:
   - id: EDT-P01
     case_id: host_edit
     kind: pass
-    ac: ["AC12"]
-    basis: "AC12, 처리 정책 \"방장 편집\", ARCHITECTURE 2절 규칙 2"
+    ac: ["AC12", "AC3"]
+    basis: "AC12, 처리 정책 \"방장 편집\", ARCHITECTURE 2절 규칙 2, AC3, 결정 29·33·34"
     http_status: 201
     result_kind: "host_edited"
     source_result: "ai_original"
     unchanged: ["original_result"]
-    note: "201, 새 `result_id`, `kind: host_edited`, `source_result_id`는 원본. 원본 결과의 방장 조회 응답과 DB 행이 편집 전과 같다"
+    privacy_scan: ["forbidden_keys", "memo_markers", "original_conditions"]
+    note: "201, 새 `result_id`, `kind: host_edited`, `source_result_id`는 원본. 원본 결과의 방장 조회 응답(`editable` 제외)과 DB 행이 편집 전과 같다. 다시 조회한 참여자 결과의 그 문장과 `editable` 조각을 이은 문자열에 바뀐 문구가 있다. 편집 전후 `editable`의 위치는 결정 4의 필드 전부이고, 조각을 이은 문자열은 참여자 결과 문장과 같다. `editable`에 §0-A 6의 키, 메모 표지, `original_condition` 값이 없다"
   - id: EDT-P02
     case_id: host_edit
     kind: pass
@@ -454,12 +462,12 @@ cases:
     case_id: host_edit
     kind: pass
     ac: ["AC12"]
-    basis: "결정 6(최신 수정본에서 시작), AC12 원본 보존, 규칙 2"
+    basis: "결정 6(최신 수정본에서 시작), AC12 원본 보존, 규칙 2, 결정 33"
     http_status: 201
     source_result: "latest_edit"
     unchanged: ["original_result", "previous_edit"]
     shared_result: "latest_edit"
-    note: "201, 새 수정본의 `source_result_id`는 EDT-P01 수정본이다. 새 수정본에 EDT-P01의 `/clauses/0/action` 변경이 남아 있다. AI 원본과 EDT-P01 수정본 행은 그대로다. 참여자 결과 조회는 새 수정본을 보여준다"
+    note: "201, 새 수정본의 `source_result_id`는 EDT-P01 수정본이다. 다시 조회한 `editable`의 `/clauses/0/action`에 EDT-P01 수정 문구가 있다. 새 수정본에 EDT-P01의 `/clauses/0/action` 변경이 남아 있다. AI 원본과 EDT-P01 수정본 행은 그대로다. 참여자 결과 조회는 새 수정본을 보여준다"
   - id: EDT-N01
     case_id: host_edit
     kind: fail
@@ -583,6 +591,34 @@ cases:
       - {"at": "unknown_result", "http_status": 404, "error_code": "not_found"}
       - {"at": "failed_result", "http_status": 409, "error_code": "invalid_state"}
     note: "각각 404 `not_found`, 409 `invalid_state`. 선택이 바뀌지 않는다"
+  - id: REG-P04
+    case_id: regeneration
+    kind: pass
+    ac: ["AC17"]
+    basis: "AC17(\"재생성 결과가 선택 전까지 방장에게만 보이고 기존 공개 결과가 유지\"), 처리 정책 \"응답·결과 공개\", 결정 28·32"
+    checkpoints:
+      - {"at": "after_regeneration", "normal_results": 2, "shared_result": "initial", "draft": true}
+      - {"at": "after_edit", "shared_result": "initial"}
+      - {"at": "after_select", "shared_result": "latest_edit", "draft": false}
+    note: "재생성 뒤 정상 결과 2개이고, 참여자 결과 조회는 최초 결과(`draft: true`) 그대로이며 재생성 결과의 `result_id`가 없다. 재생성 결과를 고치기만 해서는 참여자 조회가 바뀌지 않는다. 고른 뒤에는 재생성 결과의 가장 최근 수정본이 `draft: false`로 보인다"
+  - id: REG-P05
+    case_id: regeneration
+    kind: pass
+    ac: ["AC17"]
+    basis: "처리 정책 \"응답·결과 공개\"(기존 공개 결과 유지), AC17, 결정 28"
+    checkpoints:
+      - {"at": "after_failed_regeneration", "room_status": "failed", "failed_results": 1, "shared_result": "initial", "draft": true}
+    note: "실패 결과 1개, `failed`. 결과 조회는 200이고 최초 결과(`draft: true`) 그대로다"
+  - id: REG-N04
+    case_id: regeneration
+    kind: fail
+    ac: ["AC17"]
+    basis: "ARCHITECTURE 5절 상태 기계(생성 시도 ID), §0-B 6·7, AC17, 결정 30"
+    concurrent_statuses: [202, 409]
+    error_code: "invalid_state"
+    calls_added: {"pact": 1}
+    normal_results: 2
+    note: "회마다 하나는 202, 하나는 409 `invalid_state`. 추천 호출 1회 추가, 끝난 뒤 정상 결과 2개"
 
   # output_validation (AC10)
   - id: OUT-P01
@@ -684,6 +720,15 @@ cases:
       - {"at": "10m", "room_status": "failed", "failure_reason": "interrupted", "normal_results": 0}
       - {"at": "retry", "http_status": 202}
     note: "9분 59초에는 `generating` 그대로. 10분에는 `failed`(`interrupted`), 정상 결과 0개. 방장 재시도는 202이고 `model_input`이 처음과 같다"
+  - id: OUT-N07
+    case_id: output_validation
+    kind: fail
+    ac: ["AC10", "AC18"]
+    basis: "ARCHITECTURE 5절 서버 상태 기계(생성 시도 ID), 결정 30, AC18"
+    checkpoints:
+      - {"at": "after_old_attempt", "room_status": "generating", "new_result_rows": 0, "push_sent": {"total": 0}}
+      - {"at": "after_new_attempt", "room_status": "ready", "normal_results": 1, "push_sent": {"host": 1, "total": 1}}
+    note: "A가 끝난 뒤 `generating` 그대로, 새 results 행 0, 푸시 0건. B가 끝난 뒤 `ready`, 정상 결과 1개, 방장 푸시 1건"
 
   # result_export (AC13)
   - id: EXP-P01
@@ -711,10 +756,11 @@ cases:
     case_id: result_export
     kind: pass
     ac: ["AC13"]
-    basis: "AC13 판정 방법, 처리 정책 \"조기 생성·마감\""
+    basis: "AC13 판정 방법(초안·수정 표시), 처리 정책 \"조기 생성·마감\", 결정 31"
     result_label: "방장 수정"
+    draft: true
     privacy_scan: ["original_conditions"]
-    note: "공유 결과에 `included_count`, `excluded_names`, `proposed_changes`, `label: \"방장 수정\"`이 있고 `original_condition` 값이 없다. 참여자 응답과 방장 응답의 공유 결과가 같다"
+    note: "공유 결과에 `included_count`, `excluded_names`, `proposed_changes`, `label: \"방장 수정\"`, `draft: true`가 있고 `original_condition` 값이 없다. 참여자 응답과 방장 응답의 공유 결과가 같다"
   - id: EXP-P05
     case_id: result_export
     kind: pass
@@ -749,32 +795,41 @@ cases:
     http_status: 500
     error_code: "render_failed"
     note: "500 `render_failed`. 응답에 일부 문장도 없다"
+  - id: EXP-P06
+    case_id: result_export
+    kind: pass
+    ac: ["AC13"]
+    basis: "AC13(초안 표시), F5, 처리 정책 \"응답·결과 공개\", 결정 28"
+    checkpoints:
+      - {"at": "before_select", "draft": true}
+      - {"at": "after_select", "draft": false}
+    note: "고르기 전에는 최초 정상 결과가 `draft: true`, 고른 뒤에는 같은 결과가 `draft: false`. 방장 토큰을 붙인 조회도 같다"
 
   # push_events (AC18)
   - id: PSH-P01
     case_id: push_events
     kind: pass
     ac: ["AC18"]
-    basis: "AC18, F6, 처리 정책 \"알림\""
-    push_sent: {"host": 1, "participant_each": 1, "total": 3}
+    basis: "AC18, F6, 처리 정책 \"알림\", 결정 28"
+    push_sent: {"host": 1, "participant_each": 0, "total": 1}
     host_push_text: "협약서가 준비됐어요"
-    note: "방장 구독에 \"협약서가 준비됐어요\" 1건, 참여자 구독마다 생성 알림 1건. 총 3건"
+    note: "방장 구독에 \"협약서가 준비됐어요\" 1건, 참여자 구독 0건(초안 생성). 총 1건"
   - id: PSH-P02
     case_id: push_events
     kind: pass
     ac: ["AC18"]
-    basis: "처리 정책 \"알림\"(실패 시 완료와 실패, 이후 성공 시 생성 알림), AC18 \"실패 후 성공 알림\""
+    basis: "처리 정책 \"알림\"(실패 시 완료와 실패, 이후 성공 시 생성 알림), AC18 \"실패 후 성공 알림\", 결정 28"
     checkpoints:
       - {"at": "after_failure", "push_sent": {"host": 1, "participant_each": 0}}
-      - {"at": "after_retry_success", "push_sent": {"host": 1, "participant_each": 1}}
-    note: "실패 때 방장에게 완료·실패를 묶은 알림 1건, 참여자 0건. 성공 때 방장·참여자 구독마다 생성 알림 1건"
+      - {"at": "after_retry_success", "push_sent": {"host": 1, "participant_each": 0}}
+    note: "실패 때 방장에게 완료·실패를 묶은 알림 1건, 참여자 0건. 성공 때 방장에게 생성 알림 1건, 참여자 0건"
   - id: PSH-P03
     case_id: push_events
     kind: pass
     ac: ["AC18"]
-    basis: "F6, 결정 11"
-    push_sent: {"host": 1, "participant_each": 1}
-    note: "방장·참여자 구독마다 생성 알림 1건"
+    basis: "F6, 결정 11·28"
+    push_sent: {"host": 1, "participant_each": 0}
+    note: "방장에게 생성 알림 1건, 참여자 0건"
   - id: PSH-P04
     case_id: push_events
     kind: pass
@@ -807,3 +862,14 @@ cases:
     http_status: 422
     error_code: "invalid_input"
     note: "422 `invalid_input`"
+  - id: PSH-P05
+    case_id: push_events
+    kind: pass
+    ac: ["AC18"]
+    basis: "처리 정책 \"알림\", F6, AC18(\"참여자는 첫 결과 선택 때만 통지\"), 결정 11·28"
+    checkpoints:
+      - {"at": "regeneration", "push_sent": {"total": 0}}
+      - {"at": "first_select", "push_sent": {"host": 0, "participant_each": 1}}
+      - {"at": "reselect", "push_sent": {"total": 0}}
+      - {"at": "edit", "push_sent": {"total": 0}}
+    note: "재생성 때 0건. 첫 선택 때 참여자 구독마다 1건, 방장 0건. 재선택·수정 때 0건"

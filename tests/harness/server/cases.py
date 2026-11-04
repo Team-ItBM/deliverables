@@ -22,7 +22,7 @@ JUDGMENT_KEYS = {
     "has_submission", "result_attempts", "normal_results", "failed_results", "result_kind", "result_label",
     "source_result", "shared_result", "new_result_rows", "repair_error_codes", "waits", "backoff_waits",
     "has_humor", "humor_text", "humor_explanation", "push_sent", "host_push_text",
-    "subscription_by_send_status", "notification_records_per_pair", "push_payload_keys",
+    "subscription_by_send_status", "notification_records_per_pair", "push_payload_keys", "draft",
 }
 REQUIRED_KEYS = {"id", "case_id", "kind", "ac", "basis", "note"}
 UNCHANGED_NAMES = {

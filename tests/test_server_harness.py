@@ -23,6 +23,8 @@ from travel.scenarios import validate_scenario_output
 from harness.server import db as testdb
 from harness.server import pact_outputs as po
 from harness.server import scenario_outputs as so
+from harness.server.api import (editable_map, editable_problems, replace_in_text_segments, segments_display,
+                                segments_template)
 from harness.server.cases import (JUDGMENT_KEYS, META_KEYS, PRIVACY_TARGETS, PROHIBITION_KEYS, REQUIRED_KEYS,
                                   STAGES, STATE_KEYS, UNCHANGED_NAMES, iter_expectations, load_cases_file)
 from harness.server.privacy import PrivateContext, scan_private
@@ -35,10 +37,10 @@ CASES = DOC.get("cases") or []
 # §0-1 "케이스 수". 바꾸려면 사람이 승인하고 §0-1과 함께 고친다.
 EXPECTED_COUNTS = {
     "scenario_input": (4, 7), "profile_rendering": (4, 2), "response_privacy": (1, 4),
-    "response_closure": (4, 5), "duplicate_name": (3, 4), "host_edit": (3, 8), "regeneration": (3, 3),
-    "output_validation": (4, 6), "result_export": (5, 3), "push_events": (4, 3),
+    "response_closure": (4, 5), "duplicate_name": (3, 4), "host_edit": (3, 8), "regeneration": (5, 4),
+    "output_validation": (4, 7), "result_export": (6, 3), "push_events": (5, 3),
 }
-EXPECTED_TOTAL = 80
+EXPECTED_TOTAL = 86
 PREFIX = {
     "INP": "scenario_input", "PRF": "profile_rendering", "PRV": "response_privacy", "CLS": "response_closure",
     "DUP": "duplicate_name", "EDT": "host_edit", "REG": "regeneration", "OUT": "output_validation",
@@ -50,9 +52,9 @@ ERROR_TABLE = {
     "needs_information": {"INP-N04", "INP-N05", "INP-N06"},
     "host_forbidden": {"EDT-N01", "EDT-N02"},
     "not_found": {"DUP-N04", "EDT-N08", "REG-N03"},
-    "room_closed": {"CLS-N02", "CLS-N03", "CLS-N04"},
+    "room_closed": {"CLS-N02", "CLS-N03", "CLS-N04", "PRV-N01", "PRV-N04"},
     "no_submissions": {"CLS-N01"},
-    "invalid_state": {"INP-N07", "REG-N02", "REG-N03", "OUT-N01", "OUT-N04", "PRV-N03"},
+    "invalid_state": {"INP-N07", "REG-N02", "REG-N03", "REG-N04", "OUT-N01", "OUT-N04", "PRV-N03"},
     "regeneration_limit": {"REG-N01"},
     "session_used": {"DUP-N02"},
     "idempotency_conflict": {"DUP-N01"},
@@ -71,8 +73,8 @@ STR_LIST_KEYS = {"scenario_notice_keys", "text_includes", "text_excludes", "excl
                  "repair_error_codes", "rendered_by_submission", "push_payload_keys"}
 STR_KEYS = {"privacy_notice", "result_label", "humor_text", "humor_explanation", "host_push_text"}
 ENUM_KEYS = {"result_kind": {"ai_original", "host_edited"}, "source_result": {"ai_original", "latest_edit"},
-             "shared_result": {"latest_edit", "last_selected"}}
-BOOL_KEYS = {"same_outside_tokens", "has_humor"}
+             "shared_result": {"latest_edit", "last_selected", "initial"}}
+BOOL_KEYS = {"same_outside_tokens", "has_humor", "draft"}
 
 
 def _cid(i, case):
@@ -466,6 +468,40 @@ def test_privacy_scan_detects_keys_and_memo_windows():
     assert scan_private({"positions": []}, ["forbidden_keys"], ctx)
     assert scan_private({"t": "앞 " + ctx.memos[0][3:18] + " 뒤"}, ["memo_markers"], ctx)
     assert scan_private("민준에게 알림", ["names"], ctx)
+
+
+def test_editable_helpers():
+    """편집용 응답 도우미(결정 29·34): 조각 형식 검사, 이은 문자열, 토큰 복원, 위치 목록."""
+    shared = {
+        "clauses": [{"action": "비슷한 상황이 오면 민준은 쉬어요, 지수와 걸어요.", "proposed_conditions": ["먼저 말해요."]}],
+        "conditional_alternatives": [{"action": "바꿔 봐요.", "proposed_conditions": [], "proposed_changes": ["줄여요."]}],
+    }
+    segments = [{"text": "비슷한 상황이 오면 "}, {"participant_id": "A", "display": "민준은", "pair": "은/는"},
+                {"text": " 쉬어요, "}, {"participant_id": "B", "display": "지수와", "pair": "과/와"}, {"text": " 걸어요."}]
+    entry = {"editable": [
+        {"path": "/clauses/0/action", "segments": segments},
+        {"path": "/clauses/0/proposed_conditions/0", "segments": [{"text": "먼저 말해요."}]},
+        {"path": "/conditional_alternatives/0/action", "segments": [{"text": "바꿔 봐요."}]},
+        {"path": "/conditional_alternatives/0/proposed_changes/0", "segments": [{"text": "줄여요."}]},
+    ]}
+    mapping = editable_map(entry)
+    assert editable_problems(mapping, shared) == []
+    assert segments_template(segments) == "비슷한 상황이 오면 {{participant:A}}은/는 쉬어요, {{participant:B}}과/와 걸어요."
+    assert segments_template(segments, drop_participant="B") == "비슷한 상황이 오면 {{participant:A}}은/는 쉬어요, 과/와 걸어요."
+    changed = replace_in_text_segments(segments, "비슷한 상황이 오면", "같은 상황이 다시 오면")
+    assert segments_display(changed) == "같은 상황이 다시 오면 민준은 쉬어요, 지수와 걸어요."
+    assert segments_display(segments) == shared["clauses"][0]["action"], "원본 조각이 바뀌었다"
+    with pytest.raises(AssertionError):
+        replace_in_text_segments(segments, "민준은", "누군가는")  # 참여자 조각 안의 글자는 바꾸지 않는다
+    assert editable_problems({"/clauses/0/action": segments}, shared), "빠진 위치를 찾지 못했다"
+    wrong = dict(mapping, **{"/clauses/0/proposed_conditions/0": [{"text": "다른 문장"}]})
+    assert editable_problems(wrong, shared), "공유 결과와 다른 문장을 찾지 못했다"
+    for bad in ({"text": "a", "display": "b"}, {"participant_id": "A", "display": "민준"},
+                {"participant_id": "A", "display": "민준은", "pair": "은"}):
+        with pytest.raises(AssertionError):
+            editable_map({"editable": [{"path": "/clauses/0/action", "segments": [bad]}]})
+    with pytest.raises(AssertionError):
+        editable_map({"editable": [{"path": "/clauses/0/action", "segments": segments, "memo": "x"}]})
 
 
 # 4. DB fixture 검사

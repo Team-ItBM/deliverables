@@ -23,7 +23,7 @@
 | `src/travel/tools/scenario_tools.py` | `get_scenario_template` 도구(모델 호출 → `lookup_template` 연결) | 강의 6 | 구현됨(2026-11-04 수용, `01da8ef`). 제품 연결은 스파이크 2회차 판정 뒤 |
 | `src/travel/pact.py` | 추천 단계 호출·후처리. 후처리 진입점 `validate_pact_output(pact_input, raw_output)`이 `validate_positions`, `route_pact_result` 등을 호출한다 | 강의 3 함수 인터페이스, 강의 5 | 후처리: 구현됨(강의 5) / 호출: 이후 |
 | `tests/harness/golden_cases.yaml`, `tests/test_pact_golden.py` | 추천 출력 검증기의 골든 케이스 30개와 테스트 하니스(형식·상태 조합·근거·인용·응답 연결·참여자 토큰과 조사·메모 인용) | 강의 5 | 반영됨, 30/30 통과 |
-| `tests/harness/scenario_cases.yaml`, `tests/harness/fixtures/scenario/`, `tests/test_scenario_golden.py` | 문항 출력 검증기의 골든 케이스 43개, 기준 fixture 8개, 테스트 하니스(형식·상태 조합·요청 수·문항 ID와 판단 중복·선택지 ID 순서·인물 토큰·`scene` 줄 수) | 강의 5 | 수용됨(2026-11-04, `14b84ae`). 43/43 통과 |
+| `tests/harness/scenario_cases.yaml`, `tests/harness/fixtures/scenario/`, `tests/test_scenario_golden.py` | 문항 출력 검증기의 골든 케이스 46개, 기준 fixture 8개, 테스트 하니스(형식·상태 조합·요청 수·문항 ID와 판단 중복·선택지 ID 순서·인물 토큰·`scene` 줄 수) | 강의 5 | 수용됨(2026-11-04, `14b84ae`). 46/46 통과 |
 | `tests/test_tools.py` | 도구 계약 테스트 | 강의 6 | 수용됨(2026-11-04). 21/21 통과 |
 | `tests/test_pool.py` | pool 계약 테스트(목록 생성·`lookup_template`) | 강의 6 | 수용됨(2026-11-04, `d790d26`). 28/28 통과 |
 | `src/travel/server/app.py`, `db.py`, `routes/` | FastAPI 앱, PostgreSQL 모델(rooms·profiles·submissions·responses·results·push_subscriptions·notifications·llm_calls), SPEC 5절 작업별 JSON API | 강의 4 SPEC 5절, 강의 6 | **예정** |
@@ -35,7 +35,7 @@
 | `config/llm.yaml` | 모델 ID, 문항 경로(v8·v9), 프롬프트·스키마·pool 버전, 도구 호출 상한, 재시도, 동시 생성 상한, 호출 타임아웃, 비용 한도 | 강의 6 | **예정** |
 | `infra/` | Terraform: CloudFront 단일 도메인(SPA는 S3, `/api/*`는 ALB), ECS Fargate(ALB 뒤 태스크 2개), RDS PostgreSQL, S3·CloudFront(SPA), ACM·Route 53, WAF, Secrets Manager, CloudWatch Logs. 서울 리전 | 강의 6 | **예정** |
 | `.github/workflows/` | PR 검사(ruff, pytest 전체, 서버 테스트용 Postgres 컨테이너, SPA 빌드·테스트), main 배포(ECR → 마이그레이션 → ECS). AWS 접근은 OIDC | 강의 5 검증 루프 | **예정** |
-| `tests/test_server_*.py`, `docs/prompts/delegation_server.md` | 서버 계약 테스트(SPEC 6절 케이스 ID: `response_privacy`, `response_closure`, `host_edit`, `result_export`, `duplicate_name`, `regeneration`, `push_events`, `output_validation`, `scenario_input`, `profile_rendering`)와 위임·결함 주입 기록 | 강의 5 | 구조 수용(2026-11-05, `5174621`). 판정 수용(결함 주입)은 서버 구현 뒤 |
+| `tests/test_server_*.py`, `docs/prompts/delegation_server.md` | 서버 계약 테스트(SPEC 6절 케이스 ID: `response_privacy`, `response_closure`, `host_edit`, `result_export`, `duplicate_name`, `regeneration`, `push_events`, `output_validation`, `scenario_input`, `profile_rendering`)와 위임·결함 주입 기록 | 강의 5 | 구조 수용(2026-11-05, 1회차 `5174621`, 2회차 케이스 86개). 판정 수용(결함 주입)은 서버 구현 뒤 |
 | `docs/PRIVACY.md` | 개인정보 처리방침(SPA 방 생성·이름 선택 화면에서 링크) | 강의 4 SPEC 운영 정책 | 초안 작성(2026-11-04) |
 
 오케스트레이션은 별도 프레임워크 없이 함수 조합으로 둔다. 이유는 5절.

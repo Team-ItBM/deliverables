@@ -69,10 +69,13 @@ def assert_status(resp, status):
 
 # §0-C 공유 결과의 키. 결과 목록 항목은 여기에 RESULT_LIST_EXTRA를 더한다.
 SHARED_RESULT_KEYS = {
-    "result_id", "kind", "source_result_id", "label", "pact_status", "included_count", "excluded_names",
+    "result_id", "kind", "source_result_id", "label", "draft", "pact_status", "included_count", "excluded_names",
     "clauses", "conditional_alternatives", "unresolved_conditions", "message", "humor",
 }
-RESULT_LIST_EXTRA = {"attempt", "state", "created_at"}
+RESULT_LIST_EXTRA = {"attempt", "state", "created_at", "editable"}
+# §0-B "편집용 응답"(결정 29·34)의 조각 키. 글 조각과 참여자 조각 두 가지다.
+TEXT_SEGMENT_KEYS = {"text"}
+PARTICIPANT_SEGMENT_KEYS = {"participant_id", "display", "pair"}
 # §0-C "검증 결과를 나타내는 필드와 합의·수락을 뜻하는 필드(agreed, accepted 등)는 두지 않는다"의 예시 이름.
 VERDICT_KEYS = {"valid", "errors", "validation", "agreed", "accepted"}
 PAIR_PATTERN = r"(?:은/는|이/가|을/를|과/와|으로/로)"
@@ -112,6 +115,90 @@ def template_groups(template, rendered, kind):
     if match is None:
         return None
     return [(tid, pair, text) for (tid, pair), text in zip(ids, match.groups())]
+
+
+def editable_paths(shared):
+    """결정 4의 편집 가능한 위치 전부를 공유 결과 기준 JSON Pointer로 돌려준다."""
+    paths = []
+    for kind in ("clauses", "conditional_alternatives"):
+        for i, item in enumerate(shared.get(kind) or []):
+            paths.append(f"/{kind}/{i}/action")
+            for j, _ in enumerate(item.get("proposed_conditions") or []):
+                paths.append(f"/{kind}/{i}/proposed_conditions/{j}")
+            if kind == "conditional_alternatives":
+                for j, _ in enumerate(item.get("proposed_changes") or []):
+                    paths.append(f"/{kind}/{i}/proposed_changes/{j}")
+    return paths
+
+
+def pointer_get(doc, path):
+    node = doc
+    for part in path.lstrip("/").split("/"):
+        node = node[int(part)] if isinstance(node, list) else node[part]
+    return node
+
+
+def editable_map(entry):
+    """결과 목록 항목의 editable을 {path: segments}로 읽는다. 형식이 §0-B "편집용 응답"과 다르면 실패다."""
+    editable = entry.get("editable")
+    assert isinstance(editable, list) and editable, f"editable이 비어 있지 않은 리스트가 아니다: {editable!r}"
+    mapping = {}
+    for item in editable:
+        assert isinstance(item, dict) and set(item) == {"path", "segments"}, f"editable 항목 형식: {item!r}"
+        assert item["path"] not in mapping, f"editable path 중복 {item['path']}"
+        segments = item["segments"]
+        assert isinstance(segments, list) and segments, f"{item['path']}: segments가 비어 있다"
+        for seg in segments:
+            assert isinstance(seg, dict) and set(seg) in (TEXT_SEGMENT_KEYS, PARTICIPANT_SEGMENT_KEYS), \
+                f"{item['path']}: 조각 형식 {seg!r}"
+            if "text" in seg:
+                assert isinstance(seg["text"], str), f"{item['path']}: text가 문자열이 아니다"
+            else:
+                assert isinstance(seg["participant_id"], str) and seg["participant_id"], f"{item['path']}: participant_id"
+                assert isinstance(seg["display"], str) and seg["display"], f"{item['path']}: display"
+                assert seg["pair"] is None or re.fullmatch(PAIR_PATTERN, seg["pair"]), f"{item['path']}: pair {seg['pair']!r}"
+        mapping[item["path"]] = segments
+    return mapping
+
+
+def segments_display(segments):
+    """조각의 text와 display를 차례로 이은 문자열(화면에 보이는 문장)."""
+    return "".join(seg["text"] if "text" in seg else seg["display"] for seg in segments)
+
+
+def segments_template(segments, drop_participant=None):
+    """참여자 조각을 {{participant:ID}} + pair로 되돌린 편집 요청 문장. drop_participant의 조각은 토큰만 빼고 쌍을 남긴다."""
+    parts = []
+    for seg in segments:
+        if "text" in seg:
+            parts.append(seg["text"])
+            continue
+        if seg["participant_id"] != drop_participant:
+            parts.append("{{participant:" + seg["participant_id"] + "}}")
+        parts.append(seg["pair"] or "")
+    return "".join(parts)
+
+
+def replace_in_text_segments(segments, old, new):
+    """old가 처음 나오는 글 조각 하나만 new로 바꾼 조각 목록을 돌려준다. 참여자 조각은 그대로 둔다."""
+    changed = copy.deepcopy(segments)
+    for seg in changed:
+        if "text" in seg and old in seg["text"]:
+            seg["text"] = seg["text"].replace(old, new, 1)
+            return changed
+    raise AssertionError(f"글 조각에 {old!r}가 없다: {segments_display(segments)!r}")
+
+
+def editable_problems(mapping, shared):
+    """editable의 위치가 결정 4의 필드 전부이고, 조각을 이은 문자열이 공유 결과 문장과 같은지 본다."""
+    problems = []
+    expected = editable_paths(shared)
+    if sorted(mapping) != sorted(expected):
+        problems.append(f"editable 위치 {sorted(mapping)}, 기대 {sorted(expected)}")
+    for path in expected:
+        if path in mapping and segments_display(mapping[path]) != pointer_get(shared, path):
+            problems.append(f"{path}: 조각을 이은 문자열이 공유 결과 문장과 다르다")
+    return problems
 
 
 def run_concurrently(*fns, timeout=30):
@@ -281,6 +368,20 @@ class AppHandle:
         resp = self.results(room)
         assert resp.status_code == 200, f"결과 목록 HTTP {resp.status_code}: {resp.text[:300]}"
         return resp.json()
+
+    def result_entry(self, room, result_id):
+        for entry in self.results_body(room)["results"]:
+            if entry["result_id"] == result_id:
+                return entry
+        raise AssertionError(f"결과 목록에 {result_id}가 없다")
+
+    def editable(self, room, result_id):
+        """방장 결과 목록에서 그 AI 원본 항목의 editable을 {path: segments}로 읽는다(결정 29·33)."""
+        return editable_map(self.result_entry(room, result_id))
+
+    def edited_text(self, room, result_id, path, old, new):
+        """editable만으로 만든 편집 요청 문장: 글 조각의 old를 new로 바꾸고 참여자 조각은 토큰과 쌍으로 되돌린다."""
+        return segments_template(replace_in_text_segments(self.editable(room, result_id)[path], old, new))
 
     def select(self, room, result_id, headers="host"):
         return self.post(f"/api/rooms/{room.code}/results/{result_id}/select", None,

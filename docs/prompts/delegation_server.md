@@ -11,7 +11,7 @@
 - 테스트 DB는 실제 PostgreSQL 컨테이너다. AC4 동시 마감을 검사하기 위해서다.
 - 모델 호출은 저장 출력 재생 모드로 대신하고 실제 API는 부르지 않는다.
 
-## §0. 인터페이스 기본안 (초안·결정 반영 2026-11-04, 2026-11-04 수용, 결정 24~27 반영 2026-11-05)
+## §0. 인터페이스 기본안 (초안·결정 반영 2026-11-04, 2026-11-04 수용, 결정 24~35 반영 2026-11-05)
 
 에이전트(Claude)가 2026-11-04에 쓴 초안이다. 전민규가 2026-11-04에 기본안을 채택하고 "결정한 것" 2·3·6·12를 따로 정했다. 반영한 문서를 같은 날 수용했다. SPEC 5절은 "프레임워크와 HTTP 경로에 독립적인 논리 입출력 계약"이라 경로·메서드·형식·오류 코드를 정하지 않았다. 표의 근거 칸에 **[에이전트 안]** 이 붙은 부분은 문서에 없어서 에이전트가 정한 것이다. 확정하거나 바꾸면 §0-1 케이스도 함께 고친다.
 
@@ -35,21 +35,35 @@
 | 3 | `POST /api/rooms/{room_code}/sessions` | 없음 | `{profile_id}` | 201 `{session_id, duplicate_name_notice, privacy_notice, scenarios}`. `scenarios`는 이 `profile_id` 기준으로 토큰을 치환한 문항이다. 이전 제출 내용은 넣지 않는다 | `not_found`, `room_closed`, `invalid_state` | SPEC 5절 "새 응답 작성 세션", AC15, AC16. `privacy_notice`를 서버가 주는 것은 [에이전트 안](결정 13) |
 | 4 | `POST /api/rooms/{room_code}/submissions` | 없음. `Idempotency-Key` 헤더 필수 | `{session_id, answers: [{scenario_id, option_id, memo?}]}` | 201 `{participant_id, submitted_count, party_size}`. `response_id`는 돌려주지 않는다(§0-A 6, 결정 24). 같은 키·같은 본문 재전송은 200으로 같은 본문을 돌려준다. 유효 제출 수가 `party_size`에 닿으면 같은 트랜잭션에서 마감하고 생성을 시작한다 | `invalid_input`, `room_closed`, `session_used`, `idempotency_conflict`, `not_found` | SPEC 5절 답변 제출, 처리 정책 "제출·자동 생성", 필드 연결("동일 제출 요청의 전송 재시도는 같은 건"), ARCHITECTURE 5절 멱등 키·`memo` 300자. 헤더 이름·필수 여부·`session_used`는 [에이전트 안](결정 14) |
 | 5 | `POST /api/rooms/{room_code}/generate` | 방장 | 없음 | 202 `{room_status: "generating", included_count}` | `host_forbidden`, `no_submissions`, `room_closed` | SPEC 처리 정책 "조기 생성·마감", AC4, ARCHITECTURE 5절 상태 기계 |
-| 6 | `POST /api/rooms/{room_code}/retry` | 방장 | 없음 | 202. 실패한 생성(최초·재생성 어느 쪽이든)을 같은 고정 입력으로 다시 실행한다 | `host_forbidden`, `invalid_state` | SPEC 처리 정책 "재생성·실패", 상태별 처리 마지막 문단, ARCHITECTURE 6절 "생성 중 중단". 경로와 방장 전용 여부는 [에이전트 안](결정 10) |
-| 7 | `POST /api/rooms/{room_code}/regenerate` | 방장 | 없음 | 202 | `host_forbidden`, `regeneration_limit`, `invalid_state` | SPEC 5절 재생성, AC17, ARCHITECTURE 5절(정상 결과 행 수로 계산) |
-| 8 | `GET /api/rooms/{room_code}/result` | 없음 | 없음 | 200 공유 결과(§0-C) 하나. 방장이 고른 결과, 고르기 전에는 최초 정상 결과다. 그 결과에 방장 수정본이 있으면 가장 최근 수정본을 보여준다 | `invalid_state`(정상 결과 없음), `render_failed` | SPEC 5절 결과 선택, F5, 결정 6 |
-| 9 | `GET /api/rooms/{room_code}/results` | 방장 | 없음 | 200 `{selected_result_id, results: [공유 결과 + {attempt, state: "normal" \| "failed", created_at}]}`. 방장에게도 공유 결과 형태만 준다 | `host_forbidden`, `render_failed` | AC3(방장도 다른 참여자의 원문을 받지 않는다), AC17 두 결과 보존 |
+| 6 | `POST /api/rooms/{room_code}/retry` | 방장 | 없음 | 202. 실패한 생성(최초·재생성 어느 쪽이든)을 같은 고정 입력으로 다시 실행한다. 새 생성 시도 ID를 발급한다 | `host_forbidden`, `invalid_state` | SPEC 처리 정책 "재생성·실패", 상태별 처리 마지막 문단, ARCHITECTURE 6절 "생성 중 중단". 경로와 방장 전용 여부는 [에이전트 안](결정 10). 시도 ID는 결정 30 |
+| 7 | `POST /api/rooms/{room_code}/regenerate` | 방장 | 없음 | 202. 새 생성 시도 ID를 발급한다. 재생성 결과는 방장이 고르기 전까지 결과 목록(9)에만 있다 | `host_forbidden`, `regeneration_limit`, `invalid_state` | SPEC 5절 재생성, AC17, ARCHITECTURE 5절(정상 결과 행 수로 계산, 생성 시도 ID), 결정 28·30 |
+| 8 | `GET /api/rooms/{room_code}/result` | 없음 | 없음 | 200 공유 결과(§0-C) 하나. 방장이 고른 결과, 고르기 전에는 최초 정상 결과다. 그 결과에 방장 수정본이 있으면 가장 최근 수정본을 보여준다. 고르기 전에는 `draft: true`, 고른 뒤에는 `draft: false`다. 고르지 않은 재생성 결과와 그 수정본은 보여주지 않는다. 방장 토큰을 붙여도 같은 결과다 | `invalid_state`(정상 결과 없음), `render_failed` | SPEC 5절 결과 선택, 처리 정책 "응답·결과 공개", F5, 결정 6·28·31·32 |
+| 9 | `GET /api/rooms/{room_code}/results` | 방장 | 없음 | 200 `{selected_result_id, results: [공유 결과 + {attempt, state: "normal" \| "failed", created_at, editable}]}`. 방장에게도 공유 결과 형태만 준다. 정상 결과 항목의 `editable`은 아래 "편집용 응답"이다 | `host_forbidden`, `render_failed` | AC3(방장도 다른 참여자의 원문을 받지 않는다), AC17 두 결과 보존, 결정 29·33·34 |
 | 10 | `POST /api/rooms/{room_code}/results/{result_id}/select` | 방장 | 없음 | 200 `{selected_result_id}` | `host_forbidden`, `not_found`, `invalid_state`(실패 결과) | SPEC 5절 재생성·결과 선택, AC17 |
 | 11 | `POST /api/rooms/{room_code}/results/{result_id}/edits` | 방장 | `{edits: [{path, text}]}`. `path`는 공유 결과의 문장 위치(JSON Pointer), `text`는 `{{participant:ID}}` 토큰을 유지한 문장 | 201 공유 결과(`kind: "host_edited"`, `source_result_id`). `result_id`는 AI 원본이다. 그 원본의 가장 최근 수정본이 있으면 거기서 시작하고, 없으면 원본에서 시작한다. `source_result_id`는 시작한 판이다. 새 수정본은 새 행이고 원본과 이전 수정본 행은 바꾸지 않는다 | `host_forbidden`, `not_found`, `edit_not_allowed`, `memo_quote` | SPEC 처리 정책 "방장 편집", AC12, AC3(방장 수정본에도 15자 기준), ARCHITECTURE 2절 규칙 2(편집본은 별도 행), 결정 4·5·6 |
 | 12 | `GET /api/push/vapid-public-key`, `POST /api/rooms/{room_code}/push-subscriptions` | 구독 `role`이 `host`면 방장 | `{role: "host" \| "participant", session_id?, subscription: {endpoint, keys: {p256dh, auth}}}` | 201 `{subscription_id}` | `invalid_input`, `host_forbidden`, `not_found` | SPEC 5절 푸시 등록·발송, F6, ARCHITECTURE 2절 `push.py`. 요청 형식은 [에이전트 안](결정 11) |
 
 제출 내용을 조회하는 경로는 두지 않는다(ARCHITECTURE 2절 규칙 3 확인, AC16). 방 단위 삭제 명령(`admin.py`)과 만료는 이번 범위가 아니다.
 
+**편집용 응답** (결정 29·33·34, 2026-11-05)
+
+```
+editable: [{path, segments: [{text} | {participant_id, display, pair}]}]
+```
+
+- `path`는 결정 4의 편집 가능한 위치 전부다. 공유 결과 기준 JSON Pointer로 `/clauses/i/action`, `/clauses/i/proposed_conditions/j`, `/conditional_alternatives/i/action`, `/conditional_alternatives/i/proposed_conditions/j`, `/conditional_alternatives/i/proposed_changes/j`다.
+- 참여자 조각의 `display`는 `render.py`가 조사까지 붙인 이름이고, `pair`는 원래 조사 쌍(`은/는` 등)이며 쌍이 없으면 null이다(결정 34). 화면은 참여자 조각을 고칠 수 없는 칩으로 보여주고, 제출할 때 칩을 `{{participant:<participant_id>}}` + `pair`로 되돌려 11의 편집 API로 보낸다.
+- 조각의 `text`와 `display`를 차례로 이으면 그 위치의 공유 결과 문장과 같다.
+- AI 원본 항목의 `editable`은 다음 수정이 시작할 판(결정 6: 가장 최근 수정본, 없으면 원본)의 문장이다(결정 33). 실패 항목에는 `editable`이 없다.
+- `editable`에는 §0-A 6의 공개 금지 키, `positions`, 메모, `original_condition` 같은 비공개 자료를 넣지 않는다. 참여자 결과 조회(8)와 수정 응답(11)에는 `editable`이 없다.
+- 형식(`path`·`segments` 배열, 조각 키 이름, 이은 문자열이 공유 문장과 같다는 조건)은 [에이전트 안]이다. `pair`는 2026-11-05에 사람이 채택했다(결정 34).
+
 ### §0-C. 공유 결과 형식
 
 ```
 {
   result_id, kind, source_result_id?, label,          // label: kind가 host_edited면 "방장 수정", 아니면 null
+  draft,                                              // bool. 방장이 고르기 전 공개 결과면 true("방장 확인 전 초안")
   pact_status,                                        // PactRecommendation.status
   included_count, excluded_names: [display_name],     // 반영한 제출 수, 반영되지 않은 등록 이름
   clauses: [{scenario_id, participant_names, action, proposed_conditions}],
@@ -60,7 +74,7 @@
 }
 ```
 
-문장 필드는 모두 서버가 `render.py`로 치환한 텍스트다. `proposed_changes`는 `required_changes[].proposed_change`만 옮긴다. 검증 결과를 나타내는 필드와 합의·수락을 뜻하는 필드(`agreed`, `accepted` 등)는 두지 않는다.
+문장 필드는 모두 서버가 `render.py`로 치환한 텍스트다. `proposed_changes`는 `required_changes[].proposed_change`만 옮긴다. 검증 결과를 나타내는 필드와 합의·수락을 뜻하는 필드(`agreed`, `accepted` 등)는 두지 않는다. `draft`는 결정 28로 더했다. 방장이 고르기 전에 고친 수정본도 `draft: true`다(결정 31).
 
 근거: SPEC 처리 정책 "조기 생성·마감"(반영 응답 수와 제외 안내), "응답·결과 공개", "방장 편집"(원본 검증 결과를 편집본 품질 보증으로 쓰지 않는다), 5절 필드 연결(`original_condition`·`positions` 제외, 참여자 토큰 치환), 상태별 처리 마지막 문단(유머 문구 조건), ARCHITECTURE 1절(서버가 치환한 공유 문장). 필드 이름과 구조는 [에이전트 안].
 
@@ -103,9 +117,9 @@
 - 문항 단계 `ex2_needs_information`, `s2`~`s6`: 상태가 `ready`가 아니면 검증기가 입력 pool을 대조하지 않으므로 상태 분기 확인에 그대로 쓸 수 있다.
 - 추천 단계 `tests/harness/fixtures/pact/` 10개: 입력의 `participant_ids`(`A`, `B`, `C`)와 `response_id`(`rA` 등)가 fixture 고유값이고 상황이 1~2개다. 서버는 ID를 무작위로 만들고 6~8개 문항 전부의 응답을 넣으므로, 그대로 재생하면 `unknown_reference`, `unlinked_response` 등으로 거부된다. 추천 단계는 받은 `model_input`으로 출력을 만드는 테스트 도우미가 필요하다. 문장은 fixture의 `action`·`proposed_conditions`를 가져다 쓸 수 있다.
 
-## §0-1. 골든 케이스 후보 (초안·결정 반영 2026-11-04, 2026-11-04 수용, 결정 24~27 반영 2026-11-05)
+## §0-1. 골든 케이스 후보 (초안·결정 반영 2026-11-04, 2026-11-04 수용, 결정 24~35 반영 2026-11-05)
 
-에이전트(Claude)가 §0 기본안을 전제로 쓴 후보다. 2026-11-04 결정에 따라 INP-N06의 기대값을 바꾸고 EDT-P03, OUT-N05, OUT-N06을 더했다. 채택과 기대값은 사람이 확정한다(강의 5 B절, AGENTS 4절). ID 앞 글자 P는 통과해야 하는 케이스, N은 실패를 정확히 내야 하는 케이스다. 근거 칸의 "규칙 2·3"은 AGENTS 3절 절대 규칙 번호다.
+에이전트(Claude)가 §0 기본안을 전제로 쓴 후보다. 2026-11-04 결정에 따라 INP-N06의 기대값을 바꾸고 EDT-P03, OUT-N05, OUT-N06을 더했다. 2026-11-05 결정 28~34(PR #15 리뷰)에 따라 PRV-N01·N04, EDT-P01·P03·N01, EXP-P04, PSH-P01~P04·N01·N02를 고치고 REG-P04·P05·N04, OUT-N07, EXP-P06, PSH-P05를 더했다(§2-2). 채택과 기대값은 사람이 확정한다(강의 5 B절, AGENTS 4절). ID 앞 글자 P는 통과해야 하는 케이스, N은 실패를 정확히 내야 하는 케이스다. 근거 칸의 "규칙 2·3"은 AGENTS 3절 절대 규칙 번호다.
 
 **공통 준비**
 
@@ -148,10 +162,10 @@
 | ID | 입력·조작 | 기대 결과 | 근거 |
 |---|---|---|---|
 | PRV-P01 | 세션 생성 | `privacy_notice`가 SPEC 처리 정책 "응답·결과 공개"의 문장과 글자까지 같다 | AC3 판정 방법 첫 문장. 결정 13 |
-| PRV-N01 | 기본 방에서 세 명 제출 → `ready`. 방장 토큰 없이, 그리고 방장 토큰을 붙여 조회 경로 전부(방 조회, 새 세션(POST), 결과, 결과 목록)를 호출 | 응답 JSON 어디에도 §0-A 6의 공개 금지 키가 없다. 메모 표지의 연속 15자, `original_condition` 값, 선택 프로필 값이 없다. 방장 응답도 같다 | AC3, ARCHITECTURE 2절 규칙 3 확인 |
+| PRV-N01 | 기본 방에서 두 명 제출한 뒤(마감 전) 방장 토큰 없이, 그리고 붙여 새 세션(POST)을 만든다. 세 번째 제출 → `ready`. 방장 토큰 없이, 그리고 붙여 조회 경로(방 조회, 결과, 결과 목록)를 호출하고, 마감 뒤 새 세션(POST)을 요청 | 응답 JSON 어디에도 §0-A 6의 공개 금지 키가 없다. 메모 표지의 연속 15자, `original_condition` 값, 선택 프로필 값이 없다. 방장 응답도 같다. 세션 성공 응답은 마감 전에 받은 응답으로 검사한다. 마감 뒤 새 세션은 409 `room_closed`이고 그 오류 응답도 같은 검사를 한다 | AC3, ARCHITECTURE 2절 규칙 3 확인, §0-B 3(`room_closed`) |
 | PRV-N02 | 앱의 경로 표 조회, `GET /api/rooms/{room_code}/submissions/{participant_id}` 요청 | 제출·응답을 돌려주는 GET 경로가 없고 요청은 404 또는 405다 | ARCHITECTURE 2절 "제출 후 응답을 조회하는 API는 없다", AC3 "다른 응답 ID 조회" |
 | PRV-N03 | 추천 재생 2회 모두 `action`에 한 메모의 연속 15자를 넣음 | 두 번 모두 검증기 `memo_quote`, `room_status: failed`(`output_invalid`). 결과 조회는 409 `invalid_state`이고 그 문장은 어떤 응답에도 없다 | AC3, AC10, ARCHITECTURE 6절 후처리 위반 |
-| PRV-N04 | PRV-N01 진행 중의 표준 출력·표준 오류 로그와 `llm_calls` 행 | 메모 표지, 이름·별명, 선택 프로필 값이 없다 | ARCHITECTURE 8절 마스킹. AC3 밖이라 결정 17 |
+| PRV-N04 | PRV-N01 진행 중의 표준 출력·표준 오류 로그와 `llm_calls` 행 | 메모 표지, 이름·별명, 선택 프로필 값이 없다. 흐름 안의 마감 뒤 새 세션은 PRV-N01처럼 409 `room_closed`다 | ARCHITECTURE 8절 마스킹. AC3 밖이라 결정 17 |
 
 ### `response_closure` (AC4)
 
@@ -181,14 +195,14 @@
 
 ### `host_edit` (AC12, 규칙 2)
 
-준비: 기본 추천 재생으로 `ready`인 방.
+준비: 기본 추천 재생으로 `ready`인 방. 방장이 보내는 문장은 결과 목록(§0-B 9) AI 원본 항목의 `editable`만으로 만든다. 글 조각의 문구를 바꾸고 참여자 조각은 `{{participant:<participant_id>}}` + `pair`로 되돌린다(결정 29·34). 재생 기록이나 DB에서 원문을 꺼내지 않는다.
 
 | ID | 입력·조작 | 기대 결과 | 근거 |
 |---|---|---|---|
-| EDT-P01 | `/clauses/0/action`의 문구만 바꾸고 토큰은 그대로 | 201, 새 `result_id`, `kind: host_edited`, `source_result_id`는 원본. 원본 결과의 방장 조회 응답과 DB 행이 편집 전과 같다 | AC12, 처리 정책 "방장 편집", ARCHITECTURE 2절 규칙 2 |
+| EDT-P01 | `editable`의 `/clauses/0/action` 글 조각 문구만 바꾸고 참여자 조각은 되돌려 제출. 다시 조회 | 201, 새 `result_id`, `kind: host_edited`, `source_result_id`는 원본. 원본 결과의 방장 조회 응답(`editable` 제외)과 DB 행이 편집 전과 같다. 다시 조회한 참여자 결과의 그 문장과 `editable` 조각을 이은 문자열에 바뀐 문구가 있다. 편집 전후 `editable`의 위치는 결정 4의 필드 전부이고, 조각을 이은 문자열은 참여자 결과 문장과 같다. `editable`에 §0-A 6의 키, 메모 표지, `original_condition` 값이 없다 | AC12, 처리 정책 "방장 편집", ARCHITECTURE 2절 규칙 2, AC3, 결정 29·33·34 |
 | EDT-P02 | EDT-P01의 수정본을 참여자·방장이 조회 | `label: "방장 수정"`. 검증 결과 필드와 합의·수락 필드가 없다. `pact_status`는 원본과 같다 | AC12, 처리 정책 "방장 편집"(원본 검증 결과를 품질 보증으로 쓰지 않는다), 규칙 2 |
-| EDT-P03 | EDT-P01 뒤 같은 AI 원본 `result_id`로 `/clauses/1/action`을 수정 | 201, 새 수정본의 `source_result_id`는 EDT-P01 수정본이다. 새 수정본에 EDT-P01의 `/clauses/0/action` 변경이 남아 있다. AI 원본과 EDT-P01 수정본 행은 그대로다. 참여자 결과 조회는 새 수정본을 보여준다 | 결정 6(최신 수정본에서 시작), AC12 원본 보존, 규칙 2 |
-| EDT-N01 | 방장 경로 전부(`generate`, `retry`, `regenerate`, `results`, `select`, `edits`, `role: host` 구독)를 이름 선택 세션만 있고 `X-Host-Token` 없이 호출 | 모두 403 `host_forbidden`. 상태·결과·호출 수가 그대로다 | AC12 "방장 이름 선택만 한 요청은 거부", ARCHITECTURE 5절 |
+| EDT-P03 | EDT-P01 뒤 결과 목록을 다시 조회해 같은 AI 원본의 `editable`로 `/clauses/1/action`을 수정 | 201, 새 수정본의 `source_result_id`는 EDT-P01 수정본이다. 다시 조회한 `editable`의 `/clauses/0/action`에 EDT-P01 수정 문구가 있다. 새 수정본에 EDT-P01의 `/clauses/0/action` 변경이 남아 있다. AI 원본과 EDT-P01 수정본 행은 그대로다. 참여자 결과 조회는 새 수정본을 보여준다 | 결정 6(최신 수정본에서 시작), AC12 원본 보존, 규칙 2, 결정 33 |
+| EDT-N01 | 방장 경로 전부(`generate`, `retry`, `regenerate`, `results`, `select`, `edits`, `role: host` 구독)를 이름 선택 세션만 있고 `X-Host-Token` 없이 호출. 세션은 마감 전에 만든 제출 세션을 다시 쓴다(새 세션을 만들지 않는다) | 모두 403 `host_forbidden`. 상태·결과·호출 수가 그대로다 | AC12 "방장 이름 선택만 한 요청은 거부", ARCHITECTURE 5절 |
 | EDT-N02 | 다른 방의 유효한 `host_token`으로 편집 | 403 `host_forbidden` | ARCHITECTURE 5절(토큰은 방마다 발급) |
 | EDT-N03 | 없는 위치 `/clauses/2/action`에 문장 추가 | 422 `edit_not_allowed`, 새 결과 행 없음 | AC12 "추가 막음" |
 | EDT-N04 | `/clauses/1/action`을 `""`로 | 422 `edit_not_allowed` | AC12 "삭제 막음" |
@@ -207,6 +221,9 @@
 | REG-N01 | 정상 결과 2개 뒤 재생성 | 409 `regeneration_limit`. 추천 호출 수 그대로 | AC17 "세 번째 정상 생성 거부" |
 | REG-N02 | 재생성 진행 중(재생 클라이언트를 대기시킨 상태)에 재생성 | 409 `invalid_state`, 추천 호출 1회 추가에 그친다 | ARCHITECTURE 5절 상태 기계 |
 | REG-N03 | 없는 `result_id` 선택, 실패 행 선택 | 각각 404 `not_found`, 409 `invalid_state`. 선택이 바뀌지 않는다 | SPEC 5절 결과 선택 |
+| REG-P04 | 방장이 고르기 전에 재생성. 이어서 재생성 결과를 고르지 않고 수정한 뒤, 재생성 결과를 선택 | 재생성 뒤 정상 결과 2개이고, 참여자 결과 조회는 최초 결과(`draft: true`) 그대로이며 재생성 결과의 `result_id`가 없다. 재생성 결과를 고치기만 해서는 참여자 조회가 바뀌지 않는다. 고른 뒤에는 재생성 결과의 가장 최근 수정본이 `draft: false`로 보인다 | AC17("재생성 결과가 선택 전까지 방장에게만 보이고 기존 공개 결과가 유지"), 처리 정책 "응답·결과 공개", 결정 28·32 |
+| REG-P05 | 최초 정상 결과 뒤 방장 재생성이 `timeout` 3회로 실패(`room_status: failed`). 참여자·방장 결과 조회 | 실패 결과 1개, `failed`. 결과 조회는 200이고 최초 결과(`draft: true`) 그대로다 | 처리 정책 "응답·결과 공개"(기존 공개 결과 유지), AC17, 결정 28 |
+| REG-N04 | 재생성이 `timeout` 3회로 실패해 정상 결과 1개·`failed`인 방에 `retry`와 `regenerate`를 동시에 보냄(앱 두 개). 새 방으로 10회 반복 | 회마다 하나는 202, 하나는 409 `invalid_state`. 추천 호출 1회 추가, 끝난 뒤 정상 결과 2개 | ARCHITECTURE 5절 상태 기계(생성 시도 ID), §0-B 6·7, AC17, 결정 30 |
 
 ### `output_validation` (AC10)
 
@@ -222,6 +239,7 @@
 | OUT-N04 | 문항 재생 2회 모두 루트에 `invented: true` | `scenario_status: failed`, 문항 호출 2회. 세션 생성은 409 `invalid_state` | AC10을 문항 단계에도 적용(ARCHITECTURE 6절 출력 형식 오류 행) |
 | OUT-N05 | 추천 재생 클라이언트를 응답하지 않게 붙잡아 두고, 현재 시각 함수를 `generating` 전환 뒤 4분 59초와 5분으로 옮김. 그 뒤 붙잡은 호출을 정상 출력으로 풀어 줌 | 4분 59초에는 `generating` 그대로. 5분에 작업이 진행 중인 호출과 남은 재시도를 멈추고 `failed`(`call_error`), 정상 결과 0개. 뒤늦게 끝난 호출의 출력은 정상 결과로 저장하지 않는다. 방장 재시도는 202이고 `model_input`이 처음과 같다 | SPEC 상태별 처리("호출 실패는 실행 오류"), ARCHITECTURE 6절 일시 오류, AC4(최초 생성은 한 번), 결정 12 |
 | OUT-N06 | `generating`인데 실행 중인 작업이 없는 방(컨테이너 재시작을 흉내 내 작업을 없앤 상태). 현재 시각 함수를 전환 뒤 9분 59초와 10분으로 옮겨 멈춤 점검 실행 | 9분 59초에는 `generating` 그대로. 10분에는 `failed`(`interrupted`), 정상 결과 0개. 방장 재시도는 202이고 `model_input`이 처음과 같다 | ARCHITECTURE 5절("`generating`에 설정 시간 이상 머문 방은 failed"), 6절 생성 중 중단, 결정 12 |
+| OUT-N07 | 방장 구독 1개. OUT-N06처럼 앱 A가 추천 호출을 붙잡은 방을 앱 B가 10분 멈춤 점검으로 `failed`(`interrupted`)로 돌리고 방장 재시도를 받는다(B의 호출도 붙잡음). A의 호출을 정상 출력으로 풀고, 그다음 B의 호출을 정상 출력으로 품 | A가 끝난 뒤 `generating` 그대로, 새 results 행 0, 푸시 0건. B가 끝난 뒤 `ready`, 정상 결과 1개, 방장 푸시 1건 | ARCHITECTURE 5절 서버 상태 기계(생성 시도 ID), 결정 30, AC18 |
 
 ### `result_export` (AC13)
 
@@ -232,11 +250,12 @@
 | EXP-P01 | 토큰 뒤 은/는·이/가·을/를·과/와·으로/로를 이름 `민준`, `지수`, `하늘`, `Alex`, `7`에 적용 | `민준은/이/을/과/으로`, `지수는/가/를/와/로`, `하늘은/이/을/과/로`, `Alex님은/이/을/과/으로`, `7님은/이/을/과/으로` | AC13, SPEC 5절 필드 연결(ㄹ 받침은 로, 영문·숫자 별명은 '님') |
 | EXP-P02 | `p1`(민준) 제출 2건 | `민준(응답 1)은`, `민준(응답 2)은`. 번호는 제출 순서, 조사는 이름 기준 | AC13 "같은 이름의 제출 구분", SPEC 5절. 번호 순서는 결정 9 |
 | EXP-P03 | 이름 `{{participant:B}}`로 등록하고 제출 | 그 이름이 글자 그대로 나오고 B로 다시 치환되지 않는다 | SPEC 5절 "이름에 포함된 토큰을 다시 해석하지 않는다" |
-| EXP-P04 | 조기 생성(1건) + 조건부 대안 + 방장 수정본 | 공유 결과에 `included_count`, `excluded_names`, `proposed_changes`, `label: "방장 수정"`이 있고 `original_condition` 값이 없다. 참여자 응답과 방장 응답의 공유 결과가 같다 | AC13 판정 방법, 처리 정책 "조기 생성·마감" |
+| EXP-P04 | 조기 생성(1건) + 조건부 대안 + 방장이 고르기 전에 만든 수정본(`editable`로 작성) | 공유 결과에 `included_count`, `excluded_names`, `proposed_changes`, `label: "방장 수정"`, `draft: true`가 있고 `original_condition` 값이 없다. 참여자 응답과 방장 응답의 공유 결과가 같다 | AC13 판정 방법(초안·수정 표시), 처리 정책 "조기 생성·마감", 결정 31 |
 | EXP-P05 | 추천 재생 상태를 `unresolved`, `proposed`, `conditional_only`, `needs_information`로 바꿈 | `unresolved`만 `humor.text`("너네 조합 꽝이니 여행 가지 마세요!"), `humor.explanation`("이번 응답 조건에서는 추천안을 찾지 못했습니다."), `unresolved_conditions`가 함께 있다. 나머지와 `failed`에는 `humor`가 없다 | SPEC 상태별 처리 마지막 문단. AC7 범위의 서버 표시 부분이라 결정 19 |
 | EXP-N01 | 치환 함수에 명단에 없는 `{{participant:Z}}` | `render_failed` | AC13 "없는 ID는 표시를 막는다" |
 | EXP-N02 | 치환 뒤 토큰이 남는 문장(`{{participant:A}` 같은 깨진 토큰, 추천 문장 속 `{{profile:p1}}`) | `render_failed` | AC13 "남은 토큰은 표시를 막는다", SPEC 5절(문항 토큰과 참여자 토큰은 별도 명단) |
 | EXP-N03 | DB에 알 수 없는 참여자 토큰이 든 결과 행을 직접 넣고 결과 조회 | 500 `render_failed`. 응답에 일부 문장도 없다 | AC13, SPEC 5절 "표시 오류". 정상 경로에서는 검증기 `token_invalid`가 먼저 막는다 |
+| EXP-P06 | `ready` 방에서 방장이 고르기 전과 최초 결과를 고른 뒤에 참여자·방장 결과 조회 | 고르기 전에는 최초 정상 결과가 `draft: true`, 고른 뒤에는 같은 결과가 `draft: false`. 방장 토큰을 붙인 조회도 같다 | AC13(초안 표시), F5, 처리 정책 "응답·결과 공개", 결정 28 |
 
 ### `push_events` (AC18)
 
@@ -244,15 +263,16 @@
 
 | ID | 입력·조작 | 기대 결과 | 근거 |
 |---|---|---|---|
-| PSH-P01 | 자동 생성 성공 | 방장 구독에 "협약서가 준비됐어요" 1건, 참여자 구독마다 생성 알림 1건. 총 3건 | AC18, F6, 처리 정책 "알림" |
-| PSH-P02 | 자동 생성 실패 뒤 방장 재시도 성공 | 실패 때 방장에게 완료·실패를 묶은 알림 1건, 참여자 0건. 성공 때 방장·참여자 구독마다 생성 알림 1건 | 처리 정책 "알림"(실패 시 완료와 실패, 이후 성공 시 생성 알림), AC18 "실패 후 성공 알림" |
-| PSH-P03 | 조기 생성 성공 | 방장·참여자 구독마다 생성 알림 1건 | F6, 결정 11 |
-| PSH-P04 | 참여자 구독 하나는 410, 하나는 500을 돌려줌 | 410 구독은 삭제, 500 구독은 남고 기록만 한다. 방 상태는 `ready`, 다른 구독 발송은 그대로 | ARCHITECTURE 6절 푸시 발송 실패 |
-| PSH-N01 | 같은 생성 완료 이벤트 처리를 두 번 실행 | 추가 발송 0건. 이벤트·구독 쌍마다 알림 기록 1개 | AC18 "이벤트 재처리 시 중복 방지", ARCHITECTURE 6절 알림 중복 |
-| PSH-N02 | PSH-P01~P03의 모든 발송 본문 | 이름·별명, 메모 표지, 선택지 문구, 선택 프로필 값이 없고 상태 문구와 방 링크만 있다. 본문은 키가 `text`·`url` 둘인 JSON 객체이고 `url`에 `room_code`가 있으며 `host_token`이 없다 | ARCHITECTURE 2절 규칙 3("푸시 본문에는 상태 문구만"), 규칙 3, 결정 25 |
+| PSH-P01 | 자동 생성 성공 | 방장 구독에 "협약서가 준비됐어요" 1건, 참여자 구독 0건(초안 생성). 총 1건 | AC18, F6, 처리 정책 "알림", 결정 28 |
+| PSH-P02 | 자동 생성 실패 뒤 방장 재시도 성공 | 실패 때 방장에게 완료·실패를 묶은 알림 1건, 참여자 0건. 성공 때 방장에게 생성 알림 1건, 참여자 0건 | 처리 정책 "알림"(실패 시 완료와 실패, 이후 성공 시 생성 알림), AC18 "실패 후 성공 알림", 결정 28 |
+| PSH-P03 | 조기 생성 성공 | 방장에게 생성 알림 1건, 참여자 0건 | F6, 결정 11·28 |
+| PSH-P04 | 참여자 구독 하나는 410, 하나는 500을 돌려줌. 자동 생성 성공 뒤 방장이 최초 결과를 고름(참여자 발송이 생기게 한다) | 410 구독은 삭제, 500 구독은 남고 기록만 한다. 방 상태는 `ready`, 다른 구독 발송은 그대로 | ARCHITECTURE 6절 푸시 발송 실패 |
+| PSH-N01 | 자동 생성 성공과 방장의 첫 결과 선택 뒤, 기록된 이벤트마다 처리를 두 번 실행 | 추가 발송 0건. 이벤트·구독 쌍마다 알림 기록 1개 | AC18 "이벤트 재처리 시 중복 방지", ARCHITECTURE 6절 알림 중복 |
+| PSH-N02 | PSH-P01~P03, P05의 모든 발송 본문 | 이름·별명, 메모 표지, 선택지 문구, 선택 프로필 값이 없고 상태 문구와 방 링크만 있다. 본문은 키가 `text`·`url` 둘인 JSON 객체이고 `url`에 `room_code`가 있으며 `host_token`이 없다 | ARCHITECTURE 2절 규칙 3("푸시 본문에는 상태 문구만"), 규칙 3, 결정 25 |
 | PSH-N03 | `subscription.endpoint` 없는 구독 등록 | 422 `invalid_input` | SPEC 5절 푸시 등록 |
+| PSH-P05 | 자동 생성 성공 뒤 방장 재생성 성공, 최초 결과 선택(첫 선택), 재생성 결과 선택(재선택), 고른 결과 수정 | 재생성 때 0건. 첫 선택 때 참여자 구독마다 1건, 방장 0건. 재선택·수정 때 0건 | 처리 정책 "알림", F6, AC18("참여자는 첫 결과 선택 때만 통지"), 결정 11·28 |
 
-**케이스 수**: `scenario_input` 11(P4·N7), `profile_rendering` 6(P4·N2), `response_privacy` 5(P1·N4), `response_closure` 9(P4·N5), `duplicate_name` 7(P3·N4), `host_edit` 11(P3·N8), `regeneration` 6(P3·N3), `output_validation` 10(P4·N6), `result_export` 8(P5·N3), `push_events` 7(P4·N3). 합계 80개(통과 35, 실패 45).
+**케이스 수**: `scenario_input` 11(P4·N7), `profile_rendering` 6(P4·N2), `response_privacy` 5(P1·N4), `response_closure` 9(P4·N5), `duplicate_name` 7(P3·N4), `host_edit` 11(P3·N8), `regeneration` 9(P5·N4), `output_validation` 11(P4·N7), `result_export` 9(P6·N3), `push_events` 8(P5·N3). 합계 86개(통과 39, 실패 47). 2026-11-05에 80개에서 6개(REG-P04·P05·N04, OUT-N07, EXP-P06, PSH-P05)가 늘었다.
 
 **오류 코드별 실패 케이스**
 
@@ -262,9 +282,9 @@
 | `needs_information` | INP-N04·N05·N06 |
 | `host_forbidden` | EDT-N01·N02 |
 | `not_found` | DUP-N04, EDT-N08, REG-N03 |
-| `room_closed` | CLS-N02·N03·N04 |
+| `room_closed` | CLS-N02·N03·N04, PRV-N01·N04 |
 | `no_submissions` | CLS-N01 |
-| `invalid_state` | INP-N07, REG-N02·N03, OUT-N01·N04, PRV-N03 |
+| `invalid_state` | INP-N07, REG-N02·N03·N04, OUT-N01·N04, PRV-N03 |
 | `regeneration_limit` | REG-N01 |
 | `session_used` | DUP-N02 |
 | `idempotency_conflict` | DUP-N01 |
@@ -274,8 +294,8 @@
 
 **절대 규칙 2·3을 검사하는 케이스**
 
-- 규칙 2(방장 수정을 합의로 표시하지 않는다, 원본 보존): EDT-P01·P02·P03, EXP-P04, REG-P01. 수정 문장의 합의 표현은 검사하지 않는다(결정 7).
-- 규칙 3(원문·검증용 인용·선택 프로필 비공개): PRV 전부, PRF-N01, DUP-P01, EDT-N07, EXP-P04, PSH-N02.
+- 규칙 2(방장 수정을 합의로 표시하지 않는다, 원본 보존): EDT-P01·P02·P03, EXP-P04, REG-P01. 방장 확인 전 초안 표시는 EXP-P04·P06, REG-P04·P05. 수정 문장의 합의 표현은 검사하지 않는다(결정 7).
+- 규칙 3(원문·검증용 인용·선택 프로필 비공개): PRV 전부, PRF-N01, DUP-P01, EDT-P01(`editable`), EDT-N07, EXP-P04, PSH-N02.
 
 **검사하지 않는 것**
 
@@ -284,6 +304,8 @@
 - 추천·문항 문장의 의미, 선택 정보로 선호를 추정했는지(AC6~AC9, AC11, AC15 일부)는 evals 범위다.
 - 실제 모델 문항이 프로필 토큰 뒤에 조사 쌍 표기를 쓰는지는 검사하지 않는다. 문항 프롬프트를 이번에 고치지 않았다(결정 3).
 - PSH-P04에서 500 발송을 남기는 기록의 형식은 정하지 않는다. 서버는 기록만 하고, 테스트는 구독이 남는지만 본다(결정 26).
+- 화면이 참여자 조각을 고칠 수 없는 칩으로 보여주는지는 SPA 확인이다. 서버 케이스는 `editable`만으로 편집 요청을 만들 수 있는지까지 본다.
+- 결과 목록(§0-B 9) 항목의 `draft` 값은 검사하지 않는다. 초안 표시는 참여자 결과 조회(§0-B 8)에서 본다.
 
 ## 결정한 것 (2026-11-04)
 
@@ -294,12 +316,12 @@
 3. 프로필 토큰 뒤 조사도 추천 문장과 같은 쌍 표기(`이/가`, `은/는`, `과/와`)로 치환한다. 이름 안의 토큰은 다시 해석하지 않는다. 문항 프롬프트는 따로 고치지 않는다.
 4. 편집할 수 있는 문장은 조항과 조건부 대안의 `action`·`proposed_conditions`·`proposed_change`다.
 5. 방장은 토큰을 유지한 문장을 보내고, 토큰의 종류·개수가 시작한 판과 같아야 한다.
-6. 방장이 고르기 전에는 최초 정상 결과를 보여준다. 수정본이 있으면 가장 최근 수정본을 보여준다. 다시 고치면 가장 최근 수정본에서 시작해 새 행을 만든다(EDT-P03). 기본안은 늘 AI 원본에서 시작했다.
+6. 방장이 고르기 전에는 최초 정상 결과를 보여준다. 수정본이 있으면 가장 최근 수정본을 보여준다. 다시 고치면 가장 최근 수정본에서 시작해 새 행을 만든다(EDT-P03). 기본안은 늘 AI 원본에서 시작했다. (공개 범위·초안 표시는 28·31·32로 대체. 최신 수정본에서 시작하는 규칙은 그대로다)
 7. 서버는 `label`과 필드 구조만 보장하고 수정 문장의 합의 표현은 검사하지 않는다.
 8. 공유 결과에서 `source_response_ids`, `response_id`, 결과 속 `option_id`를 뺀다.
 9. 같은 이름 번호는 제출 순서다. 같은 이름 제출이 하나뿐이면 번호를 붙이지 않는다.
 10. 실패 재시도는 방장만 `POST /retry`로 시작한다.
-11. 자동 생성 실패 때 방장에게 완료·실패를 묶은 알림 1건을 보낸다. 조기 생성 성공 때 방장에게도 1건을 보낸다. 재생성 성공은 알리지 않는다. 참여자 구독은 세션과 묶는다.
+11. 자동 생성 실패 때 방장에게 완료·실패를 묶은 알림 1건을 보낸다. 조기 생성 성공 때 방장에게도 1건을 보낸다. 재생성 성공은 알리지 않는다. 참여자 구독은 세션과 묶는다. (참여자에게 보내는 시점은 28로 대체)
 12. 생성 작업 한도와 멈춤 판정을 나눈다. 둘 다 `generating` 전환 시각부터 잰다. 작업 한도는 5분이다. 재시도와 형식 오류 재요청을 포함한 생성 작업 전체가 5분을 넘으면 작업이 스스로 멈추고 `failed`(`call_error`)가 된다(OUT-N05). 멈춤 판정은 10분이다. 작업이 끝나지 않은 채 10분이 지난 방은 `failed`(`interrupted`)가 된다(OUT-N06). 멈춤 판정이 작업 한도보다 길어서 실행 중인 작업이 멈춤으로 판정되지 않는다. 처음 초안은 상한 하나(5분)였다.
 13. 제출 전 안내 문구는 서버가 `privacy_notice`로 준다.
 14. `Idempotency-Key`는 필수이고, 같은 키에 다른 본문이 오면 409 `idempotency_conflict`다.
@@ -320,6 +342,24 @@
 25. 푸시 본문은 키가 `text`(상태 문구)와 `url`(방 링크) 둘인 JSON 객체다. `url`에는 `room_code`가 있고 `host_token`은 없다. 상태 문구 목록은 정하지 않는다(PSH-N02).
 26. PSH-P04의 500 발송은 기록만 하고 기록 형식은 정하지 않는다. 테스트는 구독이 남는지만 본다.
 27. §2-1의 나머지 제안을 받아들인다. PRV-N01 조작 칸의 "GET 경로"를 "조회 경로"로 고치고, PRV-N04는 표준 오류도 본다. EXP-P05에 고정 유머 문구를 적고, §0-E 5에 `enforce_deadlines`와 `notifier.dispatch` 진입점을 더한다. 이후 하니스 실행 명령은 `python -m pytest tests/test_server_*.py`로 쓴다(하니스 파일 중복 수집을 피한다).
+
+2026-11-05 결정(PR #15 리뷰, 전민규):
+
+28. 공개 정책: 방장이 고르기 전에는 최초 정상 결과를 참여자에게 "방장 확인 전 초안"으로 보여준다(§0-C에 `draft: bool`을 더한다). 방장이 고르면 그 결과가 초안 표시 없이 공개된다(선택 = 공개). 재생성 결과는 방장이 고르기 전까지 방장에게만 보이고, 참여자에게는 기존 결과가 그대로 보인다. 방장 수정본은 저장하면 바로 공개한다. 푸시: 생성 완료·실패는 방장에게, 참여자에게는 방장의 첫 결과 선택 때 한 번만 보낸다. 초안 생성·재선택·수정 때는 참여자에게 보내지 않는다.
+29. 편집용 응답: 방장 전용 결과 응답(§0-B 9)에만 `editable`을 더한다. 편집 가능한 위치(결정 4의 필드)마다 조각 배열을 준다. 조각은 `{text}` 또는 `{participant_id, display}`(`display`는 `render.py`가 조사까지 붙인 이름)이다. 화면은 참여자 조각을 고칠 수 없는 칩으로 보여주고, 제출할 때 칩을 원래 `{{participant:ID}}`와 조사 쌍으로 되돌려 지금의 편집 API(§0-B 11)로 보낸다. 편집 API와 결정 5는 바꾸지 않는다. `editable`에 `positions`·`memo`·`original_condition` 같은 비공개 자료를 넣지 않는다.
+30. 생성 시도 ID: 생성 작업마다 시도 ID를 발급하고 방에 현재 시도 ID를 둔다. 결과 저장·상태 전환·알림은 현재 시도인 작업만 한다. 재시도·재생성으로 새 시도가 시작되면 이전 시도의 늦은 결과는 버린다(ARCHITECTURE 5절).
+
+2026-11-05 결정(2회차 작업 중 에이전트 질의에 대한 답, 전민규):
+
+31. 방장이 고르기 전에 최초 결과를 고친 수정본은 바로 공개하되 `draft: true`다. 수정은 선택이 아니다. 첫 선택 때 `draft: false`가 되고 참여자 푸시가 간다(EXP-P04).
+32. 고르지 않은 재생성 결과의 수정본은 그 결과에 붙는다. 참여자에게는 방장이 그 결과를 고를 때 보인다(결정 6의 조회 규칙. REG-P04).
+33. 결과 목록 AI 원본 항목의 `editable`은 다음 수정이 시작할 판(가장 최근 수정본, 없으면 원본)의 문장이다. EDT-P01·P03의 "원본 항목 불변" 비교에서는 `editable`만 뺀다.
+34. 참여자 조각에 `pair`(원래 조사 쌍, 없으면 null)를 더한다. 결정 29의 조각만으로는 칩을 조사 쌍으로 되돌릴 수 없어서 에이전트가 제안했다.
+    화면은 칩을 `"{{participant:" + participant_id + "}}" + pair`로 되돌린다. `pair`가 null이면 아무것도 붙이지 않는다(2026-11-05 확정).
+
+2026-11-05 결정(2회차 결과 확인, 전민규):
+
+35. 재생성이 실패한 방에서 `retry`와 `regenerate`는 같은 일(두 번째 정상 결과 하나 만들기)이다. 동시에 오면 생성 시도 ID로 하나만 받는다(REG-N04). 근거는 AC17(실패 재시도는 재생성 횟수를 쓰지 않는다)과 결정 30이다.
 
 ## §1. 프롬프트 원본
 
@@ -581,3 +621,101 @@ YAML 생성 스크립트와 실행 출력은 `.local-work/server_harness/`에 �
 - 판정 수용(남음): 서버 구현 위임 뒤, 서버 수용 전에 한다. postgres 컨테이너와 TEST_DATABASE_URL로 통과 가능 확인(d0, 케이스 80개 통과·skip 0), 결함 d1~d18, 로더 확인(C7)과 YAML 연동 확인(C2)을 실행해 결함 주입 계획 표의 실행 칸을 채운다. 이것이 끝나야 하니스를 최종 수용한 것으로 본다.
 - 구조 수용부터 `tests/`의 변경은 사람이 승인한다(AGENTS.md 4절). 판정 수용 중 하니스 코드의 오류가 드러나면 결함 주입을 원복하고 사람 승인을 받아 별도 회차로 고친 뒤 같은 결함을 다시 검사한다(강의 5 C절). 판정 기준(케이스·기대값)을 낮춰 통과시키지 않는다.
 - 수용 대상은 이 기록을 담은 커밋의 `tests/harness/server_cases.yaml`, `tests/harness/server/`, `tests/conftest.py`, `tests/test_server_*.py` 11개다. 서버 구현 위임의 비교 기준도 이 커밋이다.
+
+### §2-2. 골든 케이스·테스트 하니스 수정 (2026-11-05, 2회차(PR #15 리뷰 반영))
+
+강의 5 C절 "테스트 하니스 위임 회차 기록"에 따른 별도 회차다(에이전트 Claude, 프롬프트 10). 사람이 정한 결정 28~30과, 작업 중 질의에 대한 답인 결정 31~34를 반영했다. 그 밖의 케이스·기대값은 바꾸지 않았다. 서버(`src/travel/server/`)는 구현하지 않았다. 2026-11-05에 구조 수용했다(이 절 끝 "수용").
+
+| 회차 | 결과 | 무엇이 문제였나 | 무엇을 고쳤나 (프롬프트/케이스/테스트 코드) |
+|---|---|---|---|
+| 2 | 케이스 85개 수집·skip(서버 미구현). 하니스 검사 30개 중 29개 통과, DB fixture 검사는 postgres:16에서 통과 | PR #15 리뷰: 편집 테스트가 재생 기록에서 원문을 꺼냄, 마감 뒤 세션 생성을 201로 가정, 공개 정책·생성 시도 ID 기준 없음 | 케이스: 아래 "바꾼 케이스". 테스트 코드: 편집 도우미, PRV 흐름, 새 케이스 함수 5개, 로더 개수 |
+
+**시작 상태**
+
+- HEAD `371fcf4436998819af5d16fabe178210a43a5866`. `git status --short --untracked-files=all`은 출력이 없었다(`tests/`에 커밋하지 않은 변경 없음).
+- 스킬 `kar-plain`(글 모드, 한국어)과 `humanizer`(embedded)를 불러 문서·주석 문장에 적용했다.
+
+**바꾼 케이스** (리뷰 항목 번호는 프롬프트 10 "고칠 것"의 번호다)
+
+| 케이스 | 무엇을 바꿨나 | 리뷰 항목·결정 |
+|---|---|---|
+| EDT-P01 | 편집 문장을 결과 목록 `editable`만으로 만든다. 다시 조회해 참여자 결과와 `editable`에 바뀐 문구가 있는지, `editable` 위치가 결정 4의 필드 전부인지, 조각을 이은 문자열이 공유 문장과 같은지 본다. `editable`에 `privacy_scan`(공개 금지 키, 메모 표지, `original_condition` 값)을 건다. 원본 항목 불변 비교에서 `editable`만 뺀다 | 1, 결정 29·33·34 |
+| EDT-P02·P03·N02~N08 | 편집 재료를 `srv.pact_outputs()` 대신 `editable`에서 만든다. EDT-P03은 다시 조회한 `editable`에 첫 수정이 있는지도 본다 | 1, 결정 33 |
+| EDT-N01 | 마감 뒤 새 세션을 만들지 않고 마감 전에 만든 제출 세션을 다시 쓴다 | 2 |
+| PRV-N01·N04 | 세션 성공 응답은 두 명 제출 뒤(마감 전) 받은 응답으로 검사한다. 마감 뒤 새 세션은 checkpoint `closed_session`(409 `room_closed`)으로 보고 오류 응답도 비공개 검사를 한다 | 2 |
+| EXP-P04 | 편집 문장을 `editable`로 만들고, 고르기 전 수정본의 `draft: true`를 본다 | 1, 3, 결정 31 |
+| EXP-P06 (새) | 고르기 전 `draft: true`, 최초 결과를 고른 뒤 `draft: false`. 방장 토큰을 붙인 조회도 같다 | 3, 결정 28 |
+| REG-P04 (새) | 재생성 뒤에도 참여자 결과는 최초 결과(`draft: true`). 고르지 않은 재생성 결과의 수정본도 공개되지 않는다. 고르면 그 결과의 최근 수정본이 `draft: false`로 보인다 | 3, 결정 28·32 |
+| PSH-P01·P02·P03 | 참여자 구독 발송 기대를 1건에서 0건으로 바꿨다(PSH-P01 총 3건 → 1건) | 3, 결정 28 |
+| PSH-P04·N01 | 참여자 발송이 생기도록 생성 뒤 방장이 최초 결과를 고르는 단계를 넣었다. 기대값은 그대로다 | 3, 결정 28 |
+| PSH-N02 | 검사 범위에 PSH-P05 흐름의 본문을 더했다 | 3 |
+| PSH-P05 (새) | 재생성 0건, 첫 선택 때 참여자 구독마다 1건·방장 0건, 재선택·수정 0건 | 3, 결정 11·28 |
+| OUT-N07 (새) | 멈춤 점검·재시도 뒤 이전 시도가 늦게 성공해도 상태·results 행·푸시가 바뀌지 않는다. 새 시도가 끝나면 `ready`, 정상 결과 1개, 방장 푸시 1건 | 4, 결정 30 |
+| REG-N04 (새) | 재생성 실패로 `failed`인 방에 `retry`와 `regenerate`를 동시에 보내면 하나만 202, 하나는 409 `invalid_state`. 추천 호출 1회 추가, 정상 결과 2개. 10회 반복 | 4, 결정 30 |
+
+케이스 수는 80개에서 85개가 됐다(통과 38, 실패 47). §0-1 "케이스 수"와 "오류 코드별 실패 케이스"(`room_closed`에 PRV-N01·N04, `invalid_state`에 REG-N04), YAML 머리말, `test_server_harness.py`의 `EXPECTED_COUNTS`·`EXPECTED_TOTAL`·`ERROR_TABLE`을 함께 고쳤다(리뷰 항목 5).
+
+**바꾼 파일**
+
+| 파일 | 내용 |
+|---|---|
+| `docs/prompts/delegation_server.md` | §0-B 6~9, "편집용 응답", §0-C `draft`, §0-1 표, 결정 28~34(결정 6·11에 대체 표시), 이 절 |
+| `tests/harness/server_cases.yaml` | `.local-work/server_harness/build_cases.py`(판정 값)와 `header.yaml`(머리말)로 다시 만들었다. 1회차 스크립트는 `build_cases_r1.py`, `header_r1.yaml`로 보존했다 |
+| `tests/harness/server/api.py` | `SHARED_RESULT_KEYS`에 `draft`, `RESULT_LIST_EXTRA`에 `editable`. 도우미 `editable_map`(형식 검사), `segments_display`, `segments_template`, `replace_in_text_segments`, `editable_paths`, `editable_problems`, `AppHandle.result_entry`·`editable`·`edited_text` |
+| `tests/harness/server/cases.py` | 판정 키 `draft` |
+| `tests/test_server_host_edit.py`, `response_privacy.py`, `regeneration.py`, `output_validation.py`, `result_export.py`, `push_events.py` | 위 케이스 |
+| `tests/test_server_harness.py` | 개수·오류 표, `draft`(참·거짓), `shared_result`의 `initial`, 도우미 검사 `test_editable_helpers` 하나 추가(하니스 검사 29개 → 30개) |
+
+**[에이전트 안]** (결정 문장에 없어서 에이전트가 정한 것)
+
+1. `editable` 형식 `[{path, segments}]`, 조각 키 `text`와 `participant_id`·`display`·`pair`. 조각 키 집합이 정확히 이 둘 중 하나가 아니면 실패로 본다.
+2. 조각의 `text`·`display`를 이은 문자열이 그 위치의 공유 결과 문장과 같다는 조건과, `editable` 위치가 결정 4의 필드 전부라는 조건. 실패 항목에는 `editable`이 없다.
+3. 판정 키 `draft`, `shared_result` 값 `initial`, checkpoint 이름 `closed_session`, `after_regeneration`·`after_edit`·`after_select`, `before_select`, `after_old_attempt`·`after_new_attempt`, `regeneration`·`first_select`·`reselect`·`edit`.
+4. REG-N04의 준비 상태: 재생성이 실패한 방은 `room_status: failed`이고 `retry`와 `regenerate`를 둘 다 받을 수 있다고 봤다(§0-B 6 "최초·재생성 어느 쪽이든", REG-P03). 테스트는 이 상태를 준비 단언으로 확인한다. 반복 10회도 에이전트가 정했다.
+5. OUT-N07은 OUT-N06의 두 앱 구성을 쓴다. 이전 시도를 끝내는 방법으로 작업 한도(OUT-N05) 대신 멈춤 점검을 골랐다. 작업 한도는 진행 중인 호출을 멈추므로 늦은 성공이 생기지 않을 수 있기 때문이다.
+6. PSH-P04·N01에 넣은 첫 선택 단계, EDT-N06에서 토큰만 지우고 조사 쌍은 남기는 방식(1회차와 같은 조작).
+
+**결함 확인 결과**
+
+- 서버가 없어 새 케이스와 고친 케이스의 본문은 실행되지 않았다. 결함 주입은 이번에도 할 수 없었다.
+- 정적 점검: 모듈 import, `check_globals.py`(테스트 모듈의 정의되지 않은 전역 이름 없음), 사용하지 않는 import 없음, YAML 판정 키와 checkpoint 이름이 모두 해당 테스트 파일에 나온다.
+- 도우미 검사 `test_editable_helpers`가 형식이 틀린 조각, 빠진 위치, 공유 문장과 다른 조각, 참여자 조각 안의 문구 치환을 실패로 잡는지 확인했다.
+- 판정 수용 때 더할 결함 계획(§2-1 표에 이어 붙인다. d0은 이제 85 passed, skip 0이다):
+
+| # | 주입하는 결함 | 실패해야 할 케이스 | 실패해야 할 단언 |
+|---|---|---|---|
+| d19 | 결과 목록에 `editable`을 안 주거나 `pair`를 빼거나 `original_condition`을 넣음 | EDT-P01 | `editable_map` 형식, `privacy_scan` |
+| d20 | `editable`을 항목 자신(AI 원본) 문장으로 줌 | EDT-P03 | 다시 조회한 `editable`의 수정 문구 |
+| d21 | `draft`를 늘 false로 줌 | EXP-P04, EXP-P06, REG-P04 | `draft` |
+| d22 | 재생성 결과를 고르기 전에 참여자에게 보여줌 | REG-P04 | `shared_result: initial` |
+| d23 | 생성 완료 때 참여자에게도 푸시 | PSH-P01~P03, PSH-P05 | `push_sent.participant_each` 0 |
+| d24 | 재선택·수정 때 참여자 푸시 | PSH-P05 | checkpoint `reselect`·`edit`의 `push_sent.total` 0 |
+| d25 | 시도 ID 없이 늦은 결과 저장·상태 전환 | OUT-N07 | checkpoint `after_old_attempt` |
+| d26 | `retry`와 `regenerate`가 서로를 막지 않음 | REG-N04 | `concurrent_statuses`, `calls_added`, 빈 대기열 실패 |
+| d27 | 마감 뒤 새 세션을 201로 받음 | PRV-N01, PRV-N04 | checkpoint `closed_session` |
+
+**완료 조건 실행 결과**
+
+| 명령 | 결과 |
+|---|---|
+| `python -m pytest tests/test_server_*.py --collect-only -q` | 115 tests collected(케이스 85, 하니스 30) |
+| `python -m pytest tests/test_server_*.py -q -rs` (TEST_DATABASE_URL 없음) | 29 passed, 86 skipped. skip은 케이스 85개("서버 미구현: travel.server 모듈을 찾을 수 없다")와 DB fixture 1개("테스트 DB 없음") |
+| 같은 명령, `postgres:16`(16.15) 컨테이너 | 30 passed, 85 skipped(서버 미구현). 실행 뒤 `srvtest_` 데이터베이스 0개, 컨테이너는 지웠다 |
+| `python -m pytest tests/ -q -rs` | 166 passed, 86 skipped. 실패 0 |
+| `git diff --check` | 출력 없음 |
+| `git diff 371fcf4 -- src/` | `src/travel/scenarios.py`의 빈 줄 검사 한 줄(문항 쪽 수정, `delegation_scenarios.md` §2-3) |
+
+**사람이 수용할 때 확인할 항목**
+
+1. 결정 31~34의 문장이 질의 답과 같은지.
+2. 위 [에이전트 안] 1~6.
+3. AGENTS.md 7절은 숫자만 85·30·29로 바꿨다. "2026-11-05에는 구조 수용만 했다"는 1회차(80개) 하니스에 대한 문장이므로, 이 회차를 수용한 뒤 문장을 고칠지 정해야 한다.
+
+**2회차 구조 수용(2026-11-05, 전민규)**
+
+- 받아들인 것: 결정 31~35, [에이전트 안] 1~6(`editable` 형식, 판정 키·checkpoint 이름, REG-N04 10회 반복과 준비 상태, OUT-N07의 멈춤 점검 사용, PSH-P04·N01의 첫 선택 단계와 EDT-N06 조작), 결함 계획 d19~d27.
+- 결정 34에 칩 조립 규칙(`"{{participant:" + participant_id + "}}" + pair`, null이면 붙이지 않음)을 더했다. REG-N04의 준비 상태는 결정 35로 확정했다.
+- 수용 중 확인: 재생성 실패로 `failed`인 방에서 참여자 결과 조회가 기존 공개 결과를 그대로 돌려주는지 보는 케이스가 없었다. REG-N03은 그 조회의 `result_id`가 선택 시도 전후로 같은지만 비교한다. 결정 28("참여자에게는 기존 결과가 그대로 보인다")에 따라 REG-P05를 더했다. 케이스는 86개(통과 39, 실패 47), `regeneration`은 9개(P5·N4)다. 결함 계획에 d28(재생성 실패 때 결과 조회가 409이거나 실패 행을 보여줌 → REG-P05 checkpoint `after_failed_regeneration`)을 더하고, d0은 86 passed, skip 0으로 본다.
+- 수용 뒤 실행: `python -m pytest tests/test_server_*.py -q -rs`는 29 passed, 87 skipped(케이스 86개 서버 미구현, DB fixture 1개 테스트 DB 없음). `python -m pytest tests/ -q -rs`는 166 passed, 87 skipped, 실패 0.
+- 판정 수용은 남았다. 서버 구현 뒤 작은 흐름 범위(방 생성 → 문항 → 제출 → 마감 → 저장 출력 추천 → 방장 선택 → 참여자 공개)부터 결함 주입을 하고, 기능을 늘리며 d0~d28, C2·C7을 끝낸다. 케이스 본문은 아직 한 번도 실행되지 않았다.
+- 이후 `tests/`의 변경은 사람이 승인한다(AGENTS.md 4절).

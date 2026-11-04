@@ -3,6 +3,7 @@
 시각은 가짜 현재 시각 함수로 옮긴다. 시계는 테스트가 옮기기 전까지 멈춰 있으므로 generating 전환 시각은
 붙잡은 호출이 시작될 때의 시계 값이다. OUT-N06은 같은 DB에 앱 두 개를 연다. 앱 A가 호출을 붙잡아 방을
 generating에 두고, 앱 B(작업이 없는 새 인스턴스, 재시작한 컨테이너 흉내)가 멈춤 점검과 재시도를 한다(2026-11-05 사람 결정).
+OUT-N07도 같은 구성이다. 다만 앱 A의 작업은 살아 있다가 B의 재시도 뒤에 늦게 끝난다(결정 30, 생성 시도 ID).
 """
 
 import pytest
@@ -205,3 +206,51 @@ def test_out_n06_stalled_generation_recovered(srv, expect):
             assert _normal(restarted, room) == checkpoint["normal_results"]
     first_input = crashed.replay.calls_for("pact")[0].model_input
     _assert_retry_with_same_input(restarted, room, expect.at("retry")["http_status"], first_input=first_input)
+
+
+@case("OUT-N07")
+def test_out_n07_late_old_attempt_discarded(srv, expect):
+    old_app = srv.app
+    _, room = old_app.create_room()
+    host_endpoint = f"https://push.test/{room.code}/host"
+    assert old_app.subscribe(room, "host", endpoint=host_endpoint).status_code == 201
+    old_hold = old_app.replay.hold("pact", po.pact_item())
+    _submit_all(old_app, room)
+    old_hold.wait_started()
+    switched = srv.clock()
+    new_replay = srv.new_replay()
+    new_app = srv.open_app(replay=new_replay)
+    srv.clock.set_after(switched, 600)
+    new_app.recover_stalled()
+    assert _status(new_app, room) == ("failed", "interrupted"), "준비: 멈춤 점검 뒤 failed(interrupted)가 아니다"
+    new_hold = new_replay.hold("pact", po.pact_item())
+    assert new_app.retry(room).status_code == 202
+    new_hold.wait_started()
+
+    def results_rows():
+        return srv.sql("SELECT count(*) AS n FROM results")[0]["n"]
+
+    def pushes(mark):
+        sent = srv.push.since(mark)
+        return {"host": sum(1 for s in sent if s["endpoint"] == host_endpoint), "total": len(sent)}
+
+    # note: "A가 끝난 뒤 generating 그대로, 새 results 행 0, 푸시 0건"
+    rows, mark = results_rows(), srv.push.count()
+    old_hold.release()
+    old_app.join()
+    checkpoint = expect.at("after_old_attempt")
+    assert _status(new_app, room)[0] == checkpoint["room_status"], "이전 시도의 늦은 결과가 상태를 바꿨다"
+    assert results_rows() - rows == checkpoint["new_result_rows"], "이전 시도의 늦은 결과가 저장됐다"
+    sent = pushes(mark)
+    for key, n in checkpoint["push_sent"].items():
+        assert sent[key] == n, f"이전 시도 뒤 푸시 {key} {sent[key]}건"
+
+    mark = srv.push.count()
+    new_hold.release()
+    new_app.join()
+    checkpoint = expect.at("after_new_attempt")
+    assert _status(new_app, room)[0] == checkpoint["room_status"]
+    assert _normal(new_app, room) == checkpoint["normal_results"]
+    sent = pushes(mark)
+    for key, n in checkpoint["push_sent"].items():
+        assert sent[key] == n, f"새 시도 뒤 푸시 {key} {sent[key]}건"

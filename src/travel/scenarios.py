@@ -200,7 +200,7 @@ def check_scene_lines(index, scenarios):
         lines = scenario["scene"].split("\n")
         original = template.get("scene")
         expected = len(original.split("\n")) if isinstance(original, str) else None
-        if "" in lines:
+        if any(not line.strip() for line in lines):
             errors.append(_error("scene_line_mismatch", _pointer("scenarios", i, "scene"), "scene에 빈 줄이 있다"))
         elif len(lines) != expected:
             errors.append(_error("scene_line_mismatch", _pointer("scenarios", i, "scene"),

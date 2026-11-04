@@ -2,6 +2,7 @@
 
 준비(§0-1): 방장 구독 1개, 참여자 구독 2개(p1·p2 세션에 묶음), 구독하지 않은 참여자 1명(p3). 가짜 푸시 발송기.
 발송 수는 가짜 발송기 기록을 endpoint로 나눠 센다. 알림 기록은 notifications(event, subscription_id) 행으로 센다.
+참여자에게는 방장의 첫 결과 선택 때만 보낸다(결정 28). 참여자 발송이 필요한 케이스는 생성 뒤 최초 결과를 고른다.
 """
 
 import pytest
@@ -13,6 +14,8 @@ from harness.server.privacy import scan_private
 case = pytest.mark.server_case
 EXPIRED_STATUS = 410
 SERVER_ERROR_STATUS = 500
+OLD_PHRASE = "비슷한 상황이 오면"
+NEW_PHRASE = "같은 상황이 다시 오면"
 
 
 class PushRoom:
@@ -92,6 +95,42 @@ def _auto_failure_then_retry(srv, app, expect=None):
     return pr
 
 
+def _select_initial(app, pr):
+    """방장이 최초 정상 결과를 고른다(첫 선택). 고른 result_id를 돌려준다."""
+    initial = app.result(pr.room).json()["result_id"]
+    resp = app.select(pr.room, initial)
+    assert resp.status_code == 200, resp.text[:300]
+    return initial
+
+
+def _selection_flow(srv, app, expect=None):
+    """PSH-P05: 자동 생성 성공 → 재생성 성공 → 첫 선택 → 재선택 → 고른 결과 수정."""
+    pr, _ = _auto_success(srv, app)
+
+    def check(at, mark):
+        if expect is not None:
+            _assert_sent(srv.push, mark, pr, expect.at(at)["push_sent"])
+
+    mark = srv.push.count()
+    app.replay.push("pact", po.pact_item())
+    assert app.regenerate(pr.room).status_code == 202
+    app.join()
+    check("regeneration", mark)
+    mark = srv.push.count()
+    initial = _select_initial(app, pr)
+    check("first_select", mark)
+    regenerated = next(r["result_id"] for r in app.results_body(pr.room)["results"]
+                       if r["state"] == "normal" and r["result_id"] != initial)
+    mark = srv.push.count()
+    assert app.select(pr.room, regenerated).status_code == 200
+    check("reselect", mark)
+    mark = srv.push.count()
+    text = app.edited_text(pr.room, regenerated, "/clauses/0/action", OLD_PHRASE, NEW_PHRASE)
+    assert app.edit(pr.room, regenerated, [{"path": "/clauses/0/action", "text": text}]).status_code == 201
+    check("edit", mark)
+    return pr
+
+
 def _early_success(srv, app):
     pr = PushRoom(app)
     pr.submit("p1")
@@ -136,6 +175,8 @@ def test_psh_p04_send_failures(srv, expect):
     pr.submit_all()
     app.join()
     assert app.room(pr.room)["room_status"] == expect["room_status"]
+    # 참여자 발송은 첫 결과 선택 때 생긴다(결정 28)
+    _select_initial(app, pr)
     kept = {row["id"] for row in srv.sql("SELECT subscription_id::text AS id FROM push_subscriptions")}
     for status, state in expect["subscription_by_send_status"].items():
         sid = str(pr.subscription_ids[targets[int(status)]])
@@ -149,6 +190,7 @@ def test_psh_p04_send_failures(srv, expect):
 def test_psh_n01_reprocessing_does_not_resend(srv, expect):
     app = srv.app
     pr, _ = _auto_success(srv, app)
+    _select_initial(app, pr)
     events = sorted({row["event"] for row in srv.sql("SELECT event FROM notifications")})
     assert events, "notifications 행이 없다"
     mark = srv.push.count()
@@ -165,9 +207,10 @@ def test_psh_n01_reprocessing_does_not_resend(srv, expect):
 
 @case("PSH-N02")
 def test_psh_n02_push_bodies_hold_status_only(srv, expect):
-    # 검사 범위: PSH-P01~P03 흐름에서 가짜 발송기가 받은 모든 본문
+    # 검사 범위: PSH-P01~P03, P05 흐름에서 가짜 발송기가 받은 모든 본문
     app = srv.app
-    rooms = [_auto_success(srv, app)[0], _auto_failure_then_retry(srv, app), _early_success(srv, app)[0]]
+    rooms = [_auto_success(srv, app)[0], _auto_failure_then_retry(srv, app), _early_success(srv, app)[0],
+             _selection_flow(srv, app)]
     assert srv.push.sent, "발송된 본문이 없다"
     room_by_endpoint = {ep: pr.room for pr in rooms for ep in pr.endpoints.values()}
     problems = []
@@ -191,3 +234,8 @@ def test_psh_n03_subscription_without_endpoint(srv, expect):
     resp = app.subscribe(room, "participant", session_id=session["session_id"],
                          subscription={"keys": {"p256dh": "test-p256dh", "auth": "test-auth"}})
     assert_error(resp, expect["http_status"], expect["error_code"])
+
+
+@case("PSH-P05")
+def test_psh_p05_participants_notified_on_first_select_only(srv, expect):
+    _selection_flow(srv, srv.app, expect)

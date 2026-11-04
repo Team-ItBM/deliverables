@@ -87,9 +87,9 @@ def test_exp_p04_shared_result_after_edit(srv, expect):
     _, room = app.create_room()
     _early_result(app, room, po.pact_item())
     original = app.result(room).json()
-    action = srv.pact_outputs()[0]["clauses"][0]["action"]
-    edit = app.edit(room, original["result_id"],
-                    [{"path": "/clauses/0/action", "text": action.replace("비슷한 상황이 오면", "같은 상황이 다시 오면", 1)}])
+    # 방장이 고르기 전의 수정본이다(결정 31). 편집 문장은 editable만으로 만든다(결정 29).
+    text = app.edited_text(room, original["result_id"], "/clauses/0/action", "비슷한 상황이 오면", "같은 상황이 다시 오면")
+    edit = app.edit(room, original["result_id"], [{"path": "/clauses/0/action", "text": text}])
     assert edit.status_code == 201, edit.text[:300]
     participant = app.result(room).json()
     host = app.result(room, host=True).json()
@@ -100,6 +100,7 @@ def test_exp_p04_shared_result_after_edit(srv, expect):
     assert participant["excluded_names"], "조기 생성인데 excluded_names가 비어 있다"
     assert participant["conditional_alternatives"][0]["proposed_changes"], "proposed_changes가 없다"
     assert participant["label"] == expect["result_label"]
+    assert participant["draft"] is expect["draft"]
     srv.collect_original_conditions()
     problems = []
     for where, payload in (("참여자 결과", participant), ("방장 결과", host), ("수정 응답", edit.json())):
@@ -174,3 +175,20 @@ def test_exp_n03_stored_unknown_token_blocks_result(srv, expect):
     assert set(resp.json()) == {"error"}
     for text in _sentences(shown):
         assert text not in resp.text, "render_failed 응답에 결과 문장이 있다"
+
+
+@case("EXP-P06")
+def test_exp_p06_draft_until_host_selects(srv, expect):
+    app = srv.app
+    room, _ = app.ready_room()
+    initial = app.result(room).json()["result_id"]
+    for at in ("before_select", "after_select"):
+        if at == "after_select":
+            assert app.select(room, initial).status_code == 200
+        checkpoint = expect.at(at)
+        for host in (False, True):
+            resp = app.result(room, host=host)
+            assert resp.status_code == 200, resp.text[:300]
+            body = resp.json()
+            assert body["result_id"] == initial, f"{at}: 최초 정상 결과가 아니다"
+            assert body["draft"] is checkpoint["draft"], f"{at}: draft {body.get('draft')!r} (방장 토큰 {host})"

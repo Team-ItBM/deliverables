@@ -39,9 +39,9 @@
 3. 인물 토큰 검사 대상: `scene`, `question`, `options[].label` 전부.
 4. 오류 수집: 모두 모은다. JSON 파싱이나 스키마 검사에서 실패하면 그 단계에서 멈춘다(추천 검증기와 같다).
 
-## §0-1. 골든 케이스 (초안 2026-11-04, 2026-11-04 확정)
+## §0-1. 골든 케이스 (초안 2026-11-04, 2026-11-04 확정, N32~N34 추가 2026-11-05)
 
-에이전트(Claude)가 §0을 바탕으로 쓴 후보를 전민규가 2026-11-04에 43개 그대로 확정했다. 케이스·기대값 변경은 사람이 승인한다(강의 5 B절, AGENTS 4절). §1-1 위임에서 이 표를 YAML과 fixture로 옮긴다.
+에이전트(Claude)가 §0을 바탕으로 쓴 후보를 전민규가 2026-11-04에 43개 그대로 확정했다. 2026-11-05에 PR #15 리뷰에 따라 전민규가 N32~N34(결정 5)를 더해 46개가 됐다. 케이스·기대값 변경은 사람이 승인한다(강의 5 B절, AGENTS 4절). §1-1 위임에서 이 표를 YAML과 fixture로 옮긴다.
 
 **기준 fixture** (`tests/harness/fixtures/scenario/` 예정, 각 `{source, input, output}`)
 
@@ -104,15 +104,19 @@ S1~S6은 v6·pool v2 시점 출력이고 입력에 자기 pool 8개가 들어 �
 | N29 | `ex1_ready` | `scenarios/1/scene`(2줄) 끝에 `\n` 하나 추가 | `scene_line_mismatch` | §0-1 결정 2 |
 | N30 | `ex1_ready` | `scene` 첫 줄에 `{{profile:}}` 추가 | `unknown_profile_token` | §0-1 결정 3, 빈 ID |
 | N31 | `ex1_ready` | `scene` 첫 줄에 `{{ profile:p1 }}` 추가 | `unknown_profile_token` | §0-1 결정 3, 공백이 섞인 등록 ID |
+| N32 | `ex1_ready` | `scenarios/0/scene`(3줄)의 둘째 줄을 공백 한 칸으로 교체 | `scene_line_mismatch` | §0-1 결정 5. 줄 수는 원본과 같다 |
+| N33 | `ex1_ready` | 같은 줄을 탭 하나로 교체 | `scene_line_mismatch` | §0-1 결정 5 |
+| N34 | `ex1_ready` | 같은 줄을 `\r` 하나로 교체 | `scene_line_mismatch` | §0-1 결정 5 |
 
-후보는 통과 12개(V04~V08을 5개로 셈), 실패 31개, 합계 43개다. 오류 코드 10개마다 실패 케이스가 하나 이상 있다.
+케이스는 통과 12개(V04~V08을 5개로 셈), 실패 34개, 합계 46개다(2026-11-04 확정 43개 + 2026-11-05 추가 3개). 오류 코드 10개마다 실패 케이스가 하나 이상 있다.
 
 **결정한 것** (2026-11-04, 전민규)
 
 1. `ready`에 `clarification_questions`가 있으면 `status_combination`이다. `message`는 허용한다. B절에 `message` 금지 문장이 없기 때문이다(V12, N28).
-2. `scene`을 `\n`으로 나눈 결과에 빈 줄이 있으면 `scene_line_mismatch`다. 끝 줄바꿈 하나도 빈 줄이다(N29).
+2. `scene`을 `\n`으로 나눈 결과에 빈 줄이 있으면 `scene_line_mismatch`다. 끝 줄바꿈 하나도 빈 줄이다(N29). 공백만 있는 줄은 결정 5로 넓혔다.
 3. 토큰은 `{{`, 공백, `profile`, 공백, `:`, ID, `}}` 순서로 찾는다. `profile` 앞뒤 공백을 허용해 찾되, `:`와 `}}` 사이의 문자열이 등록 `profile_id`와 정확히 같지 않으면 `unknown_profile_token`이다. 빈 ID와 공백이 섞인 ID도 실패다(N30, N31).
 4. `template_id`가 입력 pool에 없는 항목은 `unknown_template`만 내고 그 항목의 `option_mismatch`·`scene_line_mismatch` 검사는 건너뛴다(N12).
+5. (2026-11-05, PR #15 리뷰) 공백·탭·`\r`만 있는 줄도 빈 줄이다. 줄 수가 원본과 같아도 `scene_line_mismatch`다(N32~N34). 결정 2의 "빈 줄"을 넓힌 것이다.
 
 **기본안으로 둔 것** (2026-11-04 전민규가 그대로 확정)
 
@@ -526,3 +530,31 @@ src/travel/scenarios.py 하나만 새로 만든다.
 **수용** (2026-11-04)
 
 사람이 위 확인 항목 1~4를 보고 수용했다. 에이전트가 정한 판단 1~7을 받아들였고, 케이스별 실제 오류가 §0-1의 기대와 같은 이유로 나오는 것을 확인했다. 작업 중 바뀐 §2-1 "수용" 문단은 사람의 변경이 맞다. AGENTS.md 7절의 문항 골든 테스트 결과를 "로더 검사 7개를 포함해 50개가 통과했다"로 바꿨다. 수용 대상은 위임 직전 HEAD `14b84ae`에 `src/travel/scenarios.py`를 더한 커밋 `b10a351`이다. 이후 `scenarios.py`의 판정 동작 변경은 사람이 승인한다.
+
+### §2-3. 공백 조건 줄 케이스와 검증기 수정 (2026-11-05, 2회차(PR #15 리뷰 반영))
+
+에이전트 Claude가 프롬프트 10 "고칠 것" 6을 실행했다. 사람이 승인한 변경이고(§0-1 결정 5), 2026-11-05에 수용했다(이 절 끝 "수용").
+
+| 회차 | 결과 | 무엇이 문제였나 | 무엇을 고쳤나 (프롬프트/케이스/테스트 코드) |
+|---|---|---|---|
+| 2 | 케이스를 더한 직후 3 failed, 50 passed. 검증기 수정 뒤 53 passed, skip 0 | PR #15 리뷰: 줄 수는 원본과 같고 조건 줄 하나가 공백뿐인 `scene`이 통과했다 | 케이스 N32~N34, 로더 개수(43 → 46, N 31 → 34), `scenarios.py`의 빈 줄 검사 한 줄 |
+
+**시작 상태**: HEAD `371fcf4436998819af5d16fabe178210a43a5866`, `git status --short --untracked-files=all` 출력 없음.
+
+**바꾼 케이스**
+
+- N32·N33·N34: `ex1_ready`의 `scenarios/0/scene`(3줄) 둘째 줄을 공백 한 칸, 탭, `\r`로 바꿨다. 셋 다 `\n`으로 나누면 3줄이라 줄 수 검사로는 걸리지 않는다. 기대는 `scene_line_mismatch`다.
+- `tests/test_scenario_golden.py`의 `EXPECTED_CASE_COUNT`·`EXPECTED_N_COUNT`와 안내 문장, YAML 머리말(46개, 결정 5)을 맞췄다.
+
+**결함 확인 결과** (수정 전 코드에서 새 케이스가 실패하는지)
+
+- 수정 전 `python -m pytest tests/test_scenario_golden.py -q -rs`: `3 failed, 50 passed`. 실패는 N32·N33·N34이고 셋 다 `expect_valid=False 인데 valid=True, codes=[]` 단언이었다. 검사가 빈 문자열 줄만 찾았기 때문이다(`if "" in lines`). 출력 원문은 이 세션의 임시 폴더에만 남겼다.
+- 수정: `check_scene_lines`의 조건을 `if any(not line.strip() for line in lines):`로 바꿨다. 다른 판정 동작은 그대로다. 빈 줄을 줄 수보다 먼저 보고 한 번만 낸다(§2-2 "에이전트가 정한 것" 5).
+- 수정 뒤: `53 passed`(케이스 46, 로더 7), skip·xfail 0. `python -m pytest tests/ -q -rs`: 166 passed, 86 skipped(서버 케이스 85, DB fixture 1).
+- `git diff 371fcf4 -- src/`: 위 한 줄만 바뀌었다. docstring은 고치지 않았다(완료 조건 "한 곳만").
+
+**미확인**: `str.strip()`은 전각 공백 같은 유니코드 공백도 지운다. 그런 줄도 빈 줄로 잡지만, 이번 케이스는 공백·탭·`\r`만 다룬다.
+
+**수용** (2026-11-05, 전민규)
+
+새 케이스 N32~N34가 고치기 전 코드에서 기대한 단언으로 실패하고(`3 failed, 50 passed`), 고친 뒤 통과한 것(`53 passed`, skip 0)을 근거로 수용했다. 유니코드 공백(전각 공백 등)만 있는 줄은 이번 범위 밖이다. 지금 코드는 그런 줄도 빈 줄로 잡지만 케이스로 확인하지 않았다. 수용 대상은 이 기록을 담은 커밋의 `tests/harness/scenario_cases.yaml`, `tests/test_scenario_golden.py`, `src/travel/scenarios.py`다.

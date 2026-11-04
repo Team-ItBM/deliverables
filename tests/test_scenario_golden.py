@@ -41,9 +41,9 @@ PATCH_OPS = {"add", "remove", "replace"}
 FIXTURE_KEYS = {"source", "input", "output"}
 
 # §0-1이 정한 케이스 수. 케이스를 늘리거나 줄이면 사람이 승인하고 이 값도 함께 바꾼다.
-EXPECTED_CASE_COUNT = 43
+EXPECTED_CASE_COUNT = 46
 EXPECTED_V_COUNT = 12
-EXPECTED_N_COUNT = 31
+EXPECTED_N_COUNT = 34
 EXPECTED_BASELINE_FIXTURES = 8
 NAME_PATTERN = re.compile(r"^(V|N)\d{2}_")
 
@@ -241,7 +241,7 @@ def test_loader_unique_names():
 
 
 def test_loader_case_counts():
-    """§0-1의 V01~V12, N01~N31 43개가 빠짐없이 있는지 이름 접두어로 센다."""
+    """§0-1의 V01~V12, N01~N34 46개가 빠짐없이 있는지 이름 접두어로 센다."""
     problems = []
     v_count = n_count = 0
     for i, case in enumerate(CASES):
@@ -266,7 +266,7 @@ def test_loader_case_counts():
         problems.append(f"ID 중복: {duplicated_ids}")
     expected_ids = {f"V{n:02d}" for n in range(1, EXPECTED_V_COUNT + 1)} | {f"N{n:02d}" for n in range(1, EXPECTED_N_COUNT + 1)}
     if set(ids) != expected_ids:
-        problems.append(f"ID가 V01~V12, N01~N31과 다르다. 없음 {sorted(expected_ids - set(ids))}, 추가 {sorted(set(ids) - expected_ids)}")
+        problems.append(f"ID가 V01~V12, N01~N34와 다르다. 없음 {sorted(expected_ids - set(ids))}, 추가 {sorted(set(ids) - expected_ids)}")
     if len(CASES) != EXPECTED_CASE_COUNT:
         problems.append(f"케이스 수 {len(CASES)}개, 기대 {EXPECTED_CASE_COUNT}개")
     if (v_count, n_count) != (EXPECTED_V_COUNT, EXPECTED_N_COUNT):
