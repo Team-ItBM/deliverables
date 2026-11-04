@@ -19,6 +19,8 @@ colors:
   hairline: "#3E38331A"
   stamp: "#B3362C"
   error: "#9E2F26"
+  blossom: "#EBB8B1"
+  bark: "#8A6A4A"
 typography:
   display-pact:
     fontFamily: Noto Serif KR
@@ -41,11 +43,16 @@ typography:
     fontSize: 17px
     fontWeight: 600
     lineHeight: 1.5
-  body-lg:
+  scene-lead:
     fontFamily: IBM Plex Sans KR
-    fontSize: 17px
+    fontSize: 16px
+    fontWeight: 600
+    lineHeight: 1.5
+  scene-detail:
+    fontFamily: IBM Plex Sans KR
+    fontSize: 15px
     fontWeight: 400
-    lineHeight: 1.7
+    lineHeight: 1.5
   body-md:
     fontFamily: IBM Plex Sans KR
     fontSize: 16px
@@ -115,9 +122,12 @@ motion:
   easing: "cubic-bezier(0.2, 0, 0, 1)"
   feedback: 150ms
   enter: 320ms
-  paper: 480ms
-  stamp: 240ms
-  stagger: 50ms
+  paper: 1100ms
+  clause: 640ms
+  stamp: 420ms
+  stagger: 220ms
+  branch: 500ms
+  petal-fall: 12s
 components:
   button-primary:
     backgroundColor: "{colors.primary}"
@@ -154,6 +164,13 @@ components:
   option-card-selected:
     backgroundColor: "{colors.paper}"
     textColor: "{colors.primary}"
+  scene-lead:
+    textColor: "{colors.primary}"
+    typography: "{typography.scene-lead}"
+  scene-detail:
+    textColor: "{colors.secondary}"
+    typography: "{typography.scene-detail}"
+    padding: 32px
   input-text:
     backgroundColor: "{colors.paper}"
     textColor: "{colors.primary}"
@@ -230,6 +247,12 @@ components:
     typography: "{typography.stamp}"
     rounded: "{rounded.full}"
     size: 88px
+  pact-branch:
+    textColor: "{colors.bark}"
+    size: 172px
+  petal-drift:
+    backgroundColor: "{colors.blossom}"
+    size: 14px
   unresolved-panel:
     backgroundColor: "{colors.paper}"
     textColor: "{colors.primary}"
@@ -259,10 +282,10 @@ components:
 
 도원결의는 여행을 떠나기 전, 동행이 같은 가상 상황에 각자 답하면 서로의 바람과 한계를 반영한 **추천 협약서 한 장**을 돌려주는 모바일 웹이다.
 
-화면은 **떠나기 전날 밤 식탁에 펼쳐 둔 서약서 한 장**을 닮는다. 미색 종이, 먹색 글자, 놋쇠빛 밑줄, 마지막에 찍는 붉은 인주 도장이 이 세계의 재료다. 배너와 발표자료가 이미 이 재료로 만들어져 있으므로 새 스타일을 만들지 않고 그 결을 앱 화면으로 옮긴다.
+화면은 **떠나기 전날 밤 식탁에 펼쳐 둔 서약서 한 장**을 닮는다. 미색 종이, 먹색 글자, 놋쇠빛 밑줄, 마지막에 찍는 붉은 인주 도장이 이 세계의 재료다. 배너와 발표자료가 이미 이 재료로 만들어져 있으므로 새 스타일을 만들지 않고 그 결을 앱 화면으로 옮긴다. 서비스 이름의 도원(복숭아 동산)에서 온 복숭아꽃은 협약서가 발급되는 순간에만 피운다.
 
 - **성격**: 다정하고, 정확하고, 조금 장난스럽다. 묻고 안내하는 화면은 조용하고 친절하게, 결과의 제목·도장·짧은 문구에서만 재미를 준다([9/23 회의](docs/meetings/2026-09-23.md#결과-화면과-공유)).
-- **풍부한 한 순간**: 결과 화면의 협약서 종이와 도장. 색·질감·연출은 여기에 모으고, 나머지 화면은 같은 중립색 위에서 읽고 고르는 일에만 집중한다.
+- **풍부한 한 순간**: 결과 화면의 협약서 종이, 도장, 복숭아나무 가지. 색·질감·연출은 여기에 모으고, 나머지 화면은 같은 중립색 위에서 읽고 고르는 일에만 집중한다.
 - **시그니처**: 인주 도장. 협약서 종이에만 찍으며 로고·버튼·로딩·빈 화면에는 쓰지 않는다.
 - **사용 환경**: 아이폰 Safari와 안드로이드 Chrome의 세로 화면(AC14). 한 손 엄지로 조작하고, 답하는 동안 문장을 끝까지 읽을 수 있어야 한다.
 
@@ -283,6 +306,7 @@ components:
 - **윤곽선** {colors.outline}: 입력란 테두리처럼 경계가 조작 단서인 곳. 바탕 대비 3.38:1로 WCAG의 비텍스트 대비 3:1을 넘는다.
 - **옅은 윤곽선** {colors.outline-variant}, **헤어라인** {colors.hairline}: 장식이 아닌 구분선. 조작 단서로 쓰지 않는다.
 - **인주** {colors.stamp}: 도장 전용. 다른 곳에 쓰지 않는다.
+- **복숭아꽃** {colors.blossom}, **가지** {colors.bark}: 협약서 화면의 가지와 꽃잎 전용. 버튼·글자·선 같은 크롬에는 쓰지 않는다.
 - **오류** {colors.error}: 오류 문구와 같은 이름 안내(AC16). 인주와 같은 붉은 계열이지만 더 어두워 역할이 섞이지 않는다.
 
 대비(WCAG 상대 휘도 공식으로 계산, 바탕 {colors.neutral} 기준): 먹 10.61:1, 보조 글자 6.53:1, 흐린 글자 5.12:1, 놋쇠 5.32:1, 오류 6.68:1, 주 버튼 글자 10.61:1. 표면 {colors.surface} 위에서는 흐린 글자 4.73:1, 놋쇠 4.92:1로 모두 4.5:1 이상이다.
@@ -295,7 +319,7 @@ components:
 
 - **Noto Serif KR**은 워드마크 {typography.wordmark}, 화면 제목 {typography.headline-lg}, 협약서 제목 {typography.display-pact}, 조항 번호 {typography.clause-number}, 도장 {typography.stamp}에만 쓴다. 버튼·라벨·입력란에는 쓰지 않는다.
 - **워드마크** ‘도원결의’는 앱 머리와 협약서 머리 모두 Noto Serif KR 600이다. 발표자료 표지와 같은 서체이고, 협약서 제목·도장과 한 목소리로 읽힌다. 배너의 굵은 산세리프 표기는 README 표지에만 쓴다.
-- **IBM Plex Sans KR**은 나머지 전부다. 문항의 장면 문단은 {typography.body-lg}로 한 단계 크게 두어 끝까지 읽게 하고, 질문은 {typography.headline-md}로 장면보다 앞에 읽히게 한다.
+- **IBM Plex Sans KR**은 나머지 전부다. 문항의 장면은 첫 줄을 {typography.scene-lead}, 나머지 줄을 {typography.scene-detail}로 두고, 질문은 {typography.headline-md}로 장면보다 앞에 읽히게 한다.
 - 굵기는 400·500·600만 쓴다. 발표자료는 굵은 제목을 많이 쓰지만 작은 화면에서는 크기와 색으로 위계를 만든다.
 - 개수·회차·날짜처럼 바뀌는 숫자는 {typography.numeral}(고정폭 숫자)로 쓴다. 예: `제출 3 / 4`, `2 / 8`.
 - 한국어 줄바꿈은 `word-break: keep-all`로 어절 단위로 끊고, 긴 별명은 `overflow-wrap: anywhere`로 넘치지 않게 한다.
@@ -348,10 +372,18 @@ components:
 
 - 누름·선택·토글: {motion.feedback}. 색과 면만 바뀌고 크기는 누를 때 98%로 줄었다 돌아오는 정도까지만.
 - 시트·안내 카드 등장: {motion.enter}, 아래에서 8px 떠오르며 나타난다.
-- **협약서 발급 연출**: 종이가 {motion.paper} 동안 위에서 펼쳐지고(높이가 아닌 `clip-path`·`transform`으로), 조항이 {motion.stagger} 간격으로 이어 나타난 뒤 도장이 {motion.stamp} 동안 108%에서 100%로 찍힌다. 결과를 처음 열 때 한 번만 재생하고 다시 열면 바로 완성 상태를 보여 준다. 연출은 9/23 회의의 ‘종이가 펼쳐진 뒤 마지막에 도장’ 방향을 따른다.
-- 협약서 생성을 기다리는 동안에는 실제로 진행 중인 작업이므로 얇은 진행 막대가 천천히 흐르는 것을 허용한다. 그 밖에 반복하는 움직임(깜빡임, 숨쉬기, 반짝임)은 쓰지 않는다.
-- `prefers-reduced-motion: reduce`이면 모든 시간을 0으로 두고 완성 상태를 바로 보여 준다.
+- **협약서 발급 연출**: 종이가 {motion.paper} 동안 위에서 펼쳐지고(높이가 아닌 `clip-path`·`transform`으로), 조항이 {motion.clause} 동안 {motion.stagger} 간격으로 이어 나타난 뒤 도장이 {motion.stamp} 동안 108%에서 100%로 줄며 불투명도가 0에서 올라와 종이에 찍힌다. 찍히는 동안에도 그림자는 없다. 도장 애니메이션이 시작하는 순간 복숭아나무 가지가 함께 뻗는다(`pact-branch`). 결과를 처음 열 때 한 번만 재생하고 다시 열면 바로 완성 상태를 보여 준다. 연출은 9/23 회의의 ‘종이가 펼쳐진 뒤 마지막에 도장’ 방향을 따른다.
+- 협약서 생성을 기다리는 동안에는 실제로 진행 중인 작업이므로 얇은 진행 막대가 천천히 흐르는 것을 허용한다. 결과 화면의 흩날리는 꽃잎(`petal-drift`)도 예외로 허용한다. 그 밖에 반복하는 움직임(깜빡임, 숨쉬기, 반짝임)은 쓰지 않는다.
+- `prefers-reduced-motion: reduce`이면 모든 시간을 0으로 두고 완성 상태를 바로 보여 준다. 흩날리는 꽃잎은 보여 주지 않는다.
 - `transition: all`을 쓰지 않는다. `color`, `background-color`, `border-color`, `opacity`, `transform`만 지정해 전환한다.
+
+## Sound
+
+효과음은 협약서 발급 연출에만 쓴다. 종이가 펼쳐질 때, 조항이 놓일 때, 도장이 찍힐 때, 가지가 뻗고 꽃이 필 때 짧고 작게 난다.
+
+- 기본값은 꺼짐이다. 사용자가 연출을 직접 시작했을 때만 재생하고 자동 재생하지 않는다.
+- 기기의 무음·음소거 설정을 따른다.
+- 소리가 없어도 연출의 의미는 같아야 한다. 소리로만 알리는 정보는 없다.
 
 ## Components
 
@@ -369,6 +401,12 @@ components:
 - 세로 목록, 한 줄에 하나. 최소 높이 56px, 글이 길면 늘어난다.
 - 왼쪽에 20px 라디오 원, 오른쪽에 선택지 문구(`ScenarioOption.label`)를 둔다.
 - 선택하면 바탕이 {colors.paper}로 바뀌고 {colors.tertiary-mark} 2px 테두리와 채워진 라디오 점이 생긴다. 색만으로 선택을 표시하지 않으며 `role="radio"`와 `aria-checked`를 함께 둔다.
+
+### 장면 개요 `scene-lead`, `scene-detail`
+
+- 장면의 첫 줄은 점 없이 `scene-lead`로 둔다. 둘째 줄부터는 `scene-detail`로 {spacing.3xl} 들여 쓰고, 줄 앞에 {colors.outline} 4px 점을 둔다.
+- 첫 줄과 조건 줄 사이는 {spacing.sm}, 조건 줄끼리는 {spacing.xs}다. 장면 묶음과 질문 사이는 {spacing.2xl}이다.
+- 한 줄이 길어 줄바꿈되면 다음 줄은 점이 아니라 글자 시작 위치에 맞춘다.
 
 ### 입력란 `input-text`, `input-memo`
 
@@ -402,7 +440,7 @@ components:
 4. **조항**: `제1조`부터 번호를 붙인다 `pact-clause-number`. 번호 아래 조항 문장, 그 아래 적용 대상 이름을 둔다. 제안 조건(`proposed_conditions`)은 한 단계 들여 쓰고 앞에 {colors.tertiary} {typography.label-sm} 라벨을 둬 조항 문장과 구분한다(AC7).
 5. **조건부 대안**: 조항 아래 헤어라인으로 구분한 묶음. 대안 문장 아래 필요한 변경을 한 단계 들여 쓴다. 표시하는 필드는 AC3·AC8을 따른다.
 6. **미해결 조건**: 조건부 대안과 같은 모양의 묶음.
-7. **바닥글**: 헤어라인 아래 {typography.caption} 글자 영역과 오른쪽 아래 도장.
+7. **바닥글**: 헤어라인 아래 {typography.caption} 글자 영역. 오른쪽 아래에 바닥글 글자와 테두리선에 걸쳐 찍힌 도장.
 
 ### 방장 수정 표시 `host-edit-label`
 
@@ -411,9 +449,27 @@ components:
 
 ### 도장 `stamp` (시그니처)
 
-- 지름 88px 원, {colors.stamp} 3px 선, 안에 두 줄 글자({typography.stamp}). -12° 기울이고 92% 불투명도로 종이에 스민 느낌을 낸다.
-- 종이 바닥글 오른쪽, 마지막 조항이나 바닥글 글자를 가리지 않는 위치에 둔다.
+- 지름 88px 원, {colors.stamp} 3px 선, 안에 두 줄 글자({typography.stamp}). -12° 기울인다.
+- 종이 위에 따로 놓인 스티커가 아니라 종이에 찍힌 인주로 보이게 한다. `mix-blend-mode: multiply`로 종이 결과 아래 글자·선이 도장 사이로 비치게 하고, 불투명도는 90% 안팎으로 둔다.
+- 인주가 고르게 묻지 않은 것처럼 선과 글자의 가장자리는 아주 조금 번지고, 옅은 곳이 드물게 약하게 있다. 얼룩이 눈에 띄면 과한 것이다. 질감은 SVG 노이즈 필터 하나로 만들고 도장 밖에는 쓰지 않는다.
+- 그림자, 배경색, 테두리 상자를 주지 않는다. 떠 있는 것처럼 보이는 요소는 모두 뺀다.
+- 위치는 종이 바닥글 오른쪽이다. 바닥글의 헤어라인, 종이 안쪽 테두리선, 바닥글 글자 끝에 걸쳐 찍는다. 조항 문장 위에는 찍지 않는다.
+- 저장 이미지에서도 혼합 모드와 질감이 화면과 같게 그려져야 한다(AC13).
 - 도장은 협약서 종이의 일부다. 종이가 표시되는 결과에는 `proposed`·`conditional_only` 구분 없이 찍고, 종이가 없는 화면에는 두지 않는다.
+- 도장 애니메이션이 시작하는 순간 `pact-branch`도 함께 시작한다.
+
+### 복숭아나무 가지 `pact-branch`
+
+- 종이의 오른쪽 위와 왼쪽 아래 구석, 글자 뒤에 둔다. 왼쪽 아래 가지는 오른쪽 위 가지를 180° 돌린 모양이다. 가로 크기는 172px다.
+- 가지는 {colors.bark} 불투명도 30% 안팎이며, 굵은 줄기에서 잔가지로 갈수록 가늘어진다. 꽃은 {colors.blossom} 계열 불투명도 45% 안팎이며, 활짝 핀 꽃·반쯤 핀 꽃·꽃봉오리를 섞는다.
+- 도장 애니메이션과 같은 순간 시작해 {motion.branch} 안에 가지가 뻗고, 줄기 쪽부터 가지 끝 쪽으로 꽃이 차례로 핀다.
+- 글자는 항상 가지 위에 그린다. 저장 이미지에는 다 핀 상태로 들어간다(AC13).
+
+### 흩날리는 꽃잎 `petal-drift`
+
+- 결과 화면에서만 쓴다. 화면 양옆 가장자리에서 생겨 아래로 내려오다 화면 높이의 절반쯤에서 흐려지며 사라진다. 가운데 본문 영역은 지나지 않는다.
+- 꽃잎은 5~6장, 한 장이 내려오는 데 {motion.petal-fall} 안팎이 걸리며, 불투명도는 50~80%다.
+- 저장 이미지에는 넣지 않는다.
 
 ### 미해결 안내 `unresolved-panel`
 
@@ -444,9 +500,12 @@ SPEC AC14가 요구하는 ‘읽고 조작할 수 있음’을 화면 단위로 
 
 - **Do** 협약서 종이를 실제 서류처럼 다룬다. 종이에 그라데이션, 유리 효과, 빛 번짐을 넣지 않는다.
 - **Do** 인주는 도장에만 둔다. 다른 곳에 드물게라도 쓰면 도장이 특별하지 않게 된다.
-- **Do** 응답 화면에서는 장면 문단을 끝까지 읽게 한다. 장면을 접거나 줄여 보여 주지 않는다.
+- **Do** 응답 화면에서는 장면의 모든 줄을 펼쳐 보여 준다. 접거나 일부 줄만 보여 주지 않는다.
 - **Don't** 시안·목업의 예시 데이터에 AC3의 비공개 항목을 넣지 않는다.
 - **Don't** 도장을 협약서 종이 밖(로딩, 빈 화면, 로고, 안내 카드)에 쓰지 않는다.
+- **Don't** 복숭아꽃과 가지를 협약서 화면 밖에 쓰지 않는다.
+- **Don't** 흩날리는 꽃잎이 화면 가운데 본문 영역을 지나게 하지 않는다.
+- **Don't** 가지가 조항 글자를 가려 읽기 어렵게 만들지 않는다.
 - **Don't** 동행의 답을 점수, 궁합 막대, 성향 차트로 시각화하지 않는다(AC7).
 - **Don't** 배너·발표자료의 장식(큰 원, 둥근 배경면, 영문 대문자 머리말)을 앱 화면에 가져오지 않는다. 그 자료는 표지용이다.
 - **Don't** 화면마다 다른 강조색을 만들지 않는다. 강조는 놋쇠 하나다.
