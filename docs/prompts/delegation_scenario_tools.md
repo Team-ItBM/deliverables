@@ -259,7 +259,7 @@ e1은 `docs/ARCHITECTURE.md`를 `.local-work/fault_injection/`에 백업하고 �
 
 **위임**: §1-2 프롬프트를 고치지 않고 새 세션에 넣었다. 에이전트가 `src/travel/tools/scenario_tools.py` 하나를 만들었고, 멈춤 조건에 걸리지 않았다. 처음 실행에서 21 passed였고 테스트를 고친 회차는 없다.
 
-**확인**: §3 체크리스트 1~13을 모두 통과했다. 2~13은 위임한 에이전트가 수용 요청을 받고 명령을 다시 실행하고 코드를 읽어 확인했다. 결과는 §3 결과 칸에 있다. 같은 에이전트가 코드를 쓰고 확인했으므로 독립 리뷰는 아니다.
+**확인**: §3 체크리스트 1~13을 모두 통과했다. 2~13은 위임한 에이전트가 수용 요청을 받고 명령을 다시 실행하고 코드를 읽어 확인했다. 결과는 §3 결과 칸에 있다. 같은 에이전트가 코드를 쓰고 확인했으므로 독립 리뷰는 아니다. 그 뒤 3~5·7은 전민규가 명령을 다시 실행해 같은 결과를 확인했고, 6은 도구 코드 커밋의 변경 파일로 대신 확인했다.
 
 **수용**: 전민규가 수용했다. 도구 코드 커밋은 `01da8ef`(`scenario_tools.py` SHA-256 `c675e5b7…`)이고, 위임 직전 커밋은 `2fb0b31`, 테스트 기준 커밋은 `c027358`(`tests/test_tools.py` SHA-256 `50818c55…`, 변경 없음)이다.
 
@@ -280,11 +280,11 @@ e1은 `docs/ARCHITECTURE.md`를 `.local-work/fault_injection/`에 백업하고 �
 
 | # | 확인할 것 | 명령 | 통과 조건 | 결과 |
 |---|---|---|---|---|
-| 3 | 도구 계약 테스트 | `python -m pytest tests/test_tools.py -q -rs` | 21 passed, skipped 0, xfailed 0 | 통과. `21 passed`, skip·xfail 요약 없음 |
-| 4 | 전체 테스트 | `python -m pytest tests/ -q -rs` | 56 passed, skipped 0, xfailed 0 | 통과. `56 passed`, skip·xfail 요약 없음 |
-| 5 | 테스트 미변경 | `git diff c027358 -- tests/`, `git status --short --untracked-files=all tests` | 둘 다 출력 없음 | 통과. 둘 다 출력 없음 |
+| 3 | 도구 계약 테스트 | `python -m pytest tests/test_tools.py -q -rs` | 21 passed, skipped 0, xfailed 0 | 통과. `21 passed`, skip·xfail 요약 없음 전민규가 2026-11-04에 다시 실행해 같은 결과를 확인했다. |
+| 4 | 전체 테스트 | `python -m pytest tests/ -q -rs` | 56 passed, skipped 0, xfailed 0 | 통과. `56 passed`, skip·xfail 요약 없음 전민규가 2026-11-04에 다시 실행해 같은 결과를 확인했다. |
+| 5 | 테스트 미변경 | `git diff c027358 -- tests/`, `git status --short --untracked-files=all tests` | 둘 다 출력 없음 | 통과. 둘 다 출력 없음 전민규가 2026-11-04에 다시 실행해 같은 결과를 확인했다. |
 | 6 | 변경 범위 | `git status --short --untracked-files=all`, `git diff <위임 직전 커밋> --stat` | 새 파일은 `src/travel/tools/scenario_tools.py` 하나이고 추적 파일 변경 없음 | 통과. 위임 직전 커밋 `2fb0b31` 기준 `--stat` 출력 없음, 미추적은 `src/travel/tools/scenario_tools.py` 하나 |
-| 7 | 공백 오류 | `git diff --check` | 출력 없음 | 통과. 출력 없음. 미추적 새 파일은 `git diff --no-index --check /dev/null <파일>`로 따로 보고 출력 없음 |
+| 7 | 공백 오류 | `git diff --check` | 출력 없음 | 통과. 출력 없음. 미추적 새 파일은 `git diff --no-index --check /dev/null <파일>`로 따로 보고 출력 없음 전민규가 2026-11-04에 다시 실행해 같은 결과를 확인했다. |
 
 ### 코드를 읽고 확인 (테스트가 검사하지 않는 부분)
 
