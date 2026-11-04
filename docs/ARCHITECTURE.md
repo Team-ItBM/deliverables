@@ -33,7 +33,7 @@
 | `src/travel/server/admin.py` | 방 단위 삭제 명령(F7 전 수동 삭제, F7의 기반) | 강의 4 SPEC 만료 정책 | **예정** |
 | `web/` | Vite + React SPA(방 생성, 입장·이름 선택, 응답, 대기·상태, 결과·편집·저장), 서비스워커 `web/public/sw.js`, 결과 DOM 캡처(html-to-image)와 Web Share 저장 | 강의 4 SPEC F1~F6 | **예정** |
 | `config/llm.yaml` | 모델 ID, 문항 경로(v8·v9), 프롬프트·스키마·pool 버전, 도구 호출 상한, 재시도, 동시 생성 상한, 호출 타임아웃, 비용 한도 | 강의 6 | **예정** |
-| `infra/` | Terraform: ECS Fargate(ALB 뒤 태스크 2개), RDS PostgreSQL, S3·CloudFront(SPA), ACM·Route 53, WAF, Secrets Manager, CloudWatch Logs. 서울 리전 | 강의 6 | **예정** |
+| `infra/` | Terraform: CloudFront 단일 도메인(SPA는 S3, `/api/*`는 ALB), ECS Fargate(ALB 뒤 태스크 2개), RDS PostgreSQL, S3·CloudFront(SPA), ACM·Route 53, WAF, Secrets Manager, CloudWatch Logs. 서울 리전 | 강의 6 | **예정** |
 | `.github/workflows/` | PR 검사(ruff, pytest 전체, 서버 테스트용 Postgres 컨테이너, SPA 빌드·테스트), main 배포(ECR → 마이그레이션 → ECS). AWS 접근은 OIDC | 강의 5 검증 루프 | **예정** |
 | `tests/test_server_*.py`, `docs/prompts/delegation_server.md` | 서버 계약 테스트(SPEC 6절 케이스 ID: `response_privacy`, `response_closure`, `host_edit`, `result_export`, `duplicate_name`, `regeneration`, `push_events`, `output_validation`, `scenario_input`, `profile_rendering`)와 위임·결함 주입 기록 | 강의 5 | 구조 수용(2026-11-05, `5174621`). 판정 수용(결함 주입)은 서버 구현 뒤 |
 | `docs/PRIVACY.md` | 개인정보 처리방침(SPA 방 생성·이름 선택 화면에서 링크) | 강의 4 SPEC 운영 정책 | 초안 작성(2026-11-04) |
@@ -44,7 +44,7 @@
 
 - 서버 FastAPI, 화면 Vite + React SPA(FastAPI 또는 S3·CloudFront가 정적 파일을 서빙), 저장소 관리형 PostgreSQL(RDS), API는 JSON과 폴링, 푸시는 Web Push(VAPID), 이미지는 결과 DOM 캡처, 호스팅은 AWS를 Terraform으로 관리한다. 11/10 일정과 3인 팀, 기존 Python 검증기를 그대로 import하는 점을 근거로 골랐다.
 - 규칙 3(AC3): 공유용 응답 모델에 `memo`, `positions`, `original_condition`, 성별·나이대·MBTI 필드를 두지 않는다. 제출 후 응답을 조회하는 API는 없다(AC16). 푸시 본문에는 상태 문구만 넣는다. 로그는 8절의 마스킹을 따른다.
-- 규칙 2(AC7, AC12): 편집본은 `results`의 별도 행이고 원본 행은 바꾸지 않는다. 결과 응답에 결과 종류(AI 원본·방장 수정)를 넣어 화면과 이미지가 ‘방장 수정’을 표시한다. 어떤 화면 문구에도 합의·수락을 뜻하는 표현을 쓰지 않는다.
+- 규칙 2(AC7, AC12): 편집본은 `results`의 별도 행이고 원본 행은 바꾸지 않는다. 결과 응답에 결과 종류(AI 원본·방장 수정)와 선택 여부를 넣어 화면과 이미지가 ‘방장 확인 전 초안’과 ‘방장 수정’을 표시한다. 어떤 화면 문구에도 합의·수락을 뜻하는 표현을 쓰지 않는다.
 
 ## 3. 도구 목록
 
@@ -93,11 +93,12 @@
 - **설정 분리**: 도구 호출 상한, 재시도 횟수·간격, 모델 ID와 프롬프트·스키마·pool 버전은 코드에 넣지 않고 `config/llm.yaml`에 둔다. evals와 운영 실험에서 이 값을 바꿔 측정한다.
 - **추천 단계**: 도구 없이 구조화 출력 1회. 입력은 마감 때 고정한 채택 제출·확정 문항이다.
 - **검증 필요(스파이크 대상)**: Sol 서비스 API에서 도구 호출과 `json_schema` 출력 형식을 한 호출에 함께 쓸 수 있는지, 도구 결과를 반영한 각색이 v6 회귀 기준(AC1)을 유지하는지 확인한다. 1회차는 strict 스키마 검사에서 거절돼 판단 보류였고, 2회차 사전 확인에서 `strict: false` 스키마와 도구를 한 요청에 쓸 수 있음을 확인했다(2026-11-05, [스파이크](spikes/scenario_tool_call.md)). 각색 품질은 2회차 본 실행으로 2026-11-09까지 판정한다. 판정 전에는 현재 방식(문항 v8·pool 전체 입력)을 대체 경로로 둔다.
-- **서버 상태 기계**: `room.status`는 open → closed → generating → ready 또는 failed다. 전환은 `UPDATE ... WHERE status = 'open'` 한 문장으로 하여 마지막 제출과 조기 생성이 겹쳐도 입력 고정과 최초 생성을 한 번만 수행한다(AC4). 생성은 202 응답 뒤 프로세스 안 백그라운드 태스크로 실행하고 화면은 3~5초 간격으로 상태를 폴링한다. 재생성 가능 여부는 정상 결과 행 수로 계산하며 실패 행은 세지 않는다(AC10, AC17). 컨테이너가 여러 개여도 잠금은 DB에 있고, `generating`에 설정 시간 이상 머문 방은 failed로 돌린다.
+- **서버 상태 기계**: `room.status`는 open → closed → generating → ready 또는 failed다. 전환은 `UPDATE ... WHERE status = 'open'` 한 문장으로 하여 마지막 제출과 조기 생성이 겹쳐도 입력 고정과 최초 생성을 한 번만 수행한다(AC4). 생성은 202 응답 뒤 프로세스 안 백그라운드 태스크로 실행하고 화면은 3~5초 간격으로 상태를 폴링한다. 재생성 가능 여부는 정상 결과 행 수로 계산하며 실패 행은 세지 않는다(AC10, AC17). 컨테이너가 여러 개여도 잠금은 DB에 있고, `generating`에 설정 시간 이상 머문 방은 failed로 돌린다. 생성 작업마다 시도 ID를 발급해 방에 현재 시도 ID를 두고, 결과 저장·상태 전환·알림은 `UPDATE ... WHERE attempt_id = 내 시도`가 성공한 작업만 한다. 재시도·재생성으로 새 시도가 시작되면 이전 시도의 늦은 결과는 버린다(2026-11-05 결정).
 - **동시 생성 상한과 타임아웃**: 프로세스당 동시 LLM 호출 4건, 호출 타임아웃 90초를 `config/llm.yaml`에 둔다. 초과 요청은 대기 상태로 두고 화면에 ‘대기 중’을 표시한다. 실제 호출 10회를 측정한 뒤 값을 조정한다.
 - **방장 권한**: 방 생성 응답으로 128비트 난수 `host_token`을 발급하고 DB에는 해시만 저장한다. 방장 기기가 저장해 `X-Host-Token` 헤더로 보내며, 방장 전용 URL(`#` 뒤 토큰)로만 복구한다. 초대 링크에는 넣지 않고 화면에서 ‘초대 링크 복사’와 ‘방장 링크(나만 보관)’를 분리한다. 이름 선택은 어떤 권한도 주지 않는다(AC12). 로그인이 없어 분실 시 복구는 없다.
 - **입력 한도**: `memo`는 최대 300자, `party_size`는 2~8이다. 범위 밖은 `invalid_input`으로 안내한다(SPEC 5절).
 - **모델 호출 계약**: Responses API에 `text.format = {type: json_schema, strict: false}`를 명시한다. strict를 생략하거나 켜면 문항 v2·추천 v4가 strict 스키마 검사에서 거절된다(2026-11-05 확인). 형식은 `validate_scenario_output`·`validate_pact_output`이 원래 스키마로 검사한다. v9 경로의 도구는 `tools` function(`strict: true`)로 보내고, `store: false`로 응답 저장을 끈다. `max_tool_calls`가 함수 도구에 적용되는지는 확인하지 못했으므로 도구 호출 상한 12회는 코드가 센다. `status: incomplete`와 refusal 콘텐츠는 형식 오류 경로(6절)로 보낸다. 테스트와 동료 로컬 실행용 저장 출력 재생 모드를 두며 README에 대체 사실을 밝힌다.
+- **진입 경로**: 브라우저 요청은 모두 CloudFront 한 도메인으로 받는다. SPA는 S3, `/api/*`는 ALB로 보낸다. WAF는 CloudFront에 두고 TLS는 CloudFront와 ALB에서 쓴다. ALB는 CloudFront 관리형 접두사 목록과 비밀 헤더로 CloudFront에서 온 요청만 받는다([AWS 안내](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/restrict-access-to-load-balancer.html)). 방장 토큰에 따라 응답이 달라지므로 `/api/*`는 캐시하지 않는다(2026-11-05 결정).
 - **과부하 방지**: CloudFront + WAF rate-based rule을 경로별로 두고(방 생성·생성 요청은 엄격, 폴링은 느슨), 앱에서는 방 단위 잠금·동시 상한·방당 $0.20과 전체 예산 한도를 검사해 초과 시 실행 오류로 중단한다. 클라이언트는 생성을 자동 재시도하지 않고 폴링만 백오프한다. 제출은 멱등 키로 재전송을 같은 건으로 처리한다.
 - **검증 필요(목록의 적합성 정보)**: 목록(`ScenarioIndexEntry`)의 제목·목적만으로는 숙박이 필요한 문항인지 드러나지 않는 경우가 있다(예: `morning_departure`, `luggage_drop`, `unequal_beds`). 당일치기 입력에서 도구 호출 상한 안에 적합한 문항을 모두 찾는지 스파이크 2회차에서 함께 확인한다. 2회차가 품질 기준에 못 미치면 3회차에서 [pool 근거표](research/scenario_pool.md)에 문항별로 적힌 적용 조건(당일·숙박, 인원 등)을 pool 데이터 필드로 옮겨 목록에 넣거나 코드가 먼저 거르는 방식을 시험한다(2026-11-05 결정, 3회차도 미달이면 v8을 기본으로 둔다).
 
