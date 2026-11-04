@@ -58,12 +58,12 @@
 
 ## 7. 운영 정보
 
-모델은 GPT-6.1 Sol (`gpt-6.1-sol`, 이하 Sol)을 사용한다. 이 저장소는 조사·스펙·모델 출력 계약을 관리한다. 서비스 실행·테스트·린트 명령은 구현 코드의 설정을 따른다. 모바일 확인은 아이폰 Safari와 안드로이드 Chrome 실제 기기로 수행한다. 실제 확인한 명령과 통과 조건을 이 절에 기록한다. 문서 점검: `git diff --check`, 변경 범위 확인: `git status --short`. 골든 테스트(추천 출력 검증기): `python -m pytest tests/test_pact_golden.py -q -rs`. 의존성 설치: `python -m pip install -r requirements.txt`. 기능 수용 조건은 골든 케이스 30개 전수 통과와 skip·xfail 0건이다. 2026-11-04 확인 결과 로더 검사 5개를 포함해 35개가 통과했다. 도구 계약 테스트: `python -m pytest tests/test_tools.py -q -rs`. 도구 수용 조건은 21개 전수 통과와 skip·xfail 0건이다. 2026-11-04 확인 결과 21개가 통과했다.
+모델은 GPT-6.1 Sol (`gpt-6.1-sol`, 이하 Sol)을 사용한다. 이 저장소는 조사·스펙·모델 출력 계약을 관리한다. 서비스 실행·테스트·린트 명령은 구현 코드의 설정을 따른다. 모바일 확인은 아이폰 Safari와 안드로이드 Chrome 실제 기기로 수행한다. 실제 확인한 명령과 통과 조건을 이 절에 기록한다. 문서 점검: `git diff --check`, 변경 범위 확인: `git status --short`. 골든 테스트(추천 출력 검증기): `python -m pytest tests/test_pact_golden.py -q -rs`. 의존성 설치: `python -m pip install -r requirements.txt`. 기능 수용 조건은 골든 케이스 30개 전수 통과와 skip·xfail 0건이다. 2026-11-04 확인 결과 로더 검사 5개를 포함해 35개가 통과했다. 도구 계약 테스트: `python -m pytest tests/test_tools.py -q -rs`. 도구 수용 조건은 21개 전수 통과와 skip·xfail 0건이다. 2026-11-04 확인 결과 21개가 통과했다. pool 계약 테스트(목록 생성·`lookup_template`): `python -m pytest tests/test_pool.py -q -rs`. 목록 함수 수용 조건은 28개 전수 통과와 skip·xfail 0건이다. 2026-11-04 확인 결과 목록 함수 미구현으로 20개가 통과하고 목록 검사 8개가 `build_scenario_index` 부재로 skip됐다.
 
 - `docs/`: 문제·스펙·온톨로지. `research/`는 인터뷰·관찰, `spikes/`는 실험 기록.
 - `src/travel/schemas/`, `src/travel/prompts/`: 제품 출력 계약·프롬프트.
 - `references/course/`: 강의 작성지침 원본. `.local-work/`: 내부 분석·임시 검증 자료.
-- `tests/`: 골든 테스트와 도구 계약 테스트. 골든 케이스와 fixture는 `tests/harness/`에 둔다.
+- `tests/`: 골든 테스트, 도구 계약 테스트, pool 계약 테스트. 골든 케이스와 fixture는 `tests/harness/`에 둔다.
 - 개발 위임 기록은 `docs/prompts/`, 평가 프롬프트는 `evals/`에 필요할 때 둔다.
 
 용어집 확인(2026-09-30): 별도 세션에서 `memo`, `ParticipantPosition.reason`, `PactClause.proposed_conditions`, `Decision.reported_result`를 맞게 선택하고, 메모를 `expressed_content`로 바로 저장하지 않음을 확인했다. 용어집을 발췌로 정리한 뒤에도 같은 결과를 얻었다. 확인 범위는 해당 질의의 필드 선택이다.
