@@ -1,6 +1,6 @@
 # 도원결의 아키텍처 설계서
 
-> 상태: 2026-10-28 팀 확정. 구현 코드가 아직 없으므로 2절의 구현 대상 파일명은 예정 경로이며, 구현 언어에 맞게 확장자를 조정한다.
+> 상태: 2026-10-28 팀 확정, 2026-11-04 구현 현황 반영. 2절에서 구현된 것은 `src/travel/pact.py`의 후처리(강의 5)뿐이며, 나머지 구현 대상 파일명은 예정 경로다. 구현 언어는 Python이다.
 > 근거 문서: [SPEC](SPEC.md) · [온톨로지](ontology.yaml) · [AGENTS](../AGENTS.md) · [문항 프롬프트](../src/travel/prompts/prepare_scenarios.md) · [추천 프롬프트](../src/travel/prompts/generate_pact.md)
 
 ## 1. 한눈에 보는 데이터 흐름
@@ -21,8 +21,8 @@
 | `src/travel/scenarios.py` | 문항 단계 오케스트레이션, 후처리(`select_unique_decisions`, `route_scenario_result`) | 강의 3 함수 인터페이스 | **구현 대상** |
 | `src/travel/pool.py` | pool 로드·목록 생성·`lookup_template` | 강의 3 함수 인터페이스 | **구현 대상** |
 | `src/travel/tools/scenario_tools.py` | `get_scenario_template` 도구(모델 호출 → `lookup_template` 연결) | 강의 6 | **구현 대상** |
-| `src/travel/pact.py` | 추천 단계 호출·후처리(`validate_positions`, `route_pact_result` 등) | 강의 3 함수 인터페이스 | 이후 |
-| `tests/harness/golden_cases.yaml`, `tests/test_pact_golden.py` | 추천 근거 검사 골든 케이스 | 강의 5 | 저장소 반영 예정 |
+| `src/travel/pact.py` | 추천 단계 호출·후처리. 후처리 진입점 `validate_pact_output(pact_input, raw_output)`이 `validate_positions`, `route_pact_result` 등을 호출한다 | 강의 3 함수 인터페이스, 강의 5 | 후처리: 구현됨(강의 5) / 호출: 이후 |
+| `tests/harness/golden_cases.yaml`, `tests/test_pact_golden.py` | 추천 출력 검증기의 골든 케이스 25개와 테스트 하니스(형식·상태 조합·근거·인용·응답 연결·참여자 토큰과 조사) | 강의 5 | 반영됨, 25/25 통과 |
 | `tests/test_tools.py` | 도구 계약 테스트 | 강의 6 | **작성 대상** |
 
 오케스트레이션은 별도 프레임워크 없이 함수 조합으로 둔다. 이유는 5절.
@@ -31,18 +31,18 @@
 
 | 도구 | 시그니처 | 설명(모델이 언제 쓸지 판단할 문장) | 부작용 |
 |---|---|---|---|
-| `get_scenario_template` | `(template_id: str) -> ScenarioTemplate` | 문항 목록에서 후보를 고른 뒤, 각색하기 전에 그 문항의 원본 장면·질문·선택지·핵심 제약을 확인한다. 목록에 없는 ID는 조회하지 않는다. | 없음(읽기) |
+| `get_scenario_template` | `(template_id: str) -> ScenarioTemplate \| ToolError` | 문항 목록에서 후보를 고른 뒤, 각색하기 전에 그 문항의 원본 장면·질문·선택지·핵심 제약을 확인한다. 목록에 없는 ID는 조회하지 않는다. | 없음(읽기) |
 
-- `ScenarioTemplate`은 pool 항목 하나(`template_id`, `decision_key`, `title`, `purpose`, `scene`, `question`, `options`, `core_constraints`)를 그대로 돌려주는 파생 타입이다. 온톨로지 클래스가 아니며, 각색 결과인 출력 모델 `Scenario`의 원본이다. `TravelSituation`·`Activity`를 각색한다는 SPEC 5절의 연결을 따른다.
+- `ScenarioTemplate`은 pool 항목 하나(`template_id`, `decision_key`, `topic`, `title`, `purpose`, `scene`, `question`, `options`, `core_constraints`)를 그대로 돌려주는 파생 타입이다. `topic`은 선정 규칙에 쓰지 않는 참고용 분류지만, 원본을 그대로 돌려준다는 계약을 지키고 v6에서 pool 항목 전체를 입력하던 것과 같은 정보를 주기 위해 포함한다. 온톨로지 클래스가 아니며, 각색 결과인 출력 모델 `Scenario`의 원본이다. `TravelSituation`·`Activity`를 각색한다는 SPEC 5절의 연결을 따른다.
 - 모델 입력의 pool은 목록 `ScenarioIndexEntry`(`template_id`, `title`, `purpose`, `decision_key`)로 줄인다. 모델은 목록에서 후보를 고르고 이 도구로 원본을 열어 기간·인원 적합성과 핵심 제약을 확인한 뒤 각색한다.
 - 연결 함수: `get_scenario_template` → `pool.py`의 `lookup_template(template_id)`(문항 프롬프트의 함수 표).
-- 출력 계약: 성공은 `ScenarioTemplate`, 실패는 `{error_code, retryable, message}`. 없는 ID는 `not_found`(재시도 불가), 형식 오류는 `validation`(재시도 불가).
+- 출력 계약: 성공은 `ScenarioTemplate`, 실패는 `ToolError`(`{error_code, retryable, message}`)다. `ToolError`도 온톨로지 클래스가 아닌 도구 결과용 파생 타입이다. 없는 ID는 `not_found`(재시도 불가), 형식 오류는 `validation`(재시도 불가).
 
 **쓰기 도구는 두지 않는다.** 방 생성, 응답 마감, 재생성, 결과 선택·편집·저장, 푸시, 만료 삭제는 상태를 바꾸지만 모두 사용자 조작이나 서버 이벤트로 코드가 실행한다. 방장만 편집·저장하고(AC12) 추천을 확정·합의로 처리하지 않는다(AC7)는 경계를 지키기 위해 모델에 쓰기 권한을 주지 않는다. 따라서 사용자 승인 대상이 되는 모델 도구도 없다.
 
 **도구 계약 조건** (`tests/test_tools.py`)
 
-- 반환 타입이 표의 시그니처와 같고, 반환값이 pool 원본 항목과 필드·값 모두 같다.
+- 반환 타입이 표의 시그니처와 같다. 성공하면 `ScenarioTemplate`이며 pool 원본 항목과 필드·값 모두 같고, 실패하면 `ToolError`다.
 - 호출 전후 pool 데이터와 `pool_version`·해시가 바뀌지 않는다(읽기 도구 불변).
 - pool에 없는 `template_id`는 `not_found`, `retryable=false`를 반환하고 예외로 흐름을 멈추지 않는다.
 - 빈 문자열·비문자열 인자는 `validation`을 반환한다.
@@ -73,6 +73,7 @@
 - **설정 분리**: 도구 호출 상한, 재시도 횟수·간격, 모델 ID와 프롬프트·스키마·pool 버전은 코드에 넣지 않고 `config/llm.yaml`에 둔다. evals와 운영 실험에서 이 값을 바꿔 측정한다.
 - **추천 단계**: 도구 없이 구조화 출력 1회. 입력은 마감 때 고정한 채택 제출·확정 문항이다.
 - **검증 필요(스파이크 대상)**: Sol 서비스 API에서 도구 호출과 `json_schema` 출력 형식을 한 호출에 함께 쓸 수 있는지, 도구 결과를 반영한 각색이 v6 회귀 기준(AC1)을 유지하는지 확인한다. 확인 전에는 v6 방식(pool 전체 입력)을 대체 경로로 둔다.
+- **검증 필요(목록의 적합성 정보)**: 목록(`ScenarioIndexEntry`)의 제목·목적만으로는 숙박이 필요한 문항인지 드러나지 않는 경우가 있다(예: `morning_departure`, `luggage_drop`, `unequal_beds`). 당일치기 입력에서 도구 호출 상한 안에 적합한 문항을 모두 찾는지 위 스파이크에서 함께 확인한다. 부족하면 [pool 근거표](research/scenario_pool.md)에 문항별로 적힌 적용 조건(당일·숙박, 인원 등)을 pool 데이터 필드로 옮겨 목록에 넣거나 코드가 먼저 거르는 방식을 검토한다.
 
 ## 6. 실패 처리
 
