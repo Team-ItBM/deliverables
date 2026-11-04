@@ -193,6 +193,27 @@ def test_success_returns_pool_original():
     assert not problems, "\n".join(problems)
 
 
+def test_tool_delegates_to_lookup_template(monkeypatch):
+    # 도구는 연결 함수 travel.pool.lookup_template을 호출한다(강의 6 도구 코드 생성 절차).
+    # 도구 코드는 호출할 때 pool.lookup_template을 찾아야 하며, import 시점에 함수를 묶으면 이 검사가 실패한다.
+    tool = require_tool()
+    pool_module = importlib.import_module("travel.pool")
+    _, data = read_pool_file()
+    marker = next(copy.deepcopy(i) for i in data["scenario_pool"] if i["template_id"] == "paid_activity")
+    marker["title"] = "연결 검사용 제목"
+    marker["scene"] = "연결 검사용 장면"
+    calls = []
+
+    def spy(template_id):
+        calls.append(template_id)
+        return copy.deepcopy(marker)
+
+    monkeypatch.setattr(pool_module, "lookup_template", spy)
+    result = call_tool(tool, "paid_activity")
+    assert calls == ["paid_activity"], f"lookup_template을 paid_activity로 한 번 호출해야 한다: {calls}"
+    assert result == marker, "도구가 lookup_template의 반환값을 그대로 돌려주지 않았다"
+
+
 # 계약 조건 2: 호출 전후 pool 데이터와 pool_version·해시가 바뀌지 않는다
 
 
