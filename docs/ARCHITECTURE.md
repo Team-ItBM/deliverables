@@ -1,11 +1,11 @@
 # 도원결의 아키텍처 설계서
 
-> 상태: 2026-10-28 팀 확정, 2026-11-04 구현 현황 반영. 2절에서 구현된 것은 `src/travel/pact.py`의 후처리(강의 5)와 `src/travel/pool.py`의 pool 로드·목록 생성·`lookup_template`(강의 6), `src/travel/tools/scenario_tools.py`의 `get_scenario_template` 도구(강의 6)이며, 나머지 구현 대상 파일명은 예정 경로다. 서버·화면·인프라 구성은 2026-11-04 팀 결정이다. 모델 호출·도구·후처리·서버는 Python, 화면은 TypeScript(React), 인프라는 Terraform으로 쓴다.
+> 상태: 2026-10-28 팀 확정, 2026-11-04 구현 현황 반영, 2026-11-05 모델 호출 계약·스파이크 상태 반영. 2절에서 구현된 것은 `src/travel/pact.py`·`src/travel/scenarios.py`의 후처리(강의 5)와 `src/travel/pool.py`의 pool 로드·목록 생성·`lookup_template`(강의 6), `src/travel/tools/scenario_tools.py`의 `get_scenario_template` 도구(강의 6)이며, 나머지 구현 대상 파일명은 예정 경로다. 서버·화면·인프라 구성은 2026-11-04 팀 결정이다. 모델 호출·도구·후처리·서버는 Python, 화면은 TypeScript(React), 인프라는 Terraform으로 쓴다.
 > 근거 문서: [SPEC](SPEC.md) · [온톨로지](ontology.yaml) · [AGENTS](../AGENTS.md) · [문항 프롬프트](../src/travel/prompts/prepare_scenarios.md) · [추천 프롬프트](../src/travel/prompts/generate_pact.md)
 
 ## 1. 한눈에 보는 데이터 흐름
 
-방장 입력(trip·프로필) → 문항 선정·각색(pool 목록 + `get_scenario_template` 도구) → 후처리·확정(`ScenarioSet`) → 각자 응답 제출 → 마감·입력 고정 → 추천 생성(`PactRecommendation`, 백그라운드) → 후처리·근거 검증 → 푸시 알림 → 방장 선택·편집 → 이미지 저장(결과 화면 캡처)
+방장 입력(trip·프로필) → 문항 선정·각색(pool 목록 + `get_scenario_template` 도구. 스파이크 판정 전에는 pool 전체 입력, 5절) → 후처리·확정(`ScenarioSet`) → 각자 응답 제출 → 마감·입력 고정 → 추천 생성(`PactRecommendation`, 백그라운드) → 후처리·근거 검증 → 푸시 알림 → 방장 선택·편집 → 이미지 저장(결과 화면 캡처)
 
 화면(SPA)은 서버 API만 호출하고, 서버가 토큰을 치환한 공유 문장을 받는다. 모델 호출은 두 단계뿐이다. 문항 단계에서만 모델이 읽기 도구를 호출하고, 나머지 전환은 코드가 정한다.
 
@@ -20,19 +20,19 @@
 | `src/travel/prompts/generate_pact.md` | 입장 추출·추천 생성 프롬프트 v12 | 강의 3 | |
 | `src/travel/scenarios.py` | 문항 단계 오케스트레이션, 후처리(진입점 `validate_scenario_output(scenario_input, raw_output)`이 `route_scenario_result` 등을 호출한다) | 강의 3 함수 인터페이스, 강의 5 | 후처리: 구현됨(2026-11-04 수용, `b10a351`) / 오케스트레이션: 이후 |
 | `src/travel/pool.py` | pool 로드·목록 생성·`lookup_template` | 강의 3 함수 인터페이스 | 구현됨(목록 생성 2026-11-04 수용, `4b71a88`) |
-| `src/travel/tools/scenario_tools.py` | `get_scenario_template` 도구(모델 호출 → `lookup_template` 연결) | 강의 6 | 구현됨(2026-11-04 수용, `01da8ef`) |
+| `src/travel/tools/scenario_tools.py` | `get_scenario_template` 도구(모델 호출 → `lookup_template` 연결) | 강의 6 | 구현됨(2026-11-04 수용, `01da8ef`). 제품 연결은 스파이크 2회차 판정 뒤 |
 | `src/travel/pact.py` | 추천 단계 호출·후처리. 후처리 진입점 `validate_pact_output(pact_input, raw_output)`이 `validate_positions`, `route_pact_result` 등을 호출한다 | 강의 3 함수 인터페이스, 강의 5 | 후처리: 구현됨(강의 5) / 호출: 이후 |
 | `tests/harness/golden_cases.yaml`, `tests/test_pact_golden.py` | 추천 출력 검증기의 골든 케이스 30개와 테스트 하니스(형식·상태 조합·근거·인용·응답 연결·참여자 토큰과 조사·메모 인용) | 강의 5 | 반영됨, 30/30 통과 |
 | `tests/harness/scenario_cases.yaml`, `tests/harness/fixtures/scenario/`, `tests/test_scenario_golden.py` | 문항 출력 검증기의 골든 케이스 43개, 기준 fixture 8개, 테스트 하니스(형식·상태 조합·요청 수·문항 ID와 판단 중복·선택지 ID 순서·인물 토큰·`scene` 줄 수) | 강의 5 | 수용됨(2026-11-04, `14b84ae`). 43/43 통과 |
 | `tests/test_tools.py` | 도구 계약 테스트 | 강의 6 | 수용됨(2026-11-04). 21/21 통과 |
 | `tests/test_pool.py` | pool 계약 테스트(목록 생성·`lookup_template`) | 강의 6 | 수용됨(2026-11-04, `d790d26`). 28/28 통과 |
 | `src/travel/server/app.py`, `db.py`, `routes/` | FastAPI 앱, PostgreSQL 모델(rooms·profiles·submissions·responses·results·push_subscriptions·notifications·llm_calls), SPEC 5절 작업별 JSON API | 강의 4 SPEC 5절, 강의 6 | **예정** |
-| `src/travel/server/llm.py` | Sol 호출(Responses API, `text.format` json_schema strict, `tools` function strict, `store: false`)과 저장 출력 재생 모드 | 강의 3, 강의 6 | **예정** |
+| `src/travel/server/llm.py` | Sol 호출(Responses API, `text.format` json_schema `strict: false` 명시, v9 경로의 `tools` function `strict: true`, `store: false`)과 저장 출력 재생 모드. 문항 경로(v8 pool 전체 입력·v9 목록 + 도구)는 `config/llm.yaml`로 고른다 | 강의 3, 강의 6 | **예정** |
 | `src/travel/server/render.py` | profile·participant 토큰 치환과 조사 처리. 화면과 이미지가 같은 결과 텍스트를 쓴다 | 강의 4 SPEC 5절 | **예정** |
 | `src/travel/server/push.py` | Web Push(VAPID, pywebpush) 발송, 이벤트 단위 중복 방지 | 강의 4 SPEC 알림 정책 | **예정** |
 | `src/travel/server/admin.py` | 방 단위 삭제 명령(F7 전 수동 삭제, F7의 기반) | 강의 4 SPEC 만료 정책 | **예정** |
 | `web/` | Vite + React SPA(방 생성, 입장·이름 선택, 응답, 대기·상태, 결과·편집·저장), 서비스워커 `web/public/sw.js`, 결과 DOM 캡처(html-to-image)와 Web Share 저장 | 강의 4 SPEC F1~F6 | **예정** |
-| `config/llm.yaml` | 모델 ID, 프롬프트·스키마·pool 버전, 도구 호출 상한, 재시도, 동시 생성 상한, 호출 타임아웃, 비용 한도 | 강의 6 | **예정** |
+| `config/llm.yaml` | 모델 ID, 문항 경로(v8·v9), 프롬프트·스키마·pool 버전, 도구 호출 상한, 재시도, 동시 생성 상한, 호출 타임아웃, 비용 한도 | 강의 6 | **예정** |
 | `infra/` | Terraform: ECS Fargate(ALB 뒤 태스크 2개), RDS PostgreSQL, S3·CloudFront(SPA), ACM·Route 53, WAF, Secrets Manager, CloudWatch Logs. 서울 리전 | 강의 6 | **예정** |
 | `.github/workflows/` | PR 검사(ruff, pytest 전체, 서버 테스트용 Postgres 컨테이너, SPA 빌드·테스트), main 배포(ECR → 마이그레이션 → ECS). AWS 접근은 OIDC | 강의 5 검증 루프 | **예정** |
 | `tests/test_server_*.py`, `docs/prompts/delegation_server.md` | 서버 계약 테스트(SPEC 6절 케이스 ID: `response_privacy`, `response_closure`, `host_edit`, `result_export`, `duplicate_name`, `regeneration`, `push_events`, `output_validation`, `scenario_input`, `profile_rendering`)와 위임·결함 주입 기록 | 강의 5 | 구조 수용(2026-11-05, `5174621`). 판정 수용(결함 주입)은 서버 구현 뒤 |
@@ -55,7 +55,7 @@
 - `ScenarioTemplate`은 pool 항목 하나(`template_id`, `decision_key`, `topic`, `title`, `purpose`, `scene`, `question`, `options`, `core_constraints`)를 그대로 돌려주는 파생 타입이다. `topic`은 선정 규칙에 쓰지 않는 참고용 분류지만, 원본을 그대로 돌려준다는 계약을 지키고 v6에서 pool 항목 전체를 입력하던 것과 같은 정보를 주기 위해 포함한다. 온톨로지 클래스가 아니며, 각색 결과인 출력 모델 `Scenario`의 원본이다. `TravelSituation`·`Activity`를 각색한다는 SPEC 5절의 연결을 따른다.
 - 모델 입력의 pool은 목록 `ScenarioIndexEntry`(`template_id`, `title`, `purpose`, `decision_key`)로 줄인다. 모델은 목록에서 후보를 고르고 이 도구로 원본을 열어 기간·인원 적합성과 핵심 제약을 확인한 뒤 각색한다.
 - 연결 함수: `get_scenario_template` → `pool.py`의 `lookup_template(template_id)`(문항 프롬프트의 함수 표).
-- 도구 정의의 파라미터는 `template_id`(string, 필수) 하나이며 다른 인자는 받지 않는다. 허용값 제한(`enum`)과 strict 모드는 스파이크(5절)에서 Sol API 지원을 확인한 뒤 정한다.
+- 도구 정의의 파라미터는 `template_id`(string, 필수) 하나이며 다른 인자는 받지 않는다. 도구는 `strict: true`로 보낸다(2026-11-05 [스파이크](spikes/scenario_tool_call.md) 2회차 사전 확인에서 수용). 허용값 제한(`enum`)은 쓰지 않는다. 없는 ID는 `lookup_template`의 `not_found`가 막는다.
 - 출력 계약: 성공은 `ScenarioTemplate`, 실패는 `ToolError`(`{error_code, retryable, message}`)다. `ToolError`도 온톨로지 클래스가 아닌 도구 결과용 파생 타입이다. 없는 ID는 `not_found`(재시도 불가), 형식 오류는 `validation`(재시도 불가).
 
 **쓰기 도구는 두지 않는다.** 방 생성, 응답 마감, 재생성, 결과 선택·편집·저장, 푸시, 만료 삭제는 상태를 바꾸지만 모두 사용자 조작이나 서버 이벤트로 코드가 실행한다. 방장만 편집·저장하고(AC12) 추천을 확정·합의로 처리하지 않는다(AC7)는 경계를 지키기 위해 모델에 쓰기 권한을 주지 않는다. 따라서 사용자 승인 대상이 되는 모델 도구도 없다.
@@ -92,14 +92,14 @@
 - **멈춤 조건**: 모델이 `ScenarioSet`을 반환하면 종료. 도구 호출 상한은 12회다(요청 최대 8개 + 후보 비교 여유 4회). 상한에 닿으면 도구를 끄고 이미 연 원본만으로 최종 출력을 1회 요청한다. 그래도 형식이 맞지 않으면 실패 처리(6절)로 넘긴다.
 - **설정 분리**: 도구 호출 상한, 재시도 횟수·간격, 모델 ID와 프롬프트·스키마·pool 버전은 코드에 넣지 않고 `config/llm.yaml`에 둔다. evals와 운영 실험에서 이 값을 바꿔 측정한다.
 - **추천 단계**: 도구 없이 구조화 출력 1회. 입력은 마감 때 고정한 채택 제출·확정 문항이다.
-- **검증 필요(스파이크 대상)**: Sol 서비스 API에서 도구 호출과 `json_schema` 출력 형식을 한 호출에 함께 쓸 수 있는지, 도구 결과를 반영한 각색이 v6 회귀 기준(AC1)을 유지하는지 확인한다. 확인 전에는 현재 방식(문항 v8·pool 전체 입력)을 대체 경로로 둔다.
+- **검증 필요(스파이크 대상)**: Sol 서비스 API에서 도구 호출과 `json_schema` 출력 형식을 한 호출에 함께 쓸 수 있는지, 도구 결과를 반영한 각색이 v6 회귀 기준(AC1)을 유지하는지 확인한다. 1회차는 strict 스키마 검사에서 거절돼 판단 보류였고, 2회차 사전 확인에서 `strict: false` 스키마와 도구를 한 요청에 쓸 수 있음을 확인했다(2026-11-05, [스파이크](spikes/scenario_tool_call.md)). 각색 품질은 2회차 본 실행으로 2026-11-09까지 판정한다. 판정 전에는 현재 방식(문항 v8·pool 전체 입력)을 대체 경로로 둔다.
 - **서버 상태 기계**: `room.status`는 open → closed → generating → ready 또는 failed다. 전환은 `UPDATE ... WHERE status = 'open'` 한 문장으로 하여 마지막 제출과 조기 생성이 겹쳐도 입력 고정과 최초 생성을 한 번만 수행한다(AC4). 생성은 202 응답 뒤 프로세스 안 백그라운드 태스크로 실행하고 화면은 3~5초 간격으로 상태를 폴링한다. 재생성 가능 여부는 정상 결과 행 수로 계산하며 실패 행은 세지 않는다(AC10, AC17). 컨테이너가 여러 개여도 잠금은 DB에 있고, `generating`에 설정 시간 이상 머문 방은 failed로 돌린다.
 - **동시 생성 상한과 타임아웃**: 프로세스당 동시 LLM 호출 4건, 호출 타임아웃 90초를 `config/llm.yaml`에 둔다. 초과 요청은 대기 상태로 두고 화면에 ‘대기 중’을 표시한다. 실제 호출 10회를 측정한 뒤 값을 조정한다.
 - **방장 권한**: 방 생성 응답으로 128비트 난수 `host_token`을 발급하고 DB에는 해시만 저장한다. 방장 기기가 저장해 `X-Host-Token` 헤더로 보내며, 방장 전용 URL(`#` 뒤 토큰)로만 복구한다. 초대 링크에는 넣지 않고 화면에서 ‘초대 링크 복사’와 ‘방장 링크(나만 보관)’를 분리한다. 이름 선택은 어떤 권한도 주지 않는다(AC12). 로그인이 없어 분실 시 복구는 없다.
 - **입력 한도**: `memo`는 최대 300자, `party_size`는 2~8이다. 범위 밖은 `invalid_input`으로 안내한다(SPEC 5절).
-- **모델 호출 계약**: Responses API에 `text.format = {type: json_schema, strict: true}`, 도구는 `tools` function(strict)로 보내고 `store: false`로 응답 저장을 끈다. `max_tool_calls`는 내장 도구에만 적용되므로 도구 호출 상한 12회는 코드가 센다. `status: incomplete`와 refusal 콘텐츠는 형식 오류 경로(6절)로 보낸다. 테스트와 동료 로컬 실행용 저장 출력 재생 모드를 두며 README에 대체 사실을 밝힌다.
+- **모델 호출 계약**: Responses API에 `text.format = {type: json_schema, strict: false}`를 명시한다. strict를 생략하거나 켜면 문항 v2·추천 v4가 strict 스키마 검사에서 거절된다(2026-11-05 확인). 형식은 `validate_scenario_output`·`validate_pact_output`이 원래 스키마로 검사한다. v9 경로의 도구는 `tools` function(`strict: true`)로 보내고, `store: false`로 응답 저장을 끈다. `max_tool_calls`가 함수 도구에 적용되는지는 확인하지 못했으므로 도구 호출 상한 12회는 코드가 센다. `status: incomplete`와 refusal 콘텐츠는 형식 오류 경로(6절)로 보낸다. 테스트와 동료 로컬 실행용 저장 출력 재생 모드를 두며 README에 대체 사실을 밝힌다.
 - **과부하 방지**: CloudFront + WAF rate-based rule을 경로별로 두고(방 생성·생성 요청은 엄격, 폴링은 느슨), 앱에서는 방 단위 잠금·동시 상한·방당 $0.20과 전체 예산 한도를 검사해 초과 시 실행 오류로 중단한다. 클라이언트는 생성을 자동 재시도하지 않고 폴링만 백오프한다. 제출은 멱등 키로 재전송을 같은 건으로 처리한다.
-- **검증 필요(목록의 적합성 정보)**: 목록(`ScenarioIndexEntry`)의 제목·목적만으로는 숙박이 필요한 문항인지 드러나지 않는 경우가 있다(예: `morning_departure`, `luggage_drop`, `unequal_beds`). 당일치기 입력에서 도구 호출 상한 안에 적합한 문항을 모두 찾는지 위 스파이크에서 함께 확인한다. 부족하면 [pool 근거표](research/scenario_pool.md)에 문항별로 적힌 적용 조건(당일·숙박, 인원 등)을 pool 데이터 필드로 옮겨 목록에 넣거나 코드가 먼저 거르는 방식을 검토한다.
+- **검증 필요(목록의 적합성 정보)**: 목록(`ScenarioIndexEntry`)의 제목·목적만으로는 숙박이 필요한 문항인지 드러나지 않는 경우가 있다(예: `morning_departure`, `luggage_drop`, `unequal_beds`). 당일치기 입력에서 도구 호출 상한 안에 적합한 문항을 모두 찾는지 스파이크 2회차에서 함께 확인한다. 2회차가 품질 기준에 못 미치면 3회차에서 [pool 근거표](research/scenario_pool.md)에 문항별로 적힌 적용 조건(당일·숙박, 인원 등)을 pool 데이터 필드로 옮겨 목록에 넣거나 코드가 먼저 거르는 방식을 시험한다(2026-11-05 결정, 3회차도 미달이면 v8을 기본으로 둔다).
 
 ## 6. 실패 처리
 

@@ -26,7 +26,7 @@ pool의 각 항목에는 같은 판단을 식별하는 `decision_key`가 필요�
 - 행동·이유·조건은 자유 텍스트이다. 선택 필드는 해당할 때만 넣고, 모든 객체에 `additionalProperties: false`를 적용한다.
 - 타입·enum·배열 길이는 스키마로, 상태별 조합과 입력 ID 일치는 후처리로 검사한다.
 
-v2 호출에서는 Draft7 스키마를 Responses API의 `text.format.type=json_schema`로 전달했고 별도 변환 없이 수용되었다. 출력 구조가 같으므로 schema_version은 2를 유지한다. v3 생성 결과는 Draft7 스키마와 상태·ID·판단 중복 검사로 확인했다. 스키마 통과 후 상태별 조합과 입력 ID는 후처리로 검사한다.
+v2 호출에서는 Draft7 스키마를 Responses API의 `text.format.type=json_schema`로 전달했고 별도 변환 없이 수용되었다. 2026-11-05 서비스 API 확인에서는 strict를 생략하거나 켜면 strict 스키마 검사에서 거절됐고, `strict: false`를 명시하면 수용됐다([스파이크](../../../docs/spikes/scenario_tool_call.md)). 출력 구조가 같으므로 schema_version은 2를 유지한다. v3 생성 결과는 Draft7 스키마와 상태·ID·판단 중복 검사로 확인했다. 스키마 통과 후 상태별 조합과 입력 ID는 후처리로 검사한다.
 
 ### 상태별 후처리 규칙
 
