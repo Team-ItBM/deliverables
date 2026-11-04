@@ -2,9 +2,9 @@
 
 | 항목 | 값 |
 |---|---|
-| prompt_version | 7 |
+| prompt_version | 8 |
 | schema_version | 2 |
-| 상태 | v7 미점검. 최신 회귀 점검은 v6 기준 6건 완료 |
+| 상태 | v8 장면 개요 형식 적용. 최신 회귀 점검은 v6·pool v2 기준 6건이며 v8·pool v3는 미점검 |
 | 대응 온톨로지 | `ScenarioSet` 및 해당 중첩 출력 모델. 설계에 사용한 인터뷰 개념은 [SPEC 5절 출력 모델](../../../docs/SPEC.md#출력-모델)을 따른다. |
 | 스키마 | [JSON Schema](../schemas/scenario_set.schema.json) |
 | 참고 | [작성지침](../../../references/course/03/강의03_구조화출력_작성지침.md) · [온톨로지](../../../docs/ontology.yaml) |
@@ -38,7 +38,7 @@ v2 호출에서는 Draft7 스키마를 Responses API의 `text.format.type=json_s
 | `needs_information` | `scenarios=null`, 비어 있지 않은 `clarification_questions`와 `message`가 필요하다. |
 | `unsupported`, `invalid_input` | `scenarios=null`이며 `message`가 필요하다. |
 
-추가 질문이 필요하지 않으면 `clarification_questions`는 생략한다. `template_id`와 선택지 ID는 입력 pool과 대조한다. 선정된 문항의 `decision_key`는 원본 pool에서 조회해 중복을 검사한다. `decision_key`와 프로필은 출력에 추가하지 않는다. 인물 토큰이 있으면 입력의 `profile_id`인지 확인하고 코드가 뷰별로 치환한다. 원본 `core_constraints`는 `template_id`로 조회하므로 모델 출력에 복사하지 않는다. 각색 문장이 원본 제약과 선택지 의미를 지키는지는 별도로 검토한다.
+추가 질문이 필요하지 않으면 `clarification_questions`는 생략한다. `template_id`와 선택지 ID는 입력 pool과 대조한다. 선정된 문항의 `decision_key`는 원본 pool에서 조회해 중복을 검사한다. `decision_key`와 프로필은 출력에 추가하지 않는다. 인물 토큰이 있으면 입력의 `profile_id`인지 확인하고 코드가 뷰별로 치환한다. `scene`은 빈 줄이 없고 줄 수가 원본 pool과 같아야 한다. 원본 `core_constraints`는 `template_id`로 조회하므로 모델 출력에 복사하지 않는다. 각색 문장이 원본 제약과 선택지 의미를 지키는지는 별도로 검토한다.
 
 
 ## C. 모델 전송부
@@ -58,6 +58,7 @@ v2 호출에서는 Draft7 스키마를 Responses API의 `text.format.type=json_s
 - 먼저 기간·인원과 원본 scene·core_constraints를 대조해 숙박·다음 날·공동 이용 조건이 맞지 않는 문항을 제외한다. 핵심 조건을 바꿔 적합하게 만들지 않는다. 남은 문항의 고유 decision_key가 requested_count보다 적으면 needs_information으로 알리고 pool 보충을 요청한다.
 - 충분하면 status=ready로 정확히 requested_count개의 고유 문항을 반환한다. 한 pool 문항을 두 번 사용하지 않고 같은 decision_key를 가진 문항도 하나만 선정한다. 장소·활동만 달라진 같은 판단 문항을 중복 선정하지 않는다. 같은 주제라도 조건이나 고민이 다르면 함께 선정할 수 있다. 주제별 필수 문항이나 고정 비중은 두지 않는다.
 - 원본 template_id와 options의 option_id를 그대로 쓴다. 입력 core_constraints의 제약을 지키되 출력에 복사하지 않는다. 모든 선택지의 의미를 유지한다. 새 선택지를 만들거나 정보 필요/다른 의견/어느 쪽이든 선택지를 삭제하지 않는다.
+- scene은 줄바꿈(\n)으로 나눈 개요다. 첫 줄은 상황을 한 문장으로 쓰고, 다음 줄부터 조건을 한 줄에 하나씩 쓴다. 각 줄은 마침표 없이 끝낸다. 각색해도 원본 scene의 줄 수와 순서를 유지하고, 여행 정보는 해당 줄 안에 넣는다.
 - scene과 question, options.label은 목적지·기간·인원·동행 관계에 맞게 표현만 바꿀 수 있다. 조건·시간·금액·선택의 의미를 바꾸지 않는다. 실존 장소의 영업·예약·이동 시간을 지어내지 않는다.
 - 장면 속 인물에게 취향·체력·감정을 미리 지정하지 않는다. 착한 답을 유도하거나 선택 차이를 갈등으로 단정하지 않는다. 질문은 내가 원하는 행동을 묻는다.
 - status와 scenarios는 항상 출력한다. 생성 불가 때 scenarios는 null이다. 원인을 message에 적는다. 추가 확인이 필요할 때만 clarification_questions를 넣고 다른 경우에는 생략한다.
@@ -103,7 +104,7 @@ v2 호출에서는 Draft7 스키마를 Responses API의 `text.format.type=json_s
       "topic": "일정 변경",
       "title": "갑자기 비어버린 세 시간",
       "purpose": "이 상황의 희망 행동과 이유·조정 조건을 확인한다.",
-      "scene": "가려던 곳이 문을 닫았어요. 저녁 약속까지 세 시간이 남았고, 가까운 곳에 카페와 숙소가 있어요.",
+      "scene": "가려던 곳이 문을 닫았어요\n저녁 약속까지 세 시간이 남았어요\n가까운 곳에 카페와 숙소가 있어요",
       "question": "이 시간을 어떻게 보내고 싶어요?",
       "options": [
         {
@@ -142,7 +143,7 @@ v2 호출에서는 Draft7 스키마를 Responses API의 `text.format.type=json_s
       "topic": "활동과 휴식",
       "title": "점심 뒤 남은 일정",
       "purpose": "이 상황의 희망 행동과 이유·조정 조건을 확인한다.",
-      "scene": "점심을 먹고 나니 관광과 저녁 일정이 남아 있어요. 지금은 일정을 바꿀 수 있어요.",
+      "scene": "점심을 먹고 나니 관광과 저녁 일정이 남아 있어요\n지금은 일정을 바꿀 수 있어요",
       "question": "이후 어떻게 하고 싶어요?",
       "options": [
         {
@@ -180,7 +181,7 @@ v2 호출에서는 Draft7 스키마를 Responses API의 `text.format.type=json_s
       "topic": "활동과 휴식",
       "title": "쇼핑과 노을",
       "purpose": "이 상황의 희망 행동과 이유·조정 조건을 확인한다.",
-      "scene": "노을까지 40분 남았어요. 쇼핑과 노을 구경을 둘 다 생각하고 있어요.",
+      "scene": "노을까지 40분 남았어요\n쇼핑과 노을 구경을 둘 다 생각하고 있어요",
       "question": "남은 시간을 어떻게 쓰고 싶어요?",
       "options": [
         {
@@ -219,7 +220,7 @@ v2 호출에서는 Draft7 스키마를 Responses API의 `text.format.type=json_s
       "topic": "함께·따로",
       "title": "다른 메뉴",
       "purpose": "이 상황의 희망 행동과 이유·조정 조건을 확인한다.",
-      "scene": "일행과 식사 메뉴를 고르고 있어요. 근처에는 서로 다른 메뉴를 파는 식당들이 있어요.",
+      "scene": "일행과 식사 메뉴를 고르고 있어요\n근처에는 서로 다른 메뉴를 파는 식당들이 있어요",
       "question": "어떻게 식사하고 싶어요?",
       "options": [
         {
@@ -258,7 +259,7 @@ v2 호출에서는 Draft7 스키마를 Responses API의 `text.format.type=json_s
       "topic": "함께·따로",
       "title": "사진 대기",
       "purpose": "이 상황의 희망 행동과 이유·조정 조건을 확인한다.",
-      "scene": "사진을 찍으려면 30분을 기다려야 해요. 주변에서 쉬거나 구경할 수도 있어요.",
+      "scene": "사진을 찍으려면 30분을 기다려야 해요\n주변에서 쉬거나 구경할 수도 있어요",
       "question": "어떻게 보내고 싶어요?",
       "options": [
         {
@@ -297,7 +298,7 @@ v2 호출에서는 Draft7 스키마를 Responses API의 `text.format.type=json_s
       "topic": "추가 지출",
       "title": "공동 식사 변경",
       "purpose": "이 상황의 희망 행동과 이유·조정 조건을 확인한다.",
-      "scene": "함께 먹을 식사의 예산은 1인 2만 원이에요. 4만 원짜리 식당도 후보로 나왔어요.",
+      "scene": "함께 먹을 식사의 예산은 1인 2만 원이에요\n4만 원짜리 식당도 후보로 나왔어요",
       "question": "어떻게 하고 싶어요?",
       "options": [
         {
@@ -336,7 +337,7 @@ v2 호출에서는 Draft7 스키마를 Responses API의 `text.format.type=json_s
       "topic": "일정 변경",
       "title": "현장에서 발견한 곳",
       "purpose": "이 상황의 희망 행동과 이유·조정 조건을 확인한다.",
-      "scene": "이동하는 길에 가보고 싶은 곳을 발견했어요. 이 뒤에도 일정이 있어요.",
+      "scene": "이동하는 길에 가보고 싶은 곳을 발견했어요\n이 뒤에도 일정이 있어요",
       "question": "어떻게 결정하고 싶어요?",
       "options": [
         {
@@ -375,7 +376,7 @@ v2 호출에서는 Draft7 스키마를 Responses API의 `text.format.type=json_s
       "topic": "일정 변경",
       "title": "수영 장소",
       "purpose": "이 상황의 희망 행동과 이유·조정 조건을 확인한다.",
-      "scene": "숙소 수영장과 바다 중에서 수영할 곳을 고르고 있어요. 수영 뒤에는 저녁을 준비할 예정이에요.",
+      "scene": "숙소 수영장과 바다 중에서 수영할 곳을 고르고 있어요\n수영 뒤에는 저녁을 준비할 예정이에요",
       "question": "어디에서 시간을 보내고 싶어요?",
       "options": [
         {
@@ -421,7 +422,7 @@ v2 호출에서는 Draft7 스키마를 Responses API의 `text.format.type=json_s
   "scenarios": [
     {
       "template_id": "free_time",
-      "scene": "가려던 곳이 문을 닫았어요. 저녁 약속까지 세 시간이 남았고, 가까운 곳에 카페와 숙소가 있어요.",
+      "scene": "가려던 곳이 문을 닫았어요\n저녁 약속까지 세 시간이 남았어요\n가까운 곳에 카페와 숙소가 있어요",
       "question": "이 시간을 어떻게 보내고 싶어요?",
       "options": [
         {
@@ -452,7 +453,7 @@ v2 호출에서는 Draft7 스키마를 Responses API의 `text.format.type=json_s
     },
     {
       "template_id": "rest",
-      "scene": "점심을 먹고 나니 관광과 저녁 일정이 남아 있어요. 지금은 일정을 바꿀 수 있어요.",
+      "scene": "점심을 먹고 나니 관광과 저녁 일정이 남아 있어요\n지금은 일정을 바꿀 수 있어요",
       "question": "이후 어떻게 하고 싶어요?",
       "options": [
         {
@@ -483,7 +484,7 @@ v2 호출에서는 Draft7 스키마를 Responses API의 `text.format.type=json_s
     },
     {
       "template_id": "sunset",
-      "scene": "노을까지 40분 남았어요. 쇼핑과 노을 구경을 둘 다 생각하고 있어요.",
+      "scene": "노을까지 40분 남았어요\n쇼핑과 노을 구경을 둘 다 생각하고 있어요",
       "question": "남은 시간을 어떻게 쓰고 싶어요?",
       "options": [
         {
@@ -514,7 +515,7 @@ v2 호출에서는 Draft7 스키마를 Responses API의 `text.format.type=json_s
     },
     {
       "template_id": "meal",
-      "scene": "일행과 식사 메뉴를 고르고 있어요. 근처에는 서로 다른 메뉴를 파는 식당들이 있어요.",
+      "scene": "일행과 식사 메뉴를 고르고 있어요\n근처에는 서로 다른 메뉴를 파는 식당들이 있어요",
       "question": "어떻게 식사하고 싶어요?",
       "options": [
         {
@@ -545,7 +546,7 @@ v2 호출에서는 Draft7 스키마를 Responses API의 `text.format.type=json_s
     },
     {
       "template_id": "photo",
-      "scene": "사진을 찍으려면 30분을 기다려야 해요. 주변에서 쉬거나 구경할 수도 있어요.",
+      "scene": "사진을 찍으려면 30분을 기다려야 해요\n주변에서 쉬거나 구경할 수도 있어요",
       "question": "어떻게 보내고 싶어요?",
       "options": [
         {
@@ -576,7 +577,7 @@ v2 호출에서는 Draft7 스키마를 Responses API의 `text.format.type=json_s
     },
     {
       "template_id": "budget",
-      "scene": "함께 먹을 식사의 예산은 1인 2만 원이에요. 4만 원짜리 식당도 후보로 나왔어요.",
+      "scene": "함께 먹을 식사의 예산은 1인 2만 원이에요\n4만 원짜리 식당도 후보로 나왔어요",
       "question": "어떻게 하고 싶어요?",
       "options": [
         {
@@ -648,7 +649,7 @@ v2 호출에서는 Draft7 스키마를 Responses API의 `text.format.type=json_s
       "topic": "일정 변경",
       "title": "갑자기 비어버린 세 시간",
       "purpose": "이 상황의 희망 행동과 이유·조정 조건을 확인한다.",
-      "scene": "가려던 곳이 문을 닫았어요. 저녁 약속까지 세 시간이 남았고, 가까운 곳에 카페와 숙소가 있어요.",
+      "scene": "가려던 곳이 문을 닫았어요\n저녁 약속까지 세 시간이 남았어요\n가까운 곳에 카페와 숙소가 있어요",
       "question": "이 시간을 어떻게 보내고 싶어요?",
       "options": [
         {
@@ -687,7 +688,7 @@ v2 호출에서는 Draft7 스키마를 Responses API의 `text.format.type=json_s
       "topic": "활동과 휴식",
       "title": "점심 뒤 남은 일정",
       "purpose": "이 상황의 희망 행동과 이유·조정 조건을 확인한다.",
-      "scene": "점심을 먹고 나니 관광과 저녁 일정이 남아 있어요. 지금은 일정을 바꿀 수 있어요.",
+      "scene": "점심을 먹고 나니 관광과 저녁 일정이 남아 있어요\n지금은 일정을 바꿀 수 있어요",
       "question": "이후 어떻게 하고 싶어요?",
       "options": [
         {
@@ -725,7 +726,7 @@ v2 호출에서는 Draft7 스키마를 Responses API의 `text.format.type=json_s
       "topic": "활동과 휴식",
       "title": "쇼핑과 노을",
       "purpose": "이 상황의 희망 행동과 이유·조정 조건을 확인한다.",
-      "scene": "노을까지 40분 남았어요. 쇼핑과 노을 구경을 둘 다 생각하고 있어요.",
+      "scene": "노을까지 40분 남았어요\n쇼핑과 노을 구경을 둘 다 생각하고 있어요",
       "question": "남은 시간을 어떻게 쓰고 싶어요?",
       "options": [
         {
@@ -764,7 +765,7 @@ v2 호출에서는 Draft7 스키마를 Responses API의 `text.format.type=json_s
       "topic": "함께·따로",
       "title": "다른 메뉴",
       "purpose": "이 상황의 희망 행동과 이유·조정 조건을 확인한다.",
-      "scene": "일행과 식사 메뉴를 고르고 있어요. 근처에는 서로 다른 메뉴를 파는 식당들이 있어요.",
+      "scene": "일행과 식사 메뉴를 고르고 있어요\n근처에는 서로 다른 메뉴를 파는 식당들이 있어요",
       "question": "어떻게 식사하고 싶어요?",
       "options": [
         {
@@ -803,7 +804,7 @@ v2 호출에서는 Draft7 스키마를 Responses API의 `text.format.type=json_s
       "topic": "함께·따로",
       "title": "사진 대기",
       "purpose": "이 상황의 희망 행동과 이유·조정 조건을 확인한다.",
-      "scene": "사진을 찍으려면 30분을 기다려야 해요. 주변에서 쉬거나 구경할 수도 있어요.",
+      "scene": "사진을 찍으려면 30분을 기다려야 해요\n주변에서 쉬거나 구경할 수도 있어요",
       "question": "어떻게 보내고 싶어요?",
       "options": [
         {
@@ -842,7 +843,7 @@ v2 호출에서는 Draft7 스키마를 Responses API의 `text.format.type=json_s
       "topic": "추가 지출",
       "title": "공동 식사 변경",
       "purpose": "이 상황의 희망 행동과 이유·조정 조건을 확인한다.",
-      "scene": "함께 먹을 식사의 예산은 1인 2만 원이에요. 4만 원짜리 식당도 후보로 나왔어요.",
+      "scene": "함께 먹을 식사의 예산은 1인 2만 원이에요\n4만 원짜리 식당도 후보로 나왔어요",
       "question": "어떻게 하고 싶어요?",
       "options": [
         {
@@ -881,7 +882,7 @@ v2 호출에서는 Draft7 스키마를 Responses API의 `text.format.type=json_s
       "topic": "일정 변경",
       "title": "현장에서 발견한 곳",
       "purpose": "이 상황의 희망 행동과 이유·조정 조건을 확인한다.",
-      "scene": "이동하는 길에 가보고 싶은 곳을 발견했어요. 이 뒤에도 일정이 있어요.",
+      "scene": "이동하는 길에 가보고 싶은 곳을 발견했어요\n이 뒤에도 일정이 있어요",
       "question": "어떻게 결정하고 싶어요?",
       "options": [
         {
@@ -920,7 +921,7 @@ v2 호출에서는 Draft7 스키마를 Responses API의 `text.format.type=json_s
       "topic": "일정 변경",
       "title": "수영 장소",
       "purpose": "이 상황의 희망 행동과 이유·조정 조건을 확인한다.",
-      "scene": "숙소 수영장과 바다 중에서 수영할 곳을 고르고 있어요. 수영 뒤에는 저녁을 준비할 예정이에요.",
+      "scene": "숙소 수영장과 바다 중에서 수영할 곳을 고르고 있어요\n수영 뒤에는 저녁을 준비할 예정이에요",
       "question": "어디에서 시간을 보내고 싶어요?",
       "options": [
         {
@@ -1001,7 +1002,7 @@ v2 호출에서는 Draft7 스키마를 Responses API의 `text.format.type=json_s
 | `status` | `route_scenario_result(status)`: 표시·추가 수집·범위 안내 | 분기 필수. 생성 성공과 스키마 통과는 별개 |
 | `scenarios` | `render_questions(scenarios)` | ready에서만 사용. 6~8개와 요청 수 일치 검사 |
 | `scenarios[].template_id` | `lookup_template(template_id)` | 하드: 입력 pool의 ID, template_id와 조회한 decision_key 모두 중복 금지 |
-| `scenarios[].scene` | `render_scene(scene)` | 배경 표현은 자유, 핵심 조건은 하드 |
+| `scenarios[].scene` | `render_scene(scene)` | 하드: 원본과 같은 줄 수, 첫 줄은 상황·나머지는 조건. 배경 표현은 자유, 핵심 조건은 하드 |
 | `scenarios[].question` | `render_question(question)` | 원하는 행동을 묻는 문장. 의미는 사람 대조 |
 | `scenarios[].options` | `render_choices(options)` | 원본 선택지 ID/의미 보존은 하드 |
 | `options[].option_id`, `options[].label` | `bind_choice(option_id, label)` | ID는 코드 대조, 의미 보존은 사람 대조 |
@@ -1315,6 +1316,7 @@ pool v1을 사용한 실험은 [문항 선정·각색 스파이크](../../../doc
 
 ## 변경 이력
 
+- v8 (2026-11-04): `scene`을 첫 줄 상황과 조건 줄로 나눈 개요 형식으로 정하고 예시 장면을 맞췄다.
 - v7 (2026-11-04): 사용자 문장의 독자를 친구에서 동행 전반으로 바꿨다.
 - v6 (2026-10-01): 여행 조건에 맞지 않는 문항을 먼저 제외하고 적합한 고유 문항 수를 검사하도록 명시했다.
 - v5 (2026-10-01): 사용자 문장과 입출력 예시를 자연스러운 해요체로 통일했다.
