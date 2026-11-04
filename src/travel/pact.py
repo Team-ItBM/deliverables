@@ -19,6 +19,8 @@ PARTICIPANT_TOKEN = re.compile(r"\{\{participant:([^{}]*)\}\}")
 PARTICLE_PAIRS = ("은/는", "이/가", "을/를", "과/와", "으로/로")
 # 쌍 표기가 아닐 때 한쪽 조사만 붙었는지 본다. "으로"는 "으"보다 먼저 확인한다.
 SINGLE_PARTICLES = ("으로", "은", "는", "이", "가", "을", "를", "과", "와", "로")
+# 공유 문장에 memo가 이 길이 이상 그대로 있으면 거부한다. 공백·문장부호도 한 글자로 센다(SPEC AC3).
+MEMO_QUOTE_MIN_LENGTH = 15
 
 # 상태별 처리 분기. needs_information의 positions 필요 여부는 출력의 positions로 정한다.
 STATUS_ROUTES = {
@@ -319,6 +321,41 @@ def check_participant_tokens(index, output):
     return errors
 
 
+def _public_texts(index):
+    """모든 참여자에게 보이는 문항 문구: scene, question, options.label."""
+    texts = []
+    for scenario in index.scenarios.values():
+        texts.extend(t for t in (scenario.get("scene"), scenario.get("question")) if isinstance(t, str))
+        for option in scenario.get("options") or []:
+            if isinstance(option, dict) and isinstance(option.get("label"), str):
+                texts.append(option["label"])
+    return texts
+
+
+def check_memo_quotes(index, output, min_length=MEMO_QUOTE_MIN_LENGTH):
+    """공유 문장에 memo의 연속 min_length자 이상이 그대로 있으면 memo_quote를 반환한다.
+
+    겹친 부분이 문항 공개 문구에도 있으면 제외한다. positions와 original_condition은
+    _shared_sentences에 포함되지 않으므로 검사하지 않는다. 오류 설명에는 memo 원문을 넣지 않는다.
+    """
+    errors = []
+    public = _public_texts(index)
+    memos = [
+        (r.get("response_id"), r["memo"])
+        for r in index.responses
+        if isinstance(r.get("memo"), str) and len(r["memo"]) >= min_length
+    ]
+    for path, text in _shared_sentences(output):
+        for response_id, memo in memos:
+            for start in range(len(memo) - min_length + 1):
+                window = memo[start:start + min_length]
+                if window in text and not any(window in p for p in public):
+                    errors.append(_error("memo_quote", path,
+                                         f"{response_id} 메모의 연속 {min_length}자 이상이 공유 문장에 그대로 있다"))
+                    break
+    return errors
+
+
 def _strings(node, path=()):
     if isinstance(node, str):
         yield path, node
@@ -360,5 +397,6 @@ def validate_pact_output(pact_input, raw_output):
             errors.extend(validate_positions(index, output))
             errors.extend(check_linked_responses(index, output))
     errors.extend(check_participant_tokens(index, output))
+    errors.extend(check_memo_quotes(index, output))
     errors.extend(check_humor_text(output))
     return {"valid": not errors, "errors": errors}

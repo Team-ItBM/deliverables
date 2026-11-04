@@ -58,7 +58,7 @@
 
 ## 7. 운영 정보
 
-모델은 GPT-6.1 Sol (`gpt-6.1-sol`, 이하 Sol)을 사용한다. 이 저장소는 조사·스펙·모델 출력 계약을 관리한다. 서비스 실행·테스트·린트 명령은 구현 코드의 설정을 따른다. 모바일 확인은 아이폰 Safari와 안드로이드 Chrome 실제 기기로 수행한다. 실제 확인한 명령과 통과 조건을 이 절에 기록한다. 문서 점검: `git diff --check`, 변경 범위 확인: `git status --short`. 골든 테스트(추천 출력 검증기): `python -m pytest tests/test_pact_golden.py -q -rs`. 의존성 설치: `python -m pip install -r requirements.txt`. 기능 수용 조건은 골든 케이스 25개 전수 통과와 skip·xfail 0건이다. 2026-11-04 확인 결과 로더 검사 5개를 포함해 30개가 통과했다. 도구 계약 테스트: `python -m pytest tests/test_tools.py -q -rs`. 도구 수용 조건은 20개 전수 통과와 skip·xfail 0건이다. 2026-11-04 확인 결과 도구 구현 전이라 기준 자료 검사 2개가 통과하고 18개가 skip됐다.
+모델은 GPT-6.1 Sol (`gpt-6.1-sol`, 이하 Sol)을 사용한다. 이 저장소는 조사·스펙·모델 출력 계약을 관리한다. 서비스 실행·테스트·린트 명령은 구현 코드의 설정을 따른다. 모바일 확인은 아이폰 Safari와 안드로이드 Chrome 실제 기기로 수행한다. 실제 확인한 명령과 통과 조건을 이 절에 기록한다. 문서 점검: `git diff --check`, 변경 범위 확인: `git status --short`. 골든 테스트(추천 출력 검증기): `python -m pytest tests/test_pact_golden.py -q -rs`. 의존성 설치: `python -m pip install -r requirements.txt`. 기능 수용 조건은 골든 케이스 30개 전수 통과와 skip·xfail 0건이다. 2026-11-04 확인 결과 로더 검사 5개를 포함해 35개가 통과했다. 도구 계약 테스트: `python -m pytest tests/test_tools.py -q -rs`. 도구 수용 조건은 20개 전수 통과와 skip·xfail 0건이다. 2026-11-04 확인 결과 도구 구현 전이라 기준 자료 검사 2개가 통과하고 18개가 skip됐다.
 
 - `docs/`: 문제·스펙·온톨로지. `research/`는 인터뷰·관찰, `spikes/`는 실험 기록.
 - `src/travel/schemas/`, `src/travel/prompts/`: 제품 출력 계약·프롬프트.
