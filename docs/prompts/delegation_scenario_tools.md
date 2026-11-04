@@ -159,3 +159,42 @@ e1은 `docs/ARCHITECTURE.md`를 `.local-work/fault_injection/`에 백업하고 �
 
 - 3절 표에 도구 정의의 파라미터 스키마(`template_id`: string, 필수)를 둘지. 정하기 전까지 테스트는 함수 시그니처만 검사한다.
 - `lookup_template` 단독 테스트를 둘지. 지금은 일회성 확인만 했다.
+
+### §2-4. 3회차 (2026-11-04): 연결 함수 호출 검사 추가
+
+**걸린 것**: 수용 후 `lookup_template` 단독 테스트를 검토하다 나온 빈틈이다. 도구가 실제로 `lookup_template`을 호출하는지는 테스트가 보지 않아 6단계 코드 리뷰에만 맡겨져 있었다. 도구가 pool을 따로 읽어도 50개 원본 일치 검사는 통과한다.
+
+**무엇을 고치나(테스트 코드, 전민규 승인)**: `test_tool_delegates_to_lookup_template`를 추가한다.
+
+- `travel.pool.lookup_template`을 대리 함수로 바꾼다. 대리 함수는 `paid_activity` 원본에서 `title`과 `scene`만 표시용 값으로 바꾼 항목을 돌려준다.
+- 도구를 `paid_activity`로 한 번 호출해 대리 함수가 그 ID로 정확히 한 번 호출됐는지, 도구가 대리 함수의 반환값을 그대로 돌려주는지 검사한다.
+- 도구 코드는 `pool.lookup_template(...)`처럼 호출할 때 모듈 속성을 찾아야 한다. `from travel.pool import lookup_template`로 import 시점에 묶으면 이 검사가 실패한다. 테스트가 도구 코드에 요구하는 인터페이스가 하나 늘어난다.
+- `lookup_template`의 오류 동작(`KeyError`, `TypeError`)은 이 검사에 넣지 않는다. 사람이 정한 기준이 없기 때문이다.
+
+**결함별 기대(실행 전 기록)**: 같은 임시 구현에 결함 두 개를 추가한다. 수집 노드는 21개가 된다.
+
+| # | 주입하는 결함 | 기대 결과 |
+|---|---|---|
+| d0 | 결함 없음 | 21 passed |
+| d1, d3, d4, d5, d7, d8, d9, d10 | §2-1과 같음 | §2-1과 같은 실패. 새 검사는 통과(d7은 대리 함수의 장면에 바꿀 금액이 없음) |
+| d2 | 캐시 객체를 그대로 반환(`lookup_template`을 거치지 않음) | 불변 검사와 새 검사, 2 failed |
+| d6 | `topic` 누락 | 원본 일치 검사와 새 검사(반환값이 대리 함수 결과와 다름), 2 failed |
+| d11 | pool 파일을 직접 읽어 같은 결과를 반환 | 새 검사만, 1 failed |
+| d12 | `from travel.pool import lookup_template`로 묶어 호출 | 새 검사만, 1 failed |
+| e1 | 설계서 3절 설명 칸 변경 | `test_architecture_tool_row`만, 1 failed |
+
+**실제 결과**: 기대와 모두 같다. 변경 후 SHA-256은 `tests/test_tools.py` `50818c55…`이다.
+
+| # | 실제 결과 |
+|---|---|
+| d0 | 21 passed |
+| d1, d3, d4, d5, d7, d8, d9, d10 | §2-1과 같은 테스트가 같은 개수로 실패했다. 새 검사는 통과했다 |
+| d2 | 2 failed. "lookup_template을 paid_activity로 한 번 호출해야 한다: []", "메모리 pool 해시가 바뀌었다" |
+| d6 | 2 failed. "필드가 다르다 누락=['topic']", "도구가 lookup_template의 반환값을 그대로 돌려주지 않았다" |
+| d11 | 1 failed. "lookup_template을 paid_activity로 한 번 호출해야 한다: []" |
+| d12 | 1 failed. 메시지는 d11과 같다 |
+| e1 | 1 failed(`test_architecture_tool_row`). "표의 설명이 테스트 기준값과 다르다" |
+
+원복은 §2-2와 같은 방법으로 확인했다. 설계서 SHA-256이 주입 전과 같고, 주입 전후 `git status --short`, `git diff | shasum`, `git diff --stat`이 같다. 원복 후 passed 2, skipped 19다.
+
+**새 기준 커밋**: 전민규가 변경안을 승인했고 결과가 실행 전 기대와 모두 같아 `c027358`을 새 기준으로 한다. 도구 코드 수용 때 `git diff c027358 -- tests/`로 테스트 미변경을 확인한다. 도구가 `lookup_template`을 호출하는지는 이제 테스트가 검사하므로 6단계 코드 리뷰 항목에서 뺀다. `lookup_template` 단독 테스트는 목록 생성을 구현할 때 그 계약과 함께 정한다.
