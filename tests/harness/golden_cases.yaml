@@ -48,6 +48,7 @@
 # 공통 처리 규칙
 #   json_invalid 또는 schema_violation이 나오면 그 뒤 규칙은 검사하지 않는다.
 #   status가 invalid_input, unsupported이면 참조·positions·연결 규칙을 검사하지 않는다.
+#   다만 그 두 상태에서 positions가 비어 있지 않으면 status_combination이다(추천 프롬프트 B절 positions=[]).
 #   공유 문장 = action, proposed_conditions[], proposed_change, unresolved_conditions[].description, message.
 #
 # fixture 기준
