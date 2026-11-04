@@ -262,7 +262,7 @@ cases:
     note: >-
       금지 행동. 입력 requested_count를 7로 바꿨고 출력은 6개다.
 
-  # 근거: §0-1 N12, B절 template_id 대조, 절대 규칙 5, §0-1 결정 4(표 비고에는 '결정 5')
+  # 근거: §0-1 N12, B절 template_id 대조, 절대 규칙 5, §0-1 결정 4
   - name: N12_unknown_template
     fixture: ex1_ready
     patch:
