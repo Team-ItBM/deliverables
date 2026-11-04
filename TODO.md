@@ -5,7 +5,7 @@
 - [ ] MVP 범위: 여행 정보 → 같은 문항에 개별 응답 → 마감 → 추천 협약서 → 결과 확인·저장을 연결한다. 1차 MVP는 F1~F6이며 F7(30일 만료)만 제외한다(11/4 팀 결정). 이번 구현과 최종 SPEC의 범위를 구분하고, 제외 기능을 README에 명시한다.
 
 - [ ] **6강 — 도구·서버·모델 연결**
-  - [ ] 도구 스파이크·전환: Sol API의 도구 호출 + `json_schema` 동시 사용과 v6 기준(AC1·AC2) 유지를 확인한다. 실행 전에 성공 조건을 적는다. 도구 파라미터의 `enum`(pool ID 제한)과 strict 모드 지원도 확인해 사용 여부를 정한다. 검증 후 문항 입력을 pool 목록 + 도구로 바꾸고 프롬프트 v9·SPEC F2/5절을 맞춘다. 확인 전에는 pool 전체 입력 경로(현재 문항 v8·pool v3)를 유지한다.
+  - [ ] 도구 스파이크·전환: Sol API의 도구 호출 + `json_schema` 동시 사용과 v6 기준(AC1·AC2) 유지를 확인한다. 실행 전에 성공 조건을 적는다. 도구 파라미터의 strict 모드 지원도 확인해 사용 여부를 정한다. `enum`(pool ID 제한)은 쓰지 않는다(없는 ID는 `lookup_template`의 `not_found`가 막는다, 11/5 결정). 검증 후 문항 입력을 pool 목록 + 도구로 바꾸고 프롬프트(v9 또는 v8.1, 조사 쌍 표기 규칙 포함)·SPEC F2/5절을 맞춘다. 확인 전에는 pool 전체 입력 경로(현재 문항 v8·pool v3)를 유지한다.
   - [ ] 문항 회귀: 스파이크 결과로 정한 문항 버전(성공하면 v9, 실패하면 v8)과 pool v3를 v6 점검과 같은 기준으로 다시 점검한다(S1~S6 계약 회귀, D01~D08 pool 전체 점검, `scene` 줄 수 검사 추가, 출력에 `validate_scenario_output` 적용). 실제 Sol API를 호출하며 크레딧 예산을 쓴다.
   - [ ] 서버·화면·인프라 구현: ARCHITECTURE 2절의 예정 경로(FastAPI 서버, Vite+React SPA, `config/llm.yaml`, Terraform, GitHub Actions)를 만든다. 도메인은 추후 구매하며 그 전에는 ALB·CloudFront 기본 주소로 확인한다.
   - [ ] 서버 계약 테스트·위임 기록: SPEC 6절 케이스 ID(`response_privacy`, `response_closure`, `host_edit`, `result_export`, `duplicate_name`, `regeneration`, `push_events`, `output_validation`, `scenario_input`, `profile_rendering`)로 테스트를 먼저 확정하고 `docs/prompts/delegation_server.md`에 결함 주입 확인까지 기록한다. 2026-11-05에 케이스 80개와 하니스를 구조 수용했다(`5174621`). 서버 구현 뒤 결함 주입(d0~d18, C2·C7)으로 판정 수용하면 끝난다.
