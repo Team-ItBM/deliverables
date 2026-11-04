@@ -80,4 +80,108 @@
 
 ## §2. 회차별 결과
 
-(위임 후 기록)
+### §2-1. 1회차 (2026-11-04): 테스트 작성과 결함 주입
+
+§1-1 블록을 고치지 않고 그대로 넣었다.
+
+**만든 파일**
+
+- `tests/test_pool.py`: §0 기준과 설계서 3절의 `ScenarioIndexEntry` 필드를 단언문으로 옮겼다. 기대값은 pool 파일에서 직접 읽고 `travel.pool`을 거치지 않는다. `build_scenario_index`가 `travel.pool`에 없으면 목록 검사 8개만 skip한다. `travel.pool` import 오류는 skip하지 않고 수집 오류로 드러난다.
+- `src/`, `tests/test_tools.py`, `tests/test_pact_golden.py`, `tests/harness/`는 고치지 않았다.
+
+**테스트가 도구 코드에 요구하는 인터페이스**
+
+§0에 없는 형식을 테스트가 정한 부분이다. 수용할 때 사람이 확인한다.
+
+- `travel.pool` 모듈 속성 `build_scenario_index`. 인자가 없다(`inspect.signature`의 파라미터가 비어 있음. `*args`, 기본값 인자도 허용하지 않음).
+- 반환값은 `list`이고 항목은 `dict`다. 필드는 정확히 `template_id`, `title`, `purpose`, `decision_key`다.
+- 호출할 때마다 `travel.pool.load_pool()`을 모듈 속성으로 찾아 호출한다. import 시점에 묶거나(`from ... import`, 기본값 인자), pool 파일을 직접 읽거나, `load_pool`과 별도로 목록을 모듈 캐시에 두면 대리 pool 검사 2개가 실패한다. `load_pool()`을 다시 부르지 않고 이전 목록을 돌려주는 캐시는 허용하지 않는다. 매 호출 `load_pool()` 결과에서 목록을 만들거나, 그 결과 객체를 키로 캐시하고 복사본을 돌려주는 방식은 통과한다(임시 구현 p16으로 확인, 28 passed).
+- 설계서 필드는 테스트 상수 `INDEX_FIELDS`로 고정했다. 설계서 3절의 `ScenarioIndexEntry`(...) 문장과 같은지는 `test_architecture_index_fields`가 따로 검사한다([도구 위임 기록](delegation_scenario_tools.md) §2-2와 같은 방식).
+
+**계약 조건과 테스트 대응**
+
+| 계약 조건 | 테스트 | 검사 내용 |
+|---|---|---|
+| 시그니처(§0 1번) | `test_index_signature_has_no_arguments` | 인자가 없다 |
+| 필드가 정확히 4개 | `test_index_entries_have_exact_fields` | list·dict 형식, 필드 집합이 같고 `topic`·`scene`·`question`·`options`·`core_constraints`가 없다 |
+| 값이 원본과 같음, 수·집합·중복·순서(§0 2·3·4번) | `test_index_matches_pool_file` | pool 파일에서 만든 기대 목록과 필드·항목 수·ID 집합·중복·순서·값을 비교 |
+| 정규화·요약 없음 | `test_index_values_are_not_normalized` | 실제 pool 값에는 앞뒤 공백·대문자가 없어 정규화 결함이 드러나지 않는다. 대리 `load_pool`로 첫 항목에 앞뒤 공백·탭·줄바꿈·대소문자가 섞인 `title`·`decision_key`, 긴 `purpose`(530자)를 넣고 그대로 나오는지 본다 |
+| 두 번 호출 결과가 같음 | `test_index_is_deterministic` | 연속 두 호출의 결과가 같다 |
+| pool 불변, 반환값 수정 격리 | `test_index_does_not_change_pool` | 반환값의 항목 값 변경·필드 추가·항목 추가·순서 뒤집기 뒤 다음 호출이 기대 목록과 같고, 파일 해시·파일과 메모리의 `pool_version`·메모리 pool 해시가 같다 |
+| `lookup_template` 연결 | `test_index_ids_resolve_with_lookup_template` | 모든 `template_id`가 `KeyError`·`TypeError` 없이 조회되고 `decision_key`가 같다 |
+| 지시문은 데이터(절대 규칙 4) | `test_pool_instructions_are_data` | 대리 `load_pool`로 `title`·`purpose`에 지시문을 넣는다. `load_pool`이 호출됐고, 결과가 대리 pool의 기대 목록과 같으며, 지시문 `title`이 그대로 나온다 |
+| `lookup_template` 복사본(§0 5번) | `test_lookup_returns_pool_original_copy` | 50개 ID 전부 파일 원본과 같고, 반환값을 고쳐도 다음 조회·메모리 pool 해시·파일 해시가 바뀌지 않는다 |
+| `lookup_template` 없는 ID(§0 5번) | `test_lookup_unknown_id_raises_key_error` 10개 | 없는 ID, 대문자, 대소문자 혼합, 끝 공백, 앞 공백, 끝 줄바꿈, 선택지 ID, `decision_key`, 빈 문자열, 지시문이 섞인 값에서 `KeyError` |
+| `lookup_template` 비문자열(§0 5번) | `test_lookup_non_string_raises_type_error` 7개 | None, int, float, bool, list, dict, bytes에서 `TypeError` |
+| (항상 실행) | `test_pool_file_structure`, `test_architecture_index_fields` | pool 항목에 목록 필드가 비어 있지 않은 문자열로 있고 ID가 고유하며 `UNKNOWN_IDS`가 pool에 없다. 설계서 3절 필드 문장이 `INDEX_FIELDS`와 같다 |
+
+**(1) 수집과 실행 확인**
+
+```bash
+python -m pytest tests/test_pool.py --collect-only -q
+python -m pytest tests/test_pool.py -q -rs
+```
+
+수집 노드 28개(항상 실행 2, `lookup_template` 18, 목록 8). 목록 함수 미구현 상태에서 passed 20, skipped 8, failed 0이다. skip 사유는 8개 모두 "build_scenario_index 없음: travel.pool에 함수가 정의되지 않았다"이다.
+
+**(2) 결함 주입 및 검출 확인**
+
+`src/`를 고치지 않으려고 pytest 플러그인 `.local-work/fault_injection/pool_index/index_fault_plugin.py`를 썼다. 플러그인은 import될 때 `travel.pool.build_scenario_index`에 임시 구현을 붙이고, `L*` 모드에서는 `travel.pool.lookup_template`을 결함 구현으로 바꾼다. 테스트 파일은 고정하고 아래처럼 실행했다.
+
+```bash
+PYTHONPATH=.local-work/fault_injection/pool_index POOL_FAULT=p0 \
+  python -m pytest -p index_fault_plugin tests/test_pool.py -q -rf -p no:cacheprovider
+```
+
+결함별 기대는 실행 전에 `.local-work/fault_injection/pool_index/expected.md`에 적었다. 첫 실행에서 p0가 1 failed였다. 원인은 임시 구현 시그니처를 `(*args, **kwargs)`로 둔 플러그인 오류였고, 모든 모드에서 시그니처 검사가 1개씩 더 실패했다. 테스트는 고치지 않고 플러그인만 `()`로 고쳐 전 모드를 다시 실행했다(첫 실행 출력은 `results_run1_stub_bug.txt`). 아래 실제 결과는 고친 뒤의 실행이다.
+
+| # | 주입한 결함 | 실행 전 기대 | 실제 결과 |
+|---|---|---|---|
+| p0 | 통과 가능 확인: 결함 없는 임시 구현 | 28 passed, skip 0 | 28 passed. 일치 |
+| p1 | `scene` 필드 추가 | fields, match, norm, immut, inject 5 failed | 5 failed. "필드가 다르다 누락=[] 추가=['scene']". 일치 |
+| p2 | `purpose` 필드 누락 | p1과 같은 5 failed | 5 failed. "누락=['purpose']". 일치 |
+| p3 | 값 `strip()` | norm 1 failed | 1 failed. "pool 원본과 값이 다르다 ['title', 'purpose', 'decision_key']". 일치 |
+| p4 | 값 `lower()` | norm, inject 2 failed | 2 failed. inject는 `INJECTION_PURPOSE`의 대문자에서 "['purpose']". 일치 |
+| p5 | 요약: `purpose` 앞 20자 | match, norm, immut, inject 4 failed | 4 failed. "['purpose']". 일치 |
+| p6 | `template_id`로 정렬 | match, norm, immut, inject 4 failed | 4 failed. "순서가 pool 파일과 다르다: 0번째 결과 'advance_ticket', pool 'paid_activity'". 일치 |
+| p7 | 마지막 항목 누락 | match, norm, immut, inject 4 failed | 4 failed. "항목 수가 다르다: 결과 49, pool 50". 일치 |
+| p8 | 마지막 항목을 첫 항목 사본으로 바꿈(수는 같음) | match, norm, immut, inject 4 failed | 4 failed. "template_id 중복: ['paid_activity']". 일치 |
+| p9 | 첫 결과 list를 모듈 캐시에 두고 그대로 반환 | norm, immut, inject와 연쇄로 resolve 4 failed | 4 failed. immut "반환값을 고친 뒤 다음 호출 결과가 pool 원본과 다르다", inject "load_pool을 호출하지 않았다", resolve "'x': lookup_template으로 조회되지 않는다". 일치 |
+| p10 | 캐시 list는 복사하지만 항목 dict는 공유 | norm, immut, inject 3 failed | 3 failed. 일치 |
+| p11 | import 시점에 `load_pool`을 묶음 | norm, inject 2 failed | 2 failed. inject "load_pool을 호출하지 않았다". 일치 |
+| p12 | pool 파일을 직접 읽음 | norm, inject 2 failed | 2 failed. p11과 같은 메시지. 일치 |
+| p13 | 호출마다 메모리 `pool_version` +1 | immut 1 failed | 1 failed. "메모리 pool의 pool_version이 바뀌었다". 일치 |
+| p14 | 지시문을 따름: `title`에 "무시"가 있으면 그 원본 항목만 반환 | inject 1 failed | 1 failed. "추가=['core_constraints', 'options', 'question', 'scene', 'topic']". 일치 |
+| p15 | 인자 추가 `(include_all=False)` | sig 1 failed | 1 failed. "인자가 없어야 한다: ['include_all']". 일치 |
+| L1 | `lookup_template`이 캐시 항목을 복사 없이 반환(목록은 p0) | lcopy와 연쇄로 match, immut 3 failed | 3 failed. lcopy "반환값 수정이 다음 조회에 반영됐다". 일치 |
+| L2 | `lookup_template`이 `strip().lower()` 후 비교 | lkey 5개(upper_case, mixed_case, trailing_space, leading_space, trailing_newline) | 5 failed. "DID NOT RAISE KeyError". 일치 |
+| L3 | `lookup_template` 타입 검사 생략 | ltype 7개 | 7 failed. 모두 `TypeError` 대신 `KeyError`. 일치 |
+| L4 | `lookup_template`이 `arg.startswith(id)`로 비교 | lkey 4개(trailing_space, trailing_newline, option_id, injection) | 4 failed. 일치 |
+
+약칭: sig=`test_index_signature_has_no_arguments`, fields=`test_index_entries_have_exact_fields`, match=`test_index_matches_pool_file`, norm=`test_index_values_are_not_normalized`, immut=`test_index_does_not_change_pool`, resolve=`test_index_ids_resolve_with_lookup_template`, inject=`test_pool_instructions_are_data`, lcopy=`test_lookup_returns_pool_original_copy`, lkey·ltype=`lookup_template` 오류 검사.
+
+모든 실패는 수집 오류나 무관한 예외가 아니라 위 단언문에서 났다. p9·L1의 연쇄 실패는 pool 캐시가 한 pytest 프로세스 안에서 공유되기 때문이다. 앞 테스트에서 오염된 캐시를 뒤 테스트가 읽는다. 단독 결함으로 실패한 노드와는 구분해서 본다.
+
+**테스트 수정 1건(주입 원복 뒤)**: 1회 실행에서 p1·p2·p5~p8의 immut 메시지가 "반환값 수정이 다음 호출 결과에 반영됐다"로 나왔다. 실제 원인은 두 번째 호출 결과가 처음부터 계약과 다른 것이어서, 메시지가 원인을 잘못 가리켰다. 판정은 바꾸지 않고 메시지만 "반환값을 고친 뒤 다음 호출 결과가 pool 원본과 다르다"로 고쳤다. 같은 20개 모드를 다시 실행해 실패 노드와 개수가 고치기 전과 모두 같음을 `diff`로 확인했다(`results_r1.txt`, `results_r2.txt`). 수정 후 SHA-256은 `tests/test_pool.py` `1adb75f6…`이다.
+
+**(3) 원복 및 재실행 확인**
+
+- 체크포인트: 커밋 없이 진행했다. 주입 전에 `git status --short --untracked-files=all`, `git diff --stat`, `git diff | shasum`, `src/travel/pool.py`·`tests/test_tools.py` SHA-256을 `.local-work/fault_injection/pool_index/*_before.txt`에 기록했다.
+- 주입은 저장소 밖 플러그인으로만 했고, 플러그인을 빼고 실행하면 원래 상태다. 원복 후 `travel.pool`에 `build_scenario_index`가 없고 passed 20, skipped 8이다. 미구현 상태로 돌아간 것이며 기능 수용이 아니다.
+- `src/travel/pool.py`(`a24f0d0d…`)와 `tests/test_tools.py`(`50818c55…`)의 SHA-256이 주입 전과 같다.
+- 주입 도중 이 작업과 무관한 커밋 `3505623`(Mango-Juice, `docs/prompts/delegation_scenario_tools.md` 한 파일)이 들어왔다. 그래서 주입 전 `git status`에 있던 ` M docs/prompts/delegation_scenario_tools.md`가 원복 뒤에는 없고, `git diff --stat`·`git diff | shasum`도 주입 전 기록과 다르다. 그 밖의 차이는 없다. 원복 뒤 미추적 파일은 `tests/test_pool.py` 하나다.
+
+**사람이 수용할 때 확인할 항목**
+
+- 위 "테스트가 도구 코드에 요구하는 인터페이스". 특히 `load_pool()`을 다시 부르지 않는 목록 캐시를 금지하는 제약(대리 `load_pool` 검사 때문)을 받아들일지
+- 빈 문자열을 `TypeError`가 아닌 `KeyError`로 보는 판정. §0 5번은 "비문자열은 `TypeError`"만 정했고, 빈 문자열은 문자열이라 없는 ID로 분류했다(현재 `lookup_template` 동작과 같음)
+- `bool`을 비문자열로 보는 판정, 프롬프트에 없던 float·dict 인자 추가
+- 대리 pool로 정규화·요약을 검사하는 방식. 실제 pool 값만으로는 strip·lower 결함이 드러나지 않는다(p3·p4)
+- 결정성은 연속 두 호출만 비교한다. 프로세스 간 결정성은 순서 검사(pool 파일 순서와 같음)로 대신한다
+- 수용 후에는 `AGENTS.md` 4절에 따라 `tests/test_pool.py` 변경을 사람이 승인한다. 수용 커밋을 기준으로 정하고 목록 함수 수용 때 `git diff <기준 커밋> -- tests/`로 미변경을 확인한다
+
+**미확인·제안**
+
+- `AGENTS.md` 7절의 테스트 명령·수용 조건에 `tests/test_pool.py`가 없다. 전체 테스트 수도 56에서 84(목록 미구현 시 76 passed, 8 skipped)로 바뀐다. 수용 뒤 사람이 7절을 갱신할지 정한다. 이번 범위에서는 고치지 않았다.
+- §1-1 제목의 "미실행" 표시는 §2 밖이라 고치지 않았다.
+- 목록 함수 구현, 모델 입력에 넣을 목록 문자열 렌더링, 당일·숙박 적합성은 검사하지 않았다(범위 밖).
