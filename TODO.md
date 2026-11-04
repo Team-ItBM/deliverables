@@ -11,7 +11,7 @@
   - [ ] 도구 스파이크·전환: Sol API의 도구 호출 + `json_schema` 동시 사용과 v6 기준(AC1·AC2) 유지를 확인한다. 실행 전에 성공 조건을 적는다. 도구 파라미터의 `enum`(pool ID 제한)과 strict 모드 지원도 확인해 사용 여부를 정한다. 검증 후 문항 입력을 pool 목록 + 도구로 바꾸고 프롬프트 v9·SPEC F2/5절을 맞춘다. 확인 전에는 pool 전체 입력 경로(현재 문항 v8·pool v3)를 유지한다.
   - [ ] 문항 회귀: 스파이크 결과로 정한 문항 버전(성공하면 v9, 실패하면 v8)과 pool v3를 v6 점검과 같은 기준으로 다시 점검한다(S1~S6 계약 회귀, D01~D08 pool 전체 점검, `scene` 줄 수 검사 추가, 출력에 `validate_scenario_output` 적용). 실제 Sol API를 호출하며 크레딧 예산을 쓴다.
   - [ ] 서버·화면·인프라 구현: ARCHITECTURE 2절의 예정 경로(FastAPI 서버, Vite+React SPA, `config/llm.yaml`, Terraform, GitHub Actions)를 만든다. 도메인은 추후 구매하며 그 전에는 ALB·CloudFront 기본 주소로 확인한다.
-  - [ ] 서버 계약 테스트·위임 기록: SPEC 6절 케이스 ID(`response_privacy`, `response_closure`, `host_edit`, `result_export`, `duplicate_name`, `regeneration`, `push_events`)로 테스트를 먼저 확정하고 `docs/prompts/delegation_server.md`에 결함 주입 확인까지 기록한다.
+  - [ ] 서버 계약 테스트·위임 기록: SPEC 6절 케이스 ID(`response_privacy`, `response_closure`, `host_edit`, `result_export`, `duplicate_name`, `regeneration`, `push_events`, `output_validation`, `scenario_input`, `profile_rendering`)로 테스트를 먼저 확정하고 `docs/prompts/delegation_server.md`에 결함 주입 확인까지 기록한다.
   - [ ] 서버·모델 연결: 실제 모델 호출(`store: false`)·출력 검증, 방장 권한(host_token), 개인 원문 비공개, 응답 식별·마감·입력 고정·동시 요청 처리, 저장 출력 재생 모드, 방 단위 삭제 명령을 구현한다. 정보 부족·미해결·호출 및 형식 오류를 구분하고 실패 결과를 사용하지 않는다. 기존 스키마 v2·v4가 strict 부분집합에 맞는지 먼저 점검한다.
   - [ ] 응답 시간 측정: 실제 Sol 호출 10회로 문항·추천 단계의 지연·토큰·비용을 기록하고 동시 상한·타임아웃·시연 준비 범위를 정한다.
   - [ ] 실행 통제·관측: 호출 상한·총 실행시간·비용 한도·재시도·모델/버전을 설정 파일로 분리하고 한도 초과 시 중단을 검증한다. 호출·도구·후처리의 지연·토큰·상태·실패를 개인정보 없이 기록하고 보관 정책을 적용한다. 실제 파일·흐름을 아키텍처와 맞춘다. RAG 미사용 근거는 유지한다.
