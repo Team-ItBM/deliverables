@@ -23,7 +23,7 @@
 | 식별자 | 기능 | 기준 | AC |
 |---|---|---|---|
 | F1 | 방장이 여행 정보와 일행 프로필을 한 번에 입력하고 링크로 초대한다. | 이름·별명은 필수, 성별·나이대·MBTI는 선택이다. 선택 정보를 입력할 때 방장은 ‘동행에게 알렸어요’를 확인한다. 로그인 없이 이름을 선택한다. | AC2, AC16 |
-| F2 | 확정한 pool v3에서 AI가 문항 6~8개를 선정·각색한다. | 같은 상황·선택지를 제공하며 본인은 ‘당신’, 다른 동행은 등록한 이름·별명으로 표시한다. | AC1, AC2, AC11, AC15 |
+| F2 | 확정한 pool v3의 목록에서 AI가 `get_scenario_template` 도구로 원본을 확인해 문항 6~8개를 선정·각색한다. | 같은 상황·선택지를 제공하며 본인은 ‘당신’, 다른 동행은 등록한 이름·별명으로 표시한다. 도구 사용은 필수이며 pool 전체 입력 경로는 두지 않는다(2026-11-05 팀 결정). | AC1, AC2, AC11, AC15 |
 | F3 | 각자 객관식과 선택 메모로 답한다. | 제출 전까지 수정할 수 있다. 같은 이름의 별도 제출도 각각 집계하고 타인의 원문은 공개하지 않는다. | AC3, AC5, AC16 |
 | F4 | 설정 인원만큼 제출되거나 방장이 조기 생성을 요청하면 응답을 마감하고 추천을 생성한다. | 채택된 답변만 사용한다. 재질문 없이 모든 응답자의 확인 가능한 요구를 조율하고 일반 조항·조건부 대안·미해결 사유를 구분한다. | AC4~AC11 |
 | F5 | 방장이 같은 답변으로 정상 결과를 한 번 재생성하고 결과 선택·문구 편집 후 이미지를 저장한다. | 최초·재생성 결과 중 하나를 고른다. 선택 전 결과는 ‘방장 확인 전 초안’으로 표시한다. AI 원본을 보존하고 편집본에 ‘방장 수정’을 표시한다. | AC12, AC13, AC17 |
@@ -71,7 +71,7 @@ AC14의 모바일 접근성은 모든 흐름에 적용한다.
 |---|---|---|
 | 방 생성 | `trip: {destination, duration_days, party_size, relationship}`, `participant_profiles: [{profile_id, display_name, gender?, age_band?, mbti?}]` | 방·초대 링크·방장 권한, 생성·만료 시각. 프로필 수는 설정 인원과 같다. |
 | 입장·이름 선택 | 초대 링크, `profile_id` | 이름 선택과 기존 제출 여부 안내. 새 응답 작성 세션. 이름 중복을 이유로 차단하지 않는다. |
-| 문항 선정·각색 | `{trip, participant_profiles, requested_count, scenario_pool, request}`. `participant_profiles[].display_name`은 서버가 바꾼 자리표시자다 | `ScenarioSet`: `{status, scenarios, clarification_questions?, message?}` |
+| 문항 선정·각색 | `{trip, participant_profiles, requested_count, scenario_pool, request}`. `scenario_pool`은 pool 목록(`ScenarioIndexEntry`: `template_id`, `title`, `purpose`, `decision_key`)이고 원본은 모델이 `get_scenario_template(template_id)` 도구로 조회한다(호출 상한 12회). `participant_profiles[].display_name`은 서버가 바꾼 자리표시자다 | `ScenarioSet`: `{status, scenarios, clarification_questions?, message?}` |
 | 답변 제출 | 작성 세션, `profile_id`, 전체 문항의 `{scenario_id, option_id, memo}` | 별도 `participant_id`와 문항별 `response_id`. 제출 후 수정 불가. |
 | 생성·조기 생성 | 제출 수 도달 이벤트 또는 방장 요청 | 응답을 마감하고 채택한 제출·문항을 고정한다. 제외 안내·반영 건수는 서버가 계산한다. |
 | 추천 협약서 생성 | `{participant_ids, scenarios, responses, request}` | `PactRecommendation`: `{status, positions, clauses, conditional_alternatives?, unresolved_conditions?, message?}` |
@@ -100,9 +100,9 @@ AC14의 모바일 접근성은 모든 흐름에 적용한다.
 
 ### 필드 연결과 검증 경계
 
-- 문항 프롬프트 v8은 [문항 스키마 v2](../src/travel/schemas/scenario_set.schema.json), 추천 프롬프트 v12는 [추천 스키마 v4](../src/travel/schemas/pact_recommendation.schema.json)를 사용한다. 추천은 같은 호출에서 `ParticipantPosition`도 추출한다. 추가 LLM 호출 없이 원본·입장·조항을 대조한다.
+- 문항 프롬프트 v9는 [문항 스키마 v2](../src/travel/schemas/scenario_set.schema.json), 추천 프롬프트 v12는 [추천 스키마 v4](../src/travel/schemas/pact_recommendation.schema.json)를 사용한다. 추천은 같은 호출에서 `ParticipantPosition`도 추출한다. 추가 LLM 호출 없이 원본·입장·조항을 대조한다.
 - `profile_id`는 등록 프로필, `display_name`은 이름·별명이다. 문항 모델 입력에서는 서버가 `display_name`을 배열 순서대로 ‘친구1’, ‘친구2’…로 바꾸고 `profile_id`와 선택 정보는 그대로 둔다. 입력 검증(빈 이름 등)은 바꾸기 전 원본으로 한다. 문항의 `{{profile:profile_id}}` 표기는 코드가 조회해 본인에게 ‘당신’, 다른 사람에게 등록한 이름으로 바꾼다. 모두 같은 문항·선택지 ID와 의미를 유지하며 선택 프로필 정보를 그대로 노출하지 않는다. 표시 이름·‘당신’의 받침에 맞게 이/가·은/는·과/와를 처리한다.
-- [pool 데이터](../src/travel/data/scenario_pool.json)는 `pool_version`과 `scenario_pool`을 저장한다. 모델에는 문항 배열만 전달하고 출처·작성 근거는 입력에서 제외한다. 숙박·다음 날·2박 등 장면의 적용 조건은 여행 기간과 대조해 선정한다.
+- [pool 데이터](../src/travel/data/scenario_pool.json)는 `pool_version`과 `scenario_pool`을 저장한다. 모델에는 목록만 전달하고 원본은 도구 조회로 준다. 출처·작성 근거는 입력과 도구 결과에서 제외한다. 서버는 검증기에 pool 전체를 담은 검증 입력을 넘긴다. 숙박·다음 날·2박 등 장면의 적용 조건은 여행 기간과 대조해 선정한다.
 - `scene`은 줄바꿈으로 나눈 개요다. 첫 줄은 상황을 한 문장으로 쓰고, 다음 줄부터 조건을 한 줄에 하나씩 쓴다. 각색해도 원본 pool의 줄 수와 순서를 유지한다.
 - pool의 `decision_key`는 같은 판단을 묻는 문항의 식별자다. 각 문항에 부여한 키를 유지하고 같은 키의 문항을 함께 선정하지 않는다. 주제 자체는 중복을 금지하는 기준이 아니다.
 - 코드가 문항을 확정한 뒤 `scenario_id=template_id`로 연결하고 `core_constraints`를 pool에서 조회한다. 질문 모델의 미검증 출력을 추천 모델에 바로 전달하지 않는다.
