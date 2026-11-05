@@ -5,6 +5,7 @@ import { App } from "./App";
 import { setTransport } from "./api/client";
 import { captureHostTokenFromHash } from "./lib/hostToken";
 import { boxVariant } from "./mock/boxes";
+import "./styles/fonts.css";
 import "./styles/tokens.css";
 import "./styles/app.css";
 

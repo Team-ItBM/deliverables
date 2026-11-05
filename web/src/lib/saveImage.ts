@@ -9,7 +9,7 @@ export async function savePaperImage(
   fileName: string,
   share: ShareData = { title: "여행 동행 협약서" }
 ): Promise<"shared" | "downloaded" | "cancelled"> {
-  const blob = await toBlob(node, { pixelRatio: 3, cacheBust: true, backgroundColor: "#FAF8F5" });
+  const blob = await toBlob(node, { pixelRatio: 3, backgroundColor: "#FAF8F5" });
   if (!blob) throw new Error("capture_failed");
   const file = new File([blob], fileName, { type: "image/png" });
   const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };

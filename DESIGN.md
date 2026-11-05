@@ -327,6 +327,8 @@ components:
 
 본문과 조작은 **IBM Plex Sans KR**, 문서의 목소리는 **Noto Serif KR**이 맡는다. 두 서체 모두 발표자료에서 본문과 제목에 쓴 서체다.
 
+폰트는 직접 제공한다. 영문과 KS X 1001 한글 2,350자로 줄였고, 범위 밖 글자는 기기의 글꼴로 나온다. IBM Plex Sans KR은 라이선스의 예약 글꼴 이름 때문에 줄인 파일을 ‘Dowon Sans’라는 이름으로 쓴다. 코드의 글꼴 이름만 다르고 모양은 같다.
+
 - **Noto Serif KR**은 워드마크 {typography.wordmark}, 화면 제목 {typography.headline-lg}, 협약서 제목 {typography.display-pact}, 조항 번호 {typography.clause-number}, 도장 {typography.stamp}에만 쓴다. 버튼·라벨·입력란에는 쓰지 않는다.
 - **워드마크** ‘도원결의’는 앱 머리와 협약서 머리 모두 Noto Serif KR 600이다. 발표자료 표지와 같은 서체이고, 협약서 제목·도장과 한 목소리로 읽힌다. 배너의 굵은 산세리프 표기는 README 표지에만 쓴다.
 - **IBM Plex Sans KR**은 나머지 전부다. 문항의 장면은 첫 줄을 {typography.scene-lead}, 나머지 줄을 {typography.scene-detail}로 두고, 질문은 {typography.headline-md}로 장면보다 앞에 읽히게 한다.
