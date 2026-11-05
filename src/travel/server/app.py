@@ -386,6 +386,7 @@ def _register_routes(app, settings, jobs, notifier, clock, pool_source):
             "room_status": room["status"],
             "scenario_status": room["scenario_status"],
             "party_size": room["party_size"],
+            "trip": render.public_trip(db.as_json(room["trip"])),
             "submitted_count": room["submitted_count"],
             "profiles": [{"profile_id": p["profile_id"], "display_name": p["display_name"],
                           "has_submission": p["profile_id"] in submitted} for p in profiles],
@@ -558,7 +559,8 @@ def _register_routes(app, settings, jobs, notifier, clock, pool_source):
         return render.shared_result(
             db.as_json(row["output"]), roster, result_id=row["result_id"], kind=row["kind"],
             source_result_id=row["source_result_id"], draft=draft,
-            included_count=frozen.get("included_count", 0), excluded_names=frozen.get("excluded_names", []))
+            included_count=frozen.get("included_count", 0), excluded_names=frozen.get("excluded_names", []),
+            trip=db.as_json(room["trip"]))
 
     async def shown_origin(conn, room):
         rows = await ai_results(conn, room["room_id"])

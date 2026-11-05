@@ -31,7 +31,7 @@
 | # | 메서드·경로 | 권한 | 요청 | 성공 응답 | 오류 코드 | 근거 |
 |---|---|---|---|---|---|---|
 | 1 | `POST /api/rooms` | 없음 | `{trip: {destination, duration_days, party_size, relationship}, participant_profiles: [{profile_id, display_name, gender?, age_band?, mbti?}]}` | 201 `{room_code, host_token, created_at, expires_at, scenario_status: "preparing"}`. 응답 뒤 문항 생성을 백그라운드로 시작한다 | `invalid_input`, `needs_information` | SPEC 5절 방 생성, F1, ARCHITECTURE 5절 입력 한도(`party_size` 2~8). 문항 생성 시점은 [에이전트 안](결정 1) |
-| 2 | `GET /api/rooms/{room_code}` | 없음(방장 토큰이 있으면 방장 정보 추가) | 없음 | 200 `{room_status, scenario_status, party_size, submitted_count, profiles: [{profile_id, display_name, has_submission}], failure_reason?, scenario_notice?}`. 방장에게는 `scenario_notice`로 `message`·`clarification_questions`를 보여준다 | `not_found` | SPEC 5절 입장·이름 선택, 처리 정책 "입장·중복 이름", ARCHITECTURE 5절 폴링. 필드 구성은 [에이전트 안] |
+| 2 | `GET /api/rooms/{room_code}` | 없음(방장 토큰이 있으면 방장 정보 추가) | 없음 | 200 `{room_status, scenario_status, party_size, trip: {destination, duration_days, party_size}, submitted_count, profiles: [{profile_id, display_name, has_submission}], failure_reason?, scenario_notice?}`. 방장에게는 `scenario_notice`로 `message`·`clarification_questions`를 보여준다 | `not_found` | SPEC 5절 입장·이름 선택, 처리 정책 "입장·중복 이름", ARCHITECTURE 5절 폴링. 필드 구성은 [에이전트 안] |
 | 3 | `POST /api/rooms/{room_code}/sessions` | 없음 | `{profile_id}` | 201 `{session_id, duplicate_name_notice, privacy_notice, scenarios}`. `scenarios`는 이 `profile_id` 기준으로 토큰을 치환한 문항이다. 이전 제출 내용은 넣지 않는다 | `not_found`, `room_closed`, `invalid_state` | SPEC 5절 "새 응답 작성 세션", AC15, AC16. `privacy_notice`를 서버가 주는 것은 [에이전트 안](결정 13) |
 | 4 | `POST /api/rooms/{room_code}/submissions` | 없음. `Idempotency-Key` 헤더 필수 | `{session_id, answers: [{scenario_id, option_id, memo?}]}` | 201 `{participant_id, submitted_count, party_size}`. `response_id`는 돌려주지 않는다(§0-A 6, 결정 24). 같은 키·같은 본문 재전송은 200으로 같은 본문을 돌려준다. 유효 제출 수가 `party_size`에 닿으면 같은 트랜잭션에서 마감하고 생성을 시작한다 | `invalid_input`, `room_closed`, `session_used`, `idempotency_conflict`, `not_found` | SPEC 5절 답변 제출, 처리 정책 "제출·자동 생성", 필드 연결("동일 제출 요청의 전송 재시도는 같은 건"), ARCHITECTURE 5절 멱등 키·`memo` 300자. 헤더 이름·필수 여부·`session_used`는 [에이전트 안](결정 14) |
 | 5 | `POST /api/rooms/{room_code}/generate` | 방장 | 없음 | 202 `{room_status: "generating", included_count}` | `host_forbidden`, `no_submissions`, `room_closed` | SPEC 처리 정책 "조기 생성·마감", AC4, ARCHITECTURE 5절 상태 기계 |
@@ -66,6 +66,7 @@ editable: [{path, segments: [{text} | {participant_id, display, pair}]}]
   draft,                                              // bool. 방장이 고르기 전 공개 결과면 true("방장 확인 전 초안")
   pact_status,                                        // PactRecommendation.status
   included_count, excluded_names: [display_name],     // 반영한 제출 수, 반영되지 않은 등록 이름
+  trip: {destination, duration_days, party_size},     // 공개 여행 정보(결정 47)
   clauses: [{scenario_id, participant_names, action, proposed_conditions}],
   conditional_alternatives: [{scenario_id, participant_names, action, proposed_conditions, proposed_changes}],
   unresolved_conditions: [{scenario_id, description}],
@@ -381,6 +382,7 @@ editable: [{path, segments: [{text} | {participant_id, display, pair}]}]
 44. `role: participant` 구독은 `session_id`가 필수다. 없으면 422 `invalid_input`이다(결정 11 "참여자 구독은 세션과 묶는다"). §0-B 12의 `session_id?`는 `role: host`에만 해당한다.
 45. 실패 결과(`state: failed`)의 편집 요청은 409 `invalid_state`로 둔다(§0-D 포괄 코드).
 46. 작업 한도·멈춤 판정은 300초·600초 정각(`>=`)에 적용한다. 하니스 OUT-N05·N06의 기대값을 따르며 결정 12의 "넘으면"은 이렇게 읽는다.
+47. 방 조회(§0-B 2)와 공유 결과(§0-C)에 `trip`을 더한다. 키는 `destination`, `duration_days`, `party_size` 세 개다. `relationship`, 선택 프로필, 이름 자리표시자는 넣지 않는다. `trip`은 편집 위치가 아니다. 사람이 2026-11-05에 승인했고, 공유 결과 허용 키 변경과 `tests/test_room_trip.py` 추가도 같은 승인에 들어 있다. 서버 케이스 86개의 기대값은 바꾸지 않았다.
 
 ## §1. 프롬프트 원본
 

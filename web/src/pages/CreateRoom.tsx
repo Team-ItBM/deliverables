@@ -5,7 +5,6 @@ import { api } from "../api/client";
 import type { CreateRoomResponse, ProfileInput } from "../api/types";
 import { BottomBar, CopyButton, ErrorMessage, ICON } from "../components/ui";
 import { hostUrl, inviteUrl, saveHostToken } from "../lib/hostToken";
-import { keys, writeJSON } from "../lib/storage";
 
 interface PersonDraft {
   display_name: string;
@@ -18,10 +17,6 @@ const EMPTY: PersonDraft = { display_name: "", gender: "", age_band: "", mbti: "
 // 선택 정보의 허용값은 서버 계약에 없다. fixture(ex1_ready)의 값 형태("여성", "20대", "ENFP")를 따른다.
 const GENDERS = ["여성", "남성"];
 const AGE_BANDS = ["10대", "20대", "30대", "40대", "50대", "60대 이상"];
-
-export function tripMetaText(t: { destination: string; duration_days: number; party_size: number; relationship: string }) {
-  return [t.destination, `${t.duration_days}일`, `${t.party_size}명`, t.relationship].filter(Boolean).join(" · ");
-}
 
 export function CreateRoom() {
   const navigate = useNavigate();
@@ -80,8 +75,6 @@ export function CreateRoom() {
     try {
       const res = await api.createRoom(trip, profiles);
       saveHostToken(res.room_code, res.host_token);
-      // 협약서 머리의 여행 정보 줄은 결과 응답에 없어서 방장 기기에만 저장해 둔다.
-      writeJSON("local", keys.trip(res.room_code), trip);
       setCreated(res);
       window.scrollTo(0, 0);
     } catch (err) {

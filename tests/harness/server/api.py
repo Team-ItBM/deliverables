@@ -70,7 +70,7 @@ def assert_status(resp, status):
 # §0-C 공유 결과의 키. 결과 목록 항목은 여기에 RESULT_LIST_EXTRA를 더한다.
 SHARED_RESULT_KEYS = {
     "result_id", "kind", "source_result_id", "label", "draft", "pact_status", "included_count", "excluded_names",
-    "clauses", "conditional_alternatives", "unresolved_conditions", "message", "humor",
+    "clauses", "conditional_alternatives", "unresolved_conditions", "message", "humor", "trip",
 }
 RESULT_LIST_EXTRA = {"attempt", "state", "created_at", "editable"}
 # §0-B "편집용 응답"(결정 29·34)의 조각 키. 글 조각과 참여자 조각 두 가지다.

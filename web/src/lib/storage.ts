@@ -37,7 +37,6 @@ export function remove(a: Area, key: string): void {
 
 export const keys = {
   host: (code: string) => `dowon.host.${code}`,
-  trip: (code: string) => `dowon.trip.${code}`,
   session: (code: string) => `dowon.session.${code}`,
   submitted: (code: string) => `dowon.submitted.${code}`,
   push: (code: string, role: string) => `dowon.push.${code}.${role}`,

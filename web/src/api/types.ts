@@ -25,6 +25,13 @@ export interface Trip {
   relationship: string;
 }
 
+/** 참여자에게 공개하는 여행 정보. 동행 관계는 방 생성 입력에만 있다. */
+export interface PublicTrip {
+  destination: string;
+  duration_days: number;
+  party_size: number;
+}
+
 export interface ProfileInput {
   profile_id: string;
   display_name: string;
@@ -56,6 +63,7 @@ export interface RoomView {
   room_status: RoomStatus;
   scenario_status: ScenarioStatus;
   party_size: number;
+  trip?: PublicTrip | null;
   submitted_count: number;
   profiles: RoomProfile[];
   failure_reason?: FailureReason | null;
@@ -123,6 +131,7 @@ export interface SharedResult {
   pact_status: PactStatus;
   included_count: number;
   excluded_names: string[];
+  trip?: PublicTrip | null;
   clauses: Clause[] | null;
   conditional_alternatives: ConditionalAlternative[] | null;
   unresolved_conditions: UnresolvedCondition[] | null;

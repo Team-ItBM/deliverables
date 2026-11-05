@@ -157,7 +157,15 @@ def participant_name(participant_id, roster):
 EDITABLE_KINDS = ("clauses", "conditional_alternatives")
 
 
-def shared_result(output, roster, *, result_id, kind, source_result_id, draft, included_count, excluded_names):
+PUBLIC_TRIP_KEYS = ("destination", "duration_days", "party_size")
+
+
+def public_trip(trip):
+    """참여자에게 보여 주는 여행 정보. 동행 관계는 넣지 않는다(서버 위임 기록 결정 47)."""
+    return {key: trip[key] for key in PUBLIC_TRIP_KEYS}
+
+
+def shared_result(output, roster, *, result_id, kind, source_result_id, draft, included_count, excluded_names, trip):
     """검증을 통과한 PactRecommendation(토큰 그대로)을 §0-C 공유 결과로 바꾼다. 치환 실패는 RenderError다.
 
     positions, original_condition, source_response_ids, response_id는 넣지 않는다(§0-A 6).
@@ -198,6 +206,7 @@ def shared_result(output, roster, *, result_id, kind, source_result_id, draft, i
         "pact_status": output["status"],
         "included_count": included_count,
         "excluded_names": list(excluded_names),
+        "trip": public_trip(trip),
         "clauses": clauses,
         "conditional_alternatives": alternatives,
         "unresolved_conditions": unresolved,

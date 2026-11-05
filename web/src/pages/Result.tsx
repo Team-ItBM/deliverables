@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { ApiError, isNotFound } from "../api/errors";
-import type { ResultEntry, ResultsList, RoomView, SharedResult, Trip } from "../api/types";
+import type { ResultEntry, ResultsList, RoomView, SharedResult } from "../api/types";
 import { EditForm } from "../components/EditForm";
 import { HostPanel } from "../components/HostPanel";
 import { ResultSheet } from "../components/PactSheet";
@@ -12,18 +12,9 @@ import { displaySegments, setAtPointer } from "../lib/editable";
 import { useHostToken, usePolling, usePrefersReducedMotion } from "../lib/hooks";
 import { savePaperImage } from "../lib/saveImage";
 import { keys, readJSON, writeJSON } from "../lib/storage";
-import { tripMetaText } from "./CreateRoom";
 
 /** 화면용 종이와, 저장 이미지용으로 화면 밖에 360px 폭으로 그린 같은 종이. */
-function SheetWithSave({
-  result,
-  tripMeta,
-  edited,
-}: {
-  result: Partial<SharedResult>;
-  tripMeta: string | null;
-  edited?: boolean;
-}) {
+function SheetWithSave({ result, edited }: { result: Partial<SharedResult>; edited?: boolean }) {
   const captureRef = useRef<HTMLDivElement>(null);
   const reduced = usePrefersReducedMotion();
   const seenKey = keys.seen(result.result_id ?? "none");
@@ -48,9 +39,9 @@ function SheetWithSave({
 
   return (
     <div className="stack-lg">
-      <ResultSheet result={result} tripMeta={tripMeta} animate={animate} edited={edited} />
+      <ResultSheet result={result} animate={animate} edited={edited} />
       <div className="capture-host" aria-hidden="true">
-        <ResultSheet ref={captureRef} result={result} tripMeta={tripMeta} capture edited={edited} />
+        <ResultSheet ref={captureRef} result={result} capture edited={edited} />
       </div>
       {state === "error" && (
         <ErrorMessage text="이미지를 저장하지 못했어요. 화면의 협약서는 그대로 있어요." onRetry={save} retryLabel="이미지 다시 저장" />
@@ -90,7 +81,7 @@ function sortEntries(list: ResultEntry[]): ResultEntry[] {
   return [...list].sort((a, b) => a.attempt - b.attempt || a.created_at.localeCompare(b.created_at));
 }
 
-function HostResults({ code, token, tripMeta, onPublicChanged }: { code: string; token: string; tripMeta: string | null; onPublicChanged: () => void }) {
+function HostResults({ code, token, onPublicChanged }: { code: string; token: string; onPublicChanged: () => void }) {
   const [list, setList] = useState<ResultsList | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [tab, setTab] = useState<string | null>(null);
@@ -206,7 +197,7 @@ function HostResults({ code, token, tripMeta, onPublicChanged }: { code: string;
               </button>
             )
           )}
-          <SheetWithSave result={overlay.view} tripMeta={tripMeta} edited={overlay.edited} />
+          <SheetWithSave result={overlay.view} edited={overlay.edited} />
         </>
       )}
     </div>
@@ -216,8 +207,6 @@ function HostResults({ code, token, tripMeta, onPublicChanged }: { code: string;
 export function Result() {
   const { code = "" } = useParams();
   const token = useHostToken(code);
-  const trip = readJSON<Trip>("local", keys.trip(code));
-  const tripMeta = trip ? tripMetaText(trip) : null;
   const [result, setResult] = useState<SharedResult | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [tick, setTick] = useState(0);
@@ -255,9 +244,9 @@ export function Result() {
       )}
       {error !== null && !notReady && <ErrorMessage error={error} onRetry={() => setTick((t) => t + 1)} />}
       {token ? (
-        <HostResults code={code} token={token} tripMeta={tripMeta} onPublicChanged={() => setTick((t) => t + 1)} />
+        <HostResults code={code} token={token} onPublicChanged={() => setTick((t) => t + 1)} />
       ) : (
-        result && <SheetWithSave result={result} tripMeta={tripMeta} />
+        result && <SheetWithSave result={result} />
       )}
     </main>
   );

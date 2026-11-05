@@ -11,6 +11,7 @@ import { BottomBar, ErrorMessage, ICON, RoomNotFound } from "../components/ui";
 import { loadSession, loadSubmitted, saveSession } from "../lib/answerSession";
 import { usePolling, useHostToken } from "../lib/hooks";
 import { SCENARIO_STATUS_TEXT } from "../lib/status";
+import { tripMetaText } from "../lib/trip";
 
 const CONTACT = contactSectionId(privacyMd);
 
@@ -67,6 +68,7 @@ export function RoomEntry() {
     <main className="page">
       <div className="stack-sm">
         <h1 className="t-headline-lg">여행 전 질문에 답해 주세요</h1>
+        {room.trip && <p className="t-label-md">{tripMetaText(room.trip)}</p>}
         <p className="secondary">같은 상황에 각자 답하면, 서로의 바람과 한계를 담은 추천 협약서를 받아요.</p>
       </div>
 

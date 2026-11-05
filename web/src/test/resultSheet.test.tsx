@@ -62,6 +62,16 @@ describe("결과 렌더러", () => {
     expect(text).not.toMatch(/합의|동의|수락/);
   });
 
+  it("여행 정보는 목적지·기간·인원만 그리고, 저장용 종이도 같다", () => {
+    const trip = { destination: "제주", duration_days: 3, party_size: 4, relationship: "RELATIONSHIP_LEAK" };
+    const screenSheet = render(<ResultSheet result={base({ trip })} />);
+    const captureSheet = render(<ResultSheet result={base({ trip })} capture />);
+    for (const sheet of [screenSheet, captureSheet]) {
+      expect(sheet.container.querySelector(".pact-meta")?.textContent).toBe("제주 · 3일 · 4명");
+      expect(sheet.container.textContent).not.toContain("RELATIONSHIP_LEAK");
+    }
+  });
+
   it("초안이면 '방장 확인 전 초안', 수정본이면 label을 보여 준다", () => {
     render(<ResultSheet result={base({ draft: true, kind: "host_edited", label: "방장 수정" })} />);
     expect(screen.getByText("방장 확인 전 초안")).toBeTruthy();

@@ -6,6 +6,7 @@ import type {
   EditableItem,
   PactStatus,
   ProfileInput,
+  PublicTrip,
   ResultEntry,
   SharedResult,
   Trip,
@@ -194,6 +195,10 @@ function makeTpl(v: MockVariant, pids: string[]): Tpl {
   };
 }
 
+function publicTrip(t: Trip): PublicTrip {
+  return { destination: t.destination, duration_days: t.duration_days, party_size: t.party_size };
+}
+
 function shared(room: Room, o: Original, version?: Original["edits"][number]): SharedResult {
   const names = participantNames(room);
   const tpl = version?.tpl ?? o.tpl!;
@@ -211,6 +216,7 @@ function shared(room: Room, o: Original, version?: Original["edits"][number]): S
     source_result_id: version?.source_result_id ?? null,
     label: version ? "방장 수정" : null,
     draft: room.selected === null,
+    trip: publicTrip(room.trip),
     pact_status: tpl.pact_status,
     included_count: o.included.length,
     excluded_names: room.profiles.filter((p) => !includedProfiles.has(p.profile_id)).map((p) => p.display_name),
@@ -348,6 +354,7 @@ function handle(req: TransportRequest, db: DB): TransportResponse {
       room_status: room.status,
       scenario_status: room.scenarioStatus,
       party_size: room.trip.party_size,
+      trip: publicTrip(room.trip),
       submitted_count: room.submissions.length,
       profiles: room.profiles.map((p) => ({
         profile_id: p.profile_id,

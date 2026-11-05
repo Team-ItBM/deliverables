@@ -1,6 +1,7 @@
 import { PencilLine } from "lucide-react";
 import { forwardRef, useId, type CSSProperties } from "react";
 import type { Clause, ConditionalAlternative, SharedResult, UnresolvedCondition } from "../api/types";
+import { tripMetaText } from "../lib/trip";
 import { ICON } from "./ui";
 
 /**
@@ -10,7 +11,6 @@ import { ICON } from "./ui";
  */
 export interface SheetProps {
   result: Partial<SharedResult>;
-  tripMeta?: string | null;
   animate?: boolean;
   capture?: boolean;
   /** 방장 화면에서 수정 문장을 덮어 그린 경우. 서버 label이 없을 때 '방장 수정'을 붙인다. */
@@ -156,7 +156,7 @@ function AlternativeItem({ alt, index }: { alt: ConditionalAlternative; index: n
 }
 
 export const PactPaper = forwardRef<HTMLDivElement, SheetProps>(function PactPaper(
-  { result, tripMeta, animate, capture, edited },
+  { result, animate, capture, edited },
   ref
 ) {
   const clauses = result.pact_status === "conditional_only" ? [] : (result.clauses ?? []);
@@ -164,6 +164,7 @@ export const PactPaper = forwardRef<HTMLDivElement, SheetProps>(function PactPap
   const unresolved = result.unresolved_conditions ?? [];
   const blocks = (alts.length > 0 ? 1 : 0) + (unresolved.length > 0 ? 1 : 0);
   const n = clauses.length + blocks;
+  const tripMeta = result.trip ? tripMetaText(result.trip) : null;
   return (
     <article
       ref={ref}
