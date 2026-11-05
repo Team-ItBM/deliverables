@@ -9,6 +9,8 @@
   (하니스 OUT-N05·N06 기준. 결정 12의 "넘으면"과 다르며 기대값을 따른다).
 - 취소는 작업 태스크를 취소하지 않고 작업의 stop 이벤트와 모델 호출 태스크 취소로 한다. DB 쓰기는 끊기지 않는다.
 - 시도 종료 쓰기는 db.finish_attempt가 현재 시도·generating을 확인한다. 늦은 결과는 버린다(결정 30).
+- 문항 작업도 같은 규칙을 따른다. 작업 한도와 멈춤 판정은 시작 시각(scenario_started_at)부터 재서 scenario_status를 failed로
+  돌리고, db.finish_scenarios가 현재 시도·preparing을 확인한다. 실패한 문항은 방장이 POST /retry로 다시 시도하거나 새 방을 만든다.
 - 두 번째 이후 호출 전에는 현재 시도인지 확인해, 끝난 시도가 모델을 더 부르지 않게 한다.
 """
 
@@ -17,7 +19,6 @@ import contextlib
 import hashlib
 import json
 import random
-import uuid
 from dataclasses import dataclass, field
 
 from travel.pact import validate_pact_output
@@ -81,9 +82,9 @@ class JobManager:
 
     # ---- 시작
 
-    def start_scenarios(self, room_id, room_code):
-        job = Job("scenarios", room_id, room_code)
-        self._launch(uuid.uuid4(), job, self._run_scenarios(job))
+    def start_scenarios(self, room_id, room_code, attempt_id, attempt_no, started_at):
+        job = Job("scenarios", room_id, room_code, attempt_id, attempt_no, started_at)
+        self._launch(attempt_id, job, self._run_scenarios(job))
 
     def start_pact(self, room_id, room_code, attempt_id, attempt_no, generating_since):
         job = Job("pact", room_id, room_code, attempt_id, attempt_no, generating_since)
@@ -109,9 +110,14 @@ class JobManager:
         now = self.clock()
         limit = self.settings.job_time_limit_seconds
         for job in list(self.jobs.values()):
-            if job.kind != "pact" or job.task.done() or job.generating_since is None:
+            if job.task.done() or job.generating_since is None:
                 continue
             if (now - job.generating_since).total_seconds() < limit:
+                continue
+            if job.kind == "scenarios":
+                await self._finish_scenarios(job, "failed", None, None)
+                job.stop_reason = "deadline"
+                job.stop.set()
                 continue
             pending, before = await self._finish(job, ("failed", "call_error"))
             job.stop_reason = "deadline"
@@ -142,6 +148,19 @@ class JobManager:
                     deliveries.append((row["room_code"], f"failed:{row['attempt_count']}", pending))
         for room_code, event, pending in deliveries:
             await self.notifier.deliver(room_code, event, pending)
+        await self._recover_stalled_scenarios(now, limit)
+
+    async def _recover_stalled_scenarios(self, now, limit):
+        """작업 없이 preparing에 남은 방(문항 호출 중 서버 재시작)을 failed로 돌린다. 시작 시각이 없는 옛 방은 생성 시각으로 잰다."""
+        async with self.db.transaction() as conn:
+            cur = await conn.execute(
+                "SELECT room_id, room_code, scenario_attempt_id, coalesce(scenario_started_at, created_at) AS since "
+                "FROM rooms WHERE status = 'open' AND scenario_status = 'preparing' FOR UPDATE SKIP LOCKED")
+            for row in await cur.fetchall():
+                if (now - row["since"]).total_seconds() < limit:
+                    continue
+                await db.finish_scenarios(conn, row["room_id"], row["scenario_attempt_id"], "failed", None, None)
+                log("scenario_interrupted", room_code=row["room_code"])
 
     async def shutdown(self):
         self._stopping = True
@@ -178,12 +197,12 @@ class JobManager:
     async def _assert_current(self, job):
         if job.stop.is_set():
             raise JobStopped(job.stop_reason)
-        if job.kind != "pact":
-            return
+        if job.kind == "pact":
+            sql = "SELECT 1 FROM rooms WHERE room_id = %s AND current_attempt_id = %s AND status = 'generating'"
+        else:
+            sql = "SELECT 1 FROM rooms WHERE room_id = %s AND scenario_attempt_id = %s AND scenario_status = 'preparing'"
         async with self.db.connection() as conn:
-            cur = await conn.execute(
-                "SELECT 1 FROM rooms WHERE room_id = %s AND current_attempt_id = %s AND status = 'generating'",
-                (job.room_id, job.attempt_id))
+            cur = await conn.execute(sql, (job.room_id, job.attempt_id))
             if await cur.fetchone() is None:
                 raise JobStopped("stale")
 
@@ -321,14 +340,19 @@ class JobManager:
             notice = {k: payload[k] for k in ("message", "clarification_questions") if k in payload}
         else:
             scenario_status, scenario_set, notice = "failed", None, None
+        await self._finish_scenarios(job, scenario_status, scenario_set, notice)
+
+    async def _finish_scenarios(self, job, scenario_status, scenario_set, notice):
         try:
             async with self.db.transaction() as conn:
-                await conn.execute(
-                    "UPDATE rooms SET scenario_status = %s, scenario_set = %s, scenario_notice = %s WHERE room_id = %s",
-                    (scenario_status, db.jsonb(scenario_set) if scenario_set else None,
-                     db.jsonb(notice) if notice else None, job.room_id))
+                await db.finish_scenarios(conn, job.room_id, job.attempt_id, scenario_status, scenario_set, notice)
+        except db.StaleAttempt:
+            log("stale_scenario_attempt", room_code=job.room_code, attempt=job.attempt_no)
+            return
         except Exception as exc:
             self.errors.append(exc)
+            log("scenario_finish_error", room_code=job.room_code, error=type(exc).__name__)
+            return
         log("scenarios_done", room_code=job.room_code, scenario_status=scenario_status)
 
     # ---- 추천 작업

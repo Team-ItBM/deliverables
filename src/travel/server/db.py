@@ -37,6 +37,9 @@ CREATE TABLE IF NOT EXISTS rooms (
     scenario_status text NOT NULL DEFAULT 'preparing',
     scenario_set jsonb,
     scenario_notice jsonb,
+    scenario_started_at timestamptz,
+    scenario_attempt_id uuid,
+    scenario_attempt_count integer NOT NULL DEFAULT 0,
     submitted_count integer NOT NULL DEFAULT 0,
     closed_at timestamptz,
     generating_since timestamptz,
@@ -47,6 +50,9 @@ CREATE TABLE IF NOT EXISTS rooms (
     created_at timestamptz NOT NULL,
     expires_at timestamptz NOT NULL
 );
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS scenario_started_at timestamptz;
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS scenario_attempt_id uuid;
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS scenario_attempt_count integer NOT NULL DEFAULT 0;
 CREATE TABLE IF NOT EXISTS profiles (
     room_id uuid NOT NULL REFERENCES rooms(room_id) ON DELETE CASCADE,
     profile_id text NOT NULL,
@@ -378,6 +384,34 @@ async def finish_attempt(conn, room_id, attempt_id, attempt_no, outcome, now):
         (result_id, room_id, attempt_no, attempt_id, "normal" if status == "ready" else "failed",
          jsonb(payload) if status == "ready" else None, None if status == "ready" else payload, now))
     return result_id, before
+
+
+async def start_scenario_attempt(conn, room, now):
+    """잠긴 방 행의 실패한 문항을 다시 시작한다. 새 시도 ID와 번호를 돌려준다."""
+    attempt_id = uuid.uuid4()
+    cur = await conn.execute(
+        "UPDATE rooms SET scenario_status = 'preparing', scenario_set = NULL, scenario_notice = NULL, "
+        "scenario_started_at = %s, scenario_attempt_id = %s, scenario_attempt_count = scenario_attempt_count + 1 "
+        "WHERE room_id = %s AND status = 'open' AND scenario_status = 'failed' RETURNING scenario_attempt_count",
+        (now, attempt_id, room["room_id"]))
+    row = await cur.fetchone()
+    if row is None:
+        raise StaleAttempt("상태가 바뀌어 문항 시도를 시작하지 못했다")
+    return attempt_id, row["scenario_attempt_count"]
+
+
+async def finish_scenarios(conn, room_id, attempt_id, status, scenario_set, notice):
+    """문항 시도 결과를 쓴다. 현재 시도가 아니거나 preparing이 아니면 StaleAttempt를 내고 아무것도 쓰지 않는다.
+
+    시작 시각 열이 생기기 전에 만든 방은 시도 ID가 NULL이라 IS NOT DISTINCT FROM으로 비교한다.
+    """
+    cur = await conn.execute(
+        "UPDATE rooms SET scenario_status = %s, scenario_set = %s, scenario_notice = %s "
+        "WHERE room_id = %s AND scenario_attempt_id IS NOT DISTINCT FROM %s AND scenario_status = 'preparing' "
+        "RETURNING room_id",
+        (status, jsonb(scenario_set) if scenario_set else None, jsonb(notice) if notice else None, room_id, attempt_id))
+    if await cur.fetchone() is None:
+        raise StaleAttempt("현재 문항 시도가 아니다")
 
 
 async def enqueue_notifications(conn, room_id, event, roles, now):

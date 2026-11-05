@@ -360,18 +360,21 @@ def _register_routes(app, settings, jobs, notifier, clock, pool_source):
         room_code = secrets.token_urlsafe(8).replace("-", "a").replace("_", "b")
         token = secrets.token_hex(16)
         expires = now + timedelta(days=settings.expires_days)
+        scenario_attempt_id = uuid.uuid4()
         async with pool().transaction() as conn:
             await conn.execute(
                 "INSERT INTO rooms (room_id, room_code, host_token_hash, trip, party_size, status, scenario_status, "
-                "created_at, expires_at) VALUES (%s, %s, %s, %s, %s, 'open', 'preparing', %s, %s)",
-                (room_id, room_code, hash_token(token), db.jsonb(trip), trip["party_size"], now, expires))
+                "scenario_started_at, scenario_attempt_id, scenario_attempt_count, created_at, expires_at) "
+                "VALUES (%s, %s, %s, %s, %s, 'open', 'preparing', %s, %s, 1, %s, %s)",
+                (room_id, room_code, hash_token(token), db.jsonb(trip), trip["party_size"], now, scenario_attempt_id,
+                 now, expires))
             for i, profile in enumerate(profiles):
                 await conn.execute(
                     "INSERT INTO profiles (room_id, profile_id, position, display_name, gender, age_band, mbti) "
                     "VALUES (%s, %s, %s, %s, %s, %s, %s)",
                     (room_id, profile["profile_id"], i, profile["display_name"], profile.get("gender"),
                      profile.get("age_band"), profile.get("mbti")))
-        jobs.start_scenarios(room_id, room_code)
+        jobs.start_scenarios(room_id, room_code, scenario_attempt_id, 1, now)
         log("room_created", room_code=room_code, party_size=trip["party_size"])
         return {"room_code": room_code, "host_token": token, "created_at": iso(now), "expires_at": iso(expires),
                 "scenario_status": "preparing"}
@@ -519,9 +522,16 @@ def _register_routes(app, settings, jobs, notifier, clock, pool_source):
         async with pool().transaction() as conn:
             room = await load_room(conn, room_code, for_update=True)
             require_host(room, request)
-            if room["status"] != "failed":
+            scenarios_failed = room["status"] == "open" and room["scenario_status"] == "failed"
+            if room["status"] != "failed" and not scenarios_failed:
                 raise ApiError("invalid_state")
-            attempt_id, attempt_no = await db.start_attempt(conn, room, now, ("failed",))
+            if scenarios_failed:
+                attempt_id, attempt_no = await db.start_scenario_attempt(conn, room, now)
+            else:
+                attempt_id, attempt_no = await db.start_attempt(conn, room, now, ("failed",))
+        if scenarios_failed:
+            jobs.start_scenarios(room["room_id"], room_code, attempt_id, attempt_no, now)
+            return {"room_status": "open", "scenario_status": "preparing"}
         jobs.start_pact(room["room_id"], room_code, attempt_id, attempt_no, now)
         return {"room_status": "generating"}
 
