@@ -7,6 +7,7 @@ import { isNotFound } from "../api/errors";
 import type { RoomView } from "../api/types";
 import { contactSectionId } from "../components/Markdown";
 import { HostPanel } from "../components/HostPanel";
+import { OpenPact } from "../components/OpenPact";
 import { BottomBar, ConfirmSheet, Count, ErrorMessage, ICON, RoomNotFound } from "../components/ui";
 import { clearSession, loadSession, loadSubmitted, saveSession } from "../lib/answerSession";
 import { useHeaderBack } from "../lib/back";
@@ -99,15 +100,7 @@ export function RoomEntry() {
       이어서 답하기
     </button>
   );
-  const progressButton = hasResult ? (
-    <button
-      type="button"
-      className="btn btn-primary"
-      onClick={() => navigate(`${roomPath}/result`, { state: { started: true } })}
-    >
-      협약서 보기
-    </button>
-  ) : (
+  const progressButton = (
     <button type="button" className="btn btn-primary" onClick={() => navigate(`${roomPath}/wait`)}>
       진행 상황 보기
     </button>
@@ -234,7 +227,7 @@ export function RoomEntry() {
           </button>
         </BottomBar>
       )}
-      {!token && (showProgress || closedForAnswers) && <BottomBar>{progressButton}</BottomBar>}
+      {!token && (showProgress || closedForAnswers) && (hasResult ? <OpenPact code={code} /> : <BottomBar>{progressButton}</BottomBar>)}
 
       {confirmRestart && (
         <ConfirmSheet

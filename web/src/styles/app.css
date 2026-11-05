@@ -339,6 +339,10 @@ select.input {
   padding: var(--s-md) 0;
   cursor: pointer;
 }
+.bottom-bar .check {
+  padding: 0;
+  align-items: center;
+}
 .check input {
   width: 24px;
   height: 24px;
@@ -693,8 +697,30 @@ select.input {
 }
 
 /* ---------- 결과 화면 ---------- */
-.result-bg {
+body.result-bg {
   background: var(--c-surface);
+}
+.result-bg .bottom-bar {
+  background: var(--c-surface);
+}
+.result-bg .card,
+.result-bg .tabs,
+.result-bg .tab-result:not([aria-selected="true"]) {
+  background: var(--c-neutral);
+}
+.result-bg .btn-secondary:not(:disabled) {
+  background: var(--c-paper);
+  border: 1px solid var(--c-outline);
+}
+.result-bg .btn-secondary:active:not(:disabled) {
+  background: var(--c-surface-pressed);
+}
+.result-bg .message-error {
+  background: transparent;
+}
+.result-bg .sheet .btn-secondary:not(:disabled) {
+  background: var(--c-surface);
+  border: 0;
 }
 .host-label {
   display: inline-flex;
@@ -722,6 +748,7 @@ select.input {
 
 .pact-paper {
   position: relative;
+  isolation: isolate;
   background: var(--c-paper);
   color: var(--c-primary);
   border-radius: var(--r-paper);
@@ -841,11 +868,17 @@ select.input {
   line-height: 1.6;
   color: var(--c-secondary);
 }
+.pact-issued {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--c-tertiary);
+}
 .pact-footer {
   position: relative;
   border-top: 1px solid var(--c-hairline);
   padding-top: var(--s-lg);
-  padding-right: 96px;
+  padding-right: 64px;
   min-height: 96px;
   color: var(--c-muted);
   font-size: 12px;
@@ -856,8 +889,8 @@ select.input {
 }
 .stamp {
   position: absolute;
-  right: -8px;
-  bottom: -12px;
+  right: -18px;
+  bottom: -18px;
   width: 88px;
   height: 88px;
   color: var(--c-stamp);
@@ -871,18 +904,51 @@ select.input {
   display: block;
 }
 
-/* 발급 연출: 처음 열 때 한 번만(.issue). 줄인 움직임이면 시간이 0이 된다. */
+/* 발급 연출: 처음 열 때 한 번만(.issue). 도장과 가지는 lib/issue.ts가 .stamp-go를 붙일 때 시작한다. */
 .issue.pact-paper {
   animation: unfold var(--m-paper) var(--m-easing) both;
 }
-.issue .pact-clause,
+.issue .pact-clauses > .pact-clause,
 .issue .pact-block {
   animation: fade-in var(--m-clause) var(--m-easing) both;
-  animation-delay: calc(var(--m-paper) * 0.6 + var(--i, 0) * var(--m-stagger));
+  animation-delay: calc(var(--m-paper) + var(--i, 0) * var(--m-stagger));
+}
+.issue .pact-block .pact-clause {
+  animation: none;
 }
 .issue .stamp {
+  opacity: 0;
+}
+.issue.stamp-go .stamp {
   animation: stamp-in var(--m-stamp) var(--m-easing) both;
-  animation-delay: calc(var(--m-paper) * 0.6 + var(--n, 0) * var(--m-stagger) + var(--m-clause));
+}
+.issue:not(.stamp-go) .pact-branch {
+  visibility: hidden;
+}
+.issue.stamp-go .pact-stems path {
+  stroke-dasharray: 1;
+  animation: branch-grow calc(var(--m-branch) * var(--span)) linear both;
+  animation-delay: calc(var(--m-branch) * var(--start));
+}
+.issue.stamp-go .pact-flower {
+  animation: bloom calc(var(--m-branch) * 0.4) var(--m-easing) both;
+  animation-delay: calc(var(--m-branch) * var(--start));
+}
+@keyframes branch-grow {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes bloom {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
 }
 @keyframes unfold {
   from {
@@ -918,8 +984,76 @@ select.input {
   .issue.pact-paper,
   .issue .pact-clause,
   .issue .pact-block,
-  .issue .stamp {
+  .issue .stamp,
+  .issue .pact-stems path,
+  .issue .pact-flower {
     animation: none;
+  }
+  .petals {
+    display: none;
+  }
+}
+
+/* 복숭아나무 가지: 글자 뒤, 종이 오른쪽 위와 왼쪽 아래 구석 */
+.pact-branch {
+  position: absolute;
+  z-index: -1;
+  width: 172px;
+  height: auto;
+  pointer-events: none;
+}
+.pact-branch-top {
+  top: 8px;
+  right: 8px;
+}
+.pact-branch-bottom {
+  bottom: 8px;
+  left: 8px;
+  transform: rotate(180deg);
+}
+.pact-flower {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* 흩날리는 꽃잎: 양옆 가장자리만 지나고 화면 높이 절반쯤에서 사라진다 */
+.petals {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  overflow: hidden;
+  pointer-events: none;
+}
+.petal {
+  position: absolute;
+  top: -20px;
+  width: 14px;
+  height: 14px;
+  background: var(--c-blossom);
+  border-radius: 80% 0;
+  opacity: 0;
+  scale: var(--size, 1);
+  animation: petal-fall var(--m-petal-fall) linear var(--delay, 0s) infinite;
+}
+@keyframes petal-fall {
+  0% {
+    opacity: 0;
+    transform: translateY(0) rotate(0deg);
+  }
+  8% {
+    opacity: var(--peak, 0.7);
+  }
+  35% {
+    opacity: var(--peak, 0.7);
+    transform: translateY(32vh) rotate(90deg);
+  }
+  50% {
+    opacity: 0;
+    transform: translateY(50vh) rotate(140deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(50vh) rotate(140deg);
   }
 }
 

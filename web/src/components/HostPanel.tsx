@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import type { RoomView } from "../api/types";
 import { inviteUrl } from "../lib/hostToken";
 import { FAILURE_TEXT } from "../lib/status";
+import { OpenPact } from "./OpenPact";
 import { PushOptIn } from "./PushOptIn";
 import { BottomBar, ConfirmSheet, CopyButton, Count, ErrorMessage } from "./ui";
 
@@ -29,7 +29,6 @@ export function HostPanel({
   ownPrimary?: boolean;
   showStatus?: boolean;
 }) {
-  const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [confirmEarly, setConfirmEarly] = useState(false);
@@ -116,17 +115,7 @@ export function HostPanel({
 
       {inBar && canGenerate && !ownPrimary && <BottomBar>{generateButton(true)}</BottomBar>}
       {inBar && s === "failed" && <BottomBar>{retryButton(true)}</BottomBar>}
-      {inBar && s === "ready" && (
-        <BottomBar>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => navigate(`/r/${encodeURIComponent(code)}/result`, { state: { started: true } })}
-          >
-            협약서 보기
-          </button>
-        </BottomBar>
-      )}
+      {inBar && s === "ready" && <OpenPact code={code} />}
 
       {confirmEarly && (
         <ConfirmSheet

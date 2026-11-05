@@ -1,43 +1,53 @@
 import { Download } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { ApiError, isNotFound } from "../api/errors";
 import type { ResultEntry, ResultsList, RoomView, SharedResult } from "../api/types";
 import { EditForm } from "../components/EditForm";
 import { HostPanel } from "../components/HostPanel";
-import { ResultSheet } from "../components/PactSheet";
+import { PetalDrift } from "../components/PactBranch";
+import { hasPaper, issueItemCount, ResultSheet } from "../components/PactSheet";
 import { BottomBar, ErrorMessage, ICON, RoomNotFound } from "../components/ui";
 import { useHeaderBack } from "../lib/back";
 import { displaySegments, setAtPointer } from "../lib/editable";
 import { useHostToken, usePolling, usePrefersReducedMotion } from "../lib/hooks";
 import { savePaperImage } from "../lib/saveImage";
-import { keys, readJSON, writeJSON } from "../lib/storage";
+import { issueSeen, markIssueSeen, useIssueSequence } from "../lib/issue";
+import { issueSoundFor, SILENT } from "../lib/issueSound";
 
 /**
  * 화면용 종이와, 저장 이미지용으로 화면 밖에 360px 폭으로 그린 같은 종이.
  * 저장이 그 화면의 주 동작이면 아래 고정 영역에, 아니면 종이 아래에 둔다.
  */
 function SheetWithSave({
+  code,
+  started,
   result,
   edited,
   saveIsPrimary,
   belowPaper,
 }: {
+  code: string;
+  started: boolean;
   result: Partial<SharedResult>;
   edited?: boolean;
   saveIsPrimary: boolean;
   belowPaper?: ReactNode;
 }) {
   const captureRef = useRef<HTMLDivElement>(null);
+  const paperRef = useRef<HTMLDivElement>(null);
   const reduced = usePrefersReducedMotion();
-  const seenKey = keys.seen(result.result_id ?? "none");
-  const [animate] = useState(() => !reduced && !readJSON<boolean>("session", seenKey));
+  const paper = hasPaper(result.pact_status);
+  // 첫 열람에 한 번만 재생한다. 줄인 움직임이면 완성 상태를 바로 보여 준다.
+  const [animate] = useState(() => paper && !reduced && !issueSeen(code));
+  const [sound] = useState(() => (animate ? issueSoundFor(started) : SILENT));
+  const phase = useIssueSequence(animate, paperRef, issueItemCount(result), sound);
   const [state, setState] = useState<"idle" | "busy" | "error" | "done">("idle");
 
   useEffect(() => {
-    writeJSON("session", seenKey, true);
-  }, [seenKey]);
+    markIssueSeen(code);
+  }, [code]);
 
   const save = async () => {
     if (!captureRef.current) return;
@@ -65,7 +75,7 @@ function SheetWithSave({
 
   return (
     <div className="stack-lg">
-      <ResultSheet result={result} animate={animate} edited={edited} />
+      <ResultSheet ref={paperRef} result={result} phase={phase} edited={edited} />
       <div className="capture-host" aria-hidden="true">
         <ResultSheet ref={captureRef} result={result} capture edited={edited} />
       </div>
@@ -103,7 +113,17 @@ function sortEntries(list: ResultEntry[]): ResultEntry[] {
   return [...list].sort((a, b) => a.attempt - b.attempt || a.created_at.localeCompare(b.created_at));
 }
 
-function HostResults({ code, token, onPublicChanged }: { code: string; token: string; onPublicChanged: () => void }) {
+function HostResults({
+  code,
+  token,
+  started,
+  onPublicChanged,
+}: {
+  code: string;
+  token: string;
+  started: boolean;
+  onPublicChanged: () => void;
+}) {
   const [list, setList] = useState<ResultsList | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [tab, setTab] = useState<string | null>(null);
@@ -239,6 +259,8 @@ function HostResults({ code, token, onPublicChanged }: { code: string; token: st
                 : "아직 방장에게만 보이는 결과예요. 고르면 동행에게 공개돼요."}
           </p>
           <SheetWithSave
+            code={code}
+            started={started}
             result={overlay.view}
             edited={overlay.edited}
             saveIsPrimary={isSelected && !editing}
@@ -293,6 +315,9 @@ export function Result() {
   const { code = "" } = useParams();
   const token = useHostToken(code);
   const navigate = useNavigate();
+  const location = useLocation();
+  const started = (location.state as { started?: boolean } | null)?.started === true;
+  const reduced = usePrefersReducedMotion();
   useHeaderBack(() => navigate(token ? `/r/${encodeURIComponent(code)}` : "/"));
   const [result, setResult] = useState<SharedResult | null>(null);
   const [error, setError] = useState<unknown>(null);
@@ -316,6 +341,12 @@ export function Result() {
 
   const notReady = error instanceof ApiError && error.code === "invalid_state";
 
+  // 결과 화면은 표면색을 바탕으로 써서 종이가 한 단계 떠 보이게 한다.
+  useEffect(() => {
+    document.body.classList.add("result-bg");
+    return () => document.body.classList.remove("result-bg");
+  }, []);
+
   if (isNotFound(error)) return <RoomNotFound />;
 
   return (
@@ -331,10 +362,11 @@ export function Result() {
       )}
       {error !== null && !notReady && <ErrorMessage error={error} onRetry={() => setTick((t) => t + 1)} />}
       {token ? (
-        <HostResults code={code} token={token} onPublicChanged={() => setTick((t) => t + 1)} />
+        <HostResults code={code} token={token} started={started} onPublicChanged={() => setTick((t) => t + 1)} />
       ) : (
-        result && <SheetWithSave result={result} saveIsPrimary />
+        result && <SheetWithSave code={code} started={started} result={result} saveIsPrimary />
       )}
+      {!reduced && hasPaper(result?.pact_status) && <PetalDrift />}
     </main>
   );
 }

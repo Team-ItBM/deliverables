@@ -452,7 +452,7 @@ components:
 4. **조항**: `제1조`부터 번호를 붙인다 `pact-clause-number`. 번호 아래 조항 문장, 그 아래 적용 대상 이름을 둔다. 제안 조건(`proposed_conditions`)은 한 단계 들여 쓰고 앞에 {colors.tertiary} {typography.label-sm} 라벨을 둬 조항 문장과 구분한다(AC7).
 5. **조건부 대안**: 조항 아래 헤어라인으로 구분한 묶음. 대안 문장 아래 필요한 변경을 한 단계 들여 쓴다. 표시하는 필드는 AC3·AC8을 따른다.
 6. **미해결 조건**: 조건부 대안과 같은 모양의 묶음.
-7. **바닥글**: 헤어라인 아래 {typography.caption} 글자 영역. 추천안 안내 문장만 {typography.body-sm}, {colors.secondary}로 둔다. 오른쪽 아래에 바닥글 글자와 테두리선에 걸쳐 찍힌 도장.
+7. **바닥글**: 헤어라인 아래 {typography.caption} 글자 영역. 첫 줄에 발급 표시를 {colors.tertiary} {typography.label-sm}로 둔다. 바로 아래에 추천안 안내 문장이 이어져야 하며, 이 표시만 따로 떼어 쓰지 않는다. 추천안 안내 문장만 {typography.body-sm}, {colors.secondary}로 둔다. 오른쪽 아래에 바닥글 글자와 테두리선에 걸쳐 찍힌 도장.
 
 ### 방장 수정 표시 `host-edit-label`
 

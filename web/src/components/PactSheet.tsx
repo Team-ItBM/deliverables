@@ -2,6 +2,8 @@ import { PencilLine } from "lucide-react";
 import { forwardRef, useId, type CSSProperties } from "react";
 import type { Clause, ConditionalAlternative, SharedResult, UnresolvedCondition } from "../api/types";
 import { tripMetaText } from "../lib/trip";
+import type { IssuePhase } from "../lib/issue";
+import { PactBranch } from "./PactBranch";
 import { ICON } from "./ui";
 
 /**
@@ -11,7 +13,8 @@ import { ICON } from "./ui";
  */
 export interface SheetProps {
   result: Partial<SharedResult>;
-  animate?: boolean;
+  /** 발급 연출의 단계. 없거나 done이면 완성 상태다. */
+  phase?: IssuePhase;
   capture?: boolean;
   /** 방장 화면에서 수정 문장을 덮어 그린 경우. 서버 label이 없을 때 '방장 수정'을 붙인다. */
   edited?: boolean;
@@ -156,22 +159,21 @@ function AlternativeItem({ alt, index }: { alt: ConditionalAlternative; index: n
 }
 
 export const PactPaper = forwardRef<HTMLDivElement, SheetProps>(function PactPaper(
-  { result, animate, capture, edited },
+  { result, phase, capture, edited },
   ref
 ) {
   const clauses = result.pact_status === "conditional_only" ? [] : (result.clauses ?? []);
   const alts = result.conditional_alternatives ?? [];
   const unresolved = result.unresolved_conditions ?? [];
-  const blocks = (alts.length > 0 ? 1 : 0) + (unresolved.length > 0 ? 1 : 0);
-  const n = clauses.length + blocks;
   const tripMeta = result.trip ? tripMetaText(result.trip) : null;
   return (
     <article
       ref={ref}
-      className={`pact-paper${animate ? " issue" : ""}${capture ? " capture" : ""}`}
-      style={{ "--n": n } as CSSProperties}
+      className={`pact-paper${phase && phase !== "done" ? " issue" : ""}${phase === "stamped" ? " stamp-go" : ""}${capture ? " capture" : ""}`}
       aria-label="여행 동행 협약서"
     >
+      <PactBranch corner="top" />
+      <PactBranch corner="bottom" />
       <div className="pact-head">
         <span className="t-wordmark">도원결의</span>
         <Labels result={result} edited={edited} />
@@ -199,13 +201,14 @@ export const PactPaper = forwardRef<HTMLDivElement, SheetProps>(function PactPap
         </section>
       )}
       {unresolved.length > 0 && (
-        <section className="pact-block" style={{ "--i": clauses.length + 1 } as CSSProperties}>
+        <section className="pact-block" style={{ "--i": clauses.length + (alts.length > 0 ? 1 : 0) } as CSSProperties}>
           <h3 className="pact-block-title">아직 풀지 못한 조건</h3>
           <UnresolvedList items={unresolved} />
         </section>
       )}
       {result.message && <p className="pact-message">{result.message}</p>}
       <footer className="pact-footer">
+        <p className="pact-issued">추천안 발급</p>
         <InclusionNote result={result} />
         <Stamp />
       </footer>
@@ -258,6 +261,14 @@ export const StatusPanel = forwardRef<HTMLDivElement, SheetProps>(function Statu
     </section>
   );
 });
+
+/** 나타날 묶음 수. 발급 연출의 시간표가 쓴다. */
+export function issueItemCount(result: Partial<SharedResult>): number {
+  const clauses = result.pact_status === "conditional_only" ? 0 : (result.clauses?.length ?? 0);
+  const alts = result.conditional_alternatives?.length ? 1 : 0;
+  const unresolved = result.unresolved_conditions?.length ? 1 : 0;
+  return clauses + alts + unresolved;
+}
 
 export const ResultSheet = forwardRef<HTMLDivElement, SheetProps>(function ResultSheet(props, ref) {
   const s = props.result.pact_status;

@@ -4,7 +4,8 @@ import { isNotFound } from "../api/errors";
 import type { RoomView } from "../api/types";
 import { HostPanel } from "../components/HostPanel";
 import { PushOptIn } from "../components/PushOptIn";
-import { BottomBar, Count, ErrorMessage, RoomNotFound } from "../components/ui";
+import { OpenPact } from "../components/OpenPact";
+import { Count, ErrorMessage, RoomNotFound } from "../components/ui";
 import { loadSubmitted } from "../lib/answerSession";
 import { useHeaderBack } from "../lib/back";
 import { useHasResult, useHostToken, usePolling } from "../lib/hooks";
@@ -54,17 +55,7 @@ export function Wait() {
       {room && token && <HostPanel code={code} token={token} room={room} onChanged={reload} showStatus={false} />}
       {submitted && !token && <PushOptIn code={code} role="participant" sessionId={submitted.session_id} />}
       <p className="t-body-sm secondary">이 화면을 닫아도 돼요. 초대 링크로 다시 열면 진행 상황을 볼 수 있어요.</p>
-      {hasResult && !token && (
-        <BottomBar>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => navigate(`${roomPath}/result`, { state: { started: true } })}
-          >
-            협약서 보기
-          </button>
-        </BottomBar>
-      )}
+      {hasResult && !token && <OpenPact code={code} />}
     </main>
   );
 }

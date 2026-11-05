@@ -40,5 +40,6 @@ export const keys = {
   session: (code: string) => `dowon.session.${code}`,
   submitted: (code: string) => `dowon.submitted.${code}`,
   push: (code: string, role: string) => `dowon.push.${code}.${role}`,
-  seen: (resultId: string) => `dowon.seen.${resultId}`,
+  seen: (code: string) => `dowon.seen.${code}`,
+  sound: "dowon.sound",
 };

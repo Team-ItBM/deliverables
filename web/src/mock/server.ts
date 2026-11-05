@@ -16,6 +16,7 @@ import { renderText, toSegments, tokenSignature } from "./render";
 export type MockVariant = "proposed" | "unresolved" | "fail";
 export const MOCK_DB = "dowon.mock.db";
 export const MOCK_VARIANT = "dowon.mock.variant";
+export const MOCK_COUNT = "dowon.mock.count";
 const SCENARIO_DELAY = 2000;
 const GENERATE_DELAY = 2500;
 
@@ -59,6 +60,7 @@ interface Room {
   originals: Original[];
   included?: string[];
   selected: string | null;
+  scenarioCount?: number;
 }
 type DB = Record<string, Room>;
 
@@ -126,11 +128,41 @@ const SCENARIOS = [
   },
 ];
 
+// 긴 문항 수를 시험하려고 더한 문항. 실서비스의 6~8문항과 비슷한 길이로 둔다.
+const EXTRA = [
+  ["morning", "숙소에서 나설 시간을 정하고 있어요\n첫 일정은 오전 열 시에 시작해요\n아침을 먹으려면 한 시간 일찍 나서야 해요"],
+  ["rain", "오후에 비가 온다는 예보가 나왔어요\n야외 일정이 하나 남았고 실내 전시도 가까이 있어요"],
+  ["photo", "사진을 찍고 싶은 곳이 나왔어요\n줄이 길어서 삼십 분은 기다려야 해요\n다음 일정까지 시간이 빠듯해요"],
+  ["split", "저녁 뒤에 체력이 조금 남았어요\n한 사람은 숙소로 가고 싶어 하고, 한 사람은 더 걷고 싶어 해요"],
+  ["pay", "함께 쓴 돈을 정리하고 있어요\n각자 낸 금액이 조금씩 달라요"],
+].map(([id, scene]) => ({
+  scenario_id: id!,
+  scene: scene!,
+  question: "이럴 때 어떻게 하고 싶어요?",
+  options: [
+    { option_id: `${id}_1`, label: "일정대로 함께 움직이고 싶어요" },
+    { option_id: `${id}_2`, label: "시간을 나눠 각자 움직이고 싶어요" },
+    { option_id: `${id}_3`, label: "그때 상황을 보고 정하고 싶어요" },
+  ],
+}));
+
+function mockCount(): number {
+  try {
+    return Number(localStorage.getItem(MOCK_COUNT)) || SCENARIOS.length;
+  } catch {
+    return SCENARIOS.length;
+  }
+}
+
+function roomScenarios(room: Room) {
+  return [...SCENARIOS, ...EXTRA].slice(0, room.scenarioCount ?? SCENARIOS.length);
+}
+
 function scenariosFor(room: Room, profileId: string) {
   const other = room.profiles.find((p) => p.profile_id !== profileId)!;
   const names: Record<string, string> = {};
   for (const p of room.profiles) names[p.profile_id] = p.profile_id === profileId ? "당신" : p.display_name;
-  return SCENARIOS.map((s) => ({
+  return roomScenarios(room).map((s) => ({
     ...s,
     scene: renderText(s.scene.replace("OTHER", other.profile_id), names),
   }));
@@ -149,7 +181,7 @@ function participantNames(room: Room): Record<string, string> {
   return names;
 }
 
-function makeTpl(v: MockVariant, pids: string[]): Tpl {
+function makeTpl(v: MockVariant, pids: string[], count: number): Tpl {
   const a = pids[0]!;
   const b = pids[1] ?? a;
   if (v === "unresolved") {
@@ -179,6 +211,12 @@ function makeTpl(v: MockVariant, pids: string[]): Tpl {
         action: "노을을 먼저 보고, 쇼핑은 다음 날 오전에 해요.",
         proposed_conditions: [],
       },
+      ...EXTRA.slice(0, Math.max(count - SCENARIOS.length, 0)).map((s) => ({
+        scenario_id: s.scenario_id,
+        pids,
+        action: "비슷한 상황이 오면 먼저 각자 원하는 것을 말하고, 시간을 나눌 수 있는지부터 살펴요.",
+        proposed_conditions: ["일정이 밀리면 다음 일정을 먼저 조정해요."],
+      })),
     ],
     conditional_alternatives: [
       {
@@ -290,7 +328,7 @@ function advance(room: Room) {
         /* 무시 */
       }
     } else {
-      room.originals.push({ ...base, state: "normal", tpl: makeTpl(room.variant ?? "proposed", room.included!) });
+      room.originals.push({ ...base, state: "normal", tpl: makeTpl(room.variant ?? "proposed", room.included!, room.scenarioCount ?? SCENARIOS.length) });
       room.status = "ready";
     }
     room.generatingUntil = undefined;
@@ -329,6 +367,7 @@ function handle(req: TransportRequest, db: DB): TransportResponse {
       idem: {},
       originals: [],
       selected: null,
+      scenarioCount: mockCount(),
     };
     const now = new Date();
     return ok(201, {
@@ -391,8 +430,8 @@ function handle(req: TransportRequest, db: DB): TransportResponse {
     if (ses.used) return err(409, "session_used");
     const answers = body.answers as { scenario_id: string; option_id: string; memo?: string }[];
     const valid =
-      answers.length === SCENARIOS.length &&
-      SCENARIOS.every((s) => {
+      answers.length === roomScenarios(room).length &&
+      roomScenarios(room).every((s) => {
         const a = answers.filter((x) => x.scenario_id === s.scenario_id);
         return a.length === 1 && s.options.some((o) => o.option_id === a[0]!.option_id) && (a[0]!.memo ?? "").length <= 300;
       });

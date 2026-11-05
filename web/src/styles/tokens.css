@@ -48,6 +48,8 @@
   --m-clause: 640ms;
   --m-stamp: 420ms;
   --m-stagger: 220ms;
+  --m-branch: 500ms;
+  --m-petal-fall: 12s;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -58,5 +60,6 @@
     --m-clause: 0ms;
     --m-stamp: 0ms;
     --m-stagger: 0ms;
+    --m-branch: 0ms;
   }
 }
