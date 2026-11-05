@@ -147,8 +147,10 @@ CREATE TABLE IF NOT EXISTS llm_calls (
     input_tokens integer,
     output_tokens integer,
     cost_usd numeric(10, 6),
+    usage_status text,
     created_at timestamptz NOT NULL
 );
+ALTER TABLE llm_calls ADD COLUMN IF NOT EXISTS usage_status text;
 """
 
 
@@ -440,11 +442,11 @@ async def record_llm_call(conn, row):
     await conn.execute(
         "INSERT INTO llm_calls (room_id, attempt_id, stage, model, prompt_version, schema_version, pool_version, "
         "input_hash, repair, retry_no, response_status, output_status, error_kind, violation_codes, tool_call_count, "
-        "unopened_selection, latency_ms, input_tokens, output_tokens, cost_usd, created_at) "
+        "unopened_selection, latency_ms, input_tokens, output_tokens, cost_usd, usage_status, created_at) "
         "VALUES (%(room_id)s, %(attempt_id)s, %(stage)s, %(model)s, %(prompt_version)s, %(schema_version)s, "
         "%(pool_version)s, %(input_hash)s, %(repair)s, %(retry_no)s, %(response_status)s, %(output_status)s, "
         "%(error_kind)s, %(violation_codes)s, %(tool_call_count)s, %(unopened_selection)s, %(latency_ms)s, "
-        "%(input_tokens)s, %(output_tokens)s, %(cost_usd)s, %(created_at)s)",
+        "%(input_tokens)s, %(output_tokens)s, %(cost_usd)s, %(usage_status)s, %(created_at)s)",
         row)
 
 

@@ -21,7 +21,7 @@ import yaml
 
 from travel.tools import scenario_tools
 
-from .llm import LLMCallError, LLMResult
+from .llm import LLMCallError, LLMResult, current_meter
 from .logging import log
 
 PROMPT_START = "<!-- prompt:start -->"
@@ -162,6 +162,9 @@ class OpenAIClient:
 
     async def _request(self, spec, items, tools_on):
         started = time.monotonic()
+        meter = current_meter.get()
+        if meter is not None:
+            meter.request_started()
         try:
             response = await self._client.responses.create(**self.request_kwargs(spec, items, tools_on))
         except Exception as exc:
@@ -171,6 +174,9 @@ class OpenAIClient:
             log("llm_call_error", kind=error.kind, retry_after=error.retry_after, error=type(exc).__name__)
             raise error from exc
         usage = response.usage
+        if meter is not None and usage is not None:
+            meter.add(getattr(usage, "input_tokens", 0) or 0, getattr(usage, "output_tokens", 0) or 0,
+                      self.config.estimate_cost(usage) or 0.0)
         log("llm_response", model=response.model, status=response.status,
             latency_ms=int((time.monotonic() - started) * 1000),
             input_tokens=getattr(usage, "input_tokens", None), output_tokens=getattr(usage, "output_tokens", None),

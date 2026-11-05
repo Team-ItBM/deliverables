@@ -12,6 +12,9 @@
 - 문항 작업도 같은 규칙을 따른다. 작업 한도와 멈춤 판정은 시작 시각(scenario_started_at)부터 재서 scenario_status를 failed로
   돌리고, db.finish_scenarios가 현재 시도·preparing을 확인한다. 실패한 문항은 방장이 POST /retry로 다시 시도하거나 새 방을 만든다.
 - 두 번째 이후 호출 전에는 현재 시도인지 확인해, 끝난 시도가 모델을 더 부르지 않게 한다.
+- llm_calls는 generate 한 번에 한 행이다. 성공 행은 검증 뒤에 써서 output_status·violation_codes를 함께 남긴다.
+  사용량은 UsageMeter로 모아, 실패·타임아웃·중단 때도 응답받은 왕복의 비용을 쓴다. usage_status로 구분한다:
+  reported(전부 앎), partial(일부만 앎), unknown(모름), not_called(호출 전 한도로 막힘). 한도는 cost_usd 합만 본다.
 """
 
 import asyncio
@@ -25,10 +28,15 @@ from travel.pact import validate_pact_output
 from travel.scenarios import validate_scenario_output
 
 from . import db
-from .llm import LLMCallError
+from .llm import LLMCallError, UsageMeter, current_meter
 from .logging import log
 
 PLACEHOLDER_NAME = "친구"
+# llm_calls.output_status에는 스키마의 값만 쓴다. 모델이 낸 임의 문자열을 표에 옮기지 않는다.
+OUTPUT_STATUSES = {
+    "scenarios": ("ready", "needs_information", "unsupported", "invalid_input"),
+    "pact": ("proposed", "conditional_only", "needs_information", "unresolved", "unsupported", "invalid_input"),
+}
 
 
 class JobStopped(Exception):
@@ -50,6 +58,14 @@ class Job:
 
 def input_hash(model_input):
     return hashlib.sha256(json.dumps(model_input, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
+
+
+def output_status_of(stage, raw_output):
+    try:
+        status = json.loads(raw_output).get("status")
+    except (ValueError, TypeError, AttributeError):
+        return None
+    return status if isinstance(status, str) and status in OUTPUT_STATUSES[stage] else None
 
 
 def placeholder_profiles(profiles):
@@ -173,8 +189,10 @@ class JobManager:
 
     # ---- 모델 호출
 
-    async def _llm(self, job, stage, model_input, repair_errors):
+    async def _llm(self, job, stage, model_input, repair_errors, meter):
+        token = current_meter.set(meter)  # 태스크가 지금 컨텍스트를 복사하므로 만든 뒤 바로 되돌린다
         call = asyncio.ensure_future(self.llm.generate(stage, model_input, repair_errors=repair_errors))
+        current_meter.reset(token)
         stop = asyncio.ensure_future(job.stop.wait())
         timeout = self.settings.llm_timeout_seconds or None
         try:
@@ -219,16 +237,18 @@ class JobManager:
             log("budget_exceeded", scope="room", room_code=job.room_code, total_usd=total, cap_usd=cap)
             raise LLMCallError("budget_exceeded", None)
 
-    async def _call_with_retries(self, job, stage, model_input, repair_errors, record):
+    async def _call_with_retries(self, job, stage, repair_errors, model_input, record):
+        """성공하면 (결과, 검증 뒤 행을 쓰는 함수)를 돌려준다. 실패 행은 여기서 쓴다."""
         bases = list(self.settings.retry_backoff_seconds)
         for attempt in range(len(bases) + 1):
             started = self.clock()
+            meter = UsageMeter()
             try:
                 await self._check_room_cap(job)
                 async with self._semaphore:
-                    result = await self._llm(job, stage, model_input, repair_errors)
+                    result = await self._llm(job, stage, model_input, repair_errors, meter)
             except LLMCallError as exc:
-                await record(stage, repair_errors, attempt, None, exc.kind)
+                await record(repair_errors, attempt, None, exc.kind, started, meter)
                 if attempt == len(bases) or exc.kind == "budget_exceeded":
                     raise
                 if exc.kind == "rate_limited" and exc.retry_after is not None:
@@ -240,32 +260,52 @@ class JobManager:
                 await self.sleeper(wait)
                 await self._assert_current(job)
                 continue
-            await record(stage, repair_errors, attempt, result, None, started)
-            return result
+            except JobStopped:
+                if meter.requests:
+                    await record(repair_errors, attempt, None, "stopped", started, meter)
+                raise
+            except Exception:
+                if meter.requests:
+                    await record(repair_errors, attempt, None, "internal_error", started, meter)
+                raise
+
+            async def finish(output_status=None, violation_codes=None, unopened=None, attempt=attempt, started=started,
+                             meter=meter, result=result):
+                await record(repair_errors, attempt, result, None, started, meter, output_status, violation_codes, unopened)
+
+            return result, finish, meter
         raise LLMCallError("server_error", None)  # 도달하지 않는다
 
-    def _recorder(self, job):
-        async def record(stage, repair_errors, retry_no, result, error_kind, started=None):
+    def _recorder(self, job, stage, model_input):
+        digest = input_hash(model_input)
+
+        async def record(repair_errors, retry_no, result, error_kind, started, meter, output_status=None,
+                         violation_codes=None, unopened=None):
             now = self.clock()
-            latency = None
-            if started is not None:
-                latency = int((now - started).total_seconds() * 1000)
             usage = getattr(result, "usage", None) or {}
+            if meter.requests:
+                tokens = {"input_tokens": meter.input_tokens, "output_tokens": meter.output_tokens,
+                          "cost_usd": meter.cost_usd} if meter.reported else {}
+                usage_status = meter.status
+            else:
+                tokens = usage
+                usage_status = "not_called" if error_kind == "budget_exceeded" else ("reported" if usage else "unknown")
             row = {
                 "room_id": job.room_id, "attempt_id": job.attempt_id, "stage": stage,
                 "model": usage.get("model") or self.settings.model_id,
                 "prompt_version": self.settings.prompt_versions.get(stage),
                 "schema_version": self.settings.schema_versions.get(stage),
                 "pool_version": str(self.pool_source.version) if stage == "scenarios" else None,
-                "input_hash": None, "repair": repair_errors is not None, "retry_no": retry_no,
-                "response_status": getattr(result, "response_status", None), "output_status": None,
-                "error_kind": error_kind, "violation_codes": None,
-                "tool_call_count": len(getattr(result, "opened_template_ids", None) or []) if result else None,
-                "unopened_selection": None, "latency_ms": latency,
-                "input_tokens": usage.get("input_tokens"), "output_tokens": usage.get("output_tokens"),
-                "cost_usd": usage.get("cost_usd"), "created_at": now,
+                "input_hash": digest, "repair": repair_errors is not None, "retry_no": retry_no,
+                "response_status": getattr(result, "response_status", None), "output_status": output_status,
+                "error_kind": error_kind,
+                "violation_codes": db.jsonb(violation_codes) if violation_codes is not None else None,
+                "tool_call_count": (usage.get("tool_calls", len(result.opened_template_ids or [])) if result else None),
+                "unopened_selection": db.jsonb(unopened) if unopened is not None else None,
+                "latency_ms": int((now - started).total_seconds() * 1000), "input_tokens": tokens.get("input_tokens"),
+                "output_tokens": tokens.get("output_tokens"), "cost_usd": tokens.get("cost_usd"),
+                "usage_status": usage_status, "created_at": now,
             }
-            job.last_call_row = row
             try:
                 async with self.db.transaction() as conn:
                     await db.record_llm_call(conn, row)
@@ -275,33 +315,47 @@ class JobManager:
 
     async def _generate(self, job, stage, model_input, validate):
         """최초 호출 + 재요청 1회. ("ready", output) 또는 ("failed", 이유)를 돌려준다."""
-        record = self._recorder(job)
+        record = self._recorder(job, stage, model_input)
         repair_errors = None
         for round_no in range(2):
             try:
-                result = await self._call_with_retries(job, stage, model_input, repair_errors, record)
+                result, finish, meter = await self._call_with_retries(job, stage, repair_errors, model_input, record)
             except LLMCallError:
                 return ("failed", "call_error")
             if result.response_status != "completed":
                 repair_errors = [{"code": f"response_{result.response_status}", "path": "",
                                   "detail": "모델 응답이 완료되지 않았다"}]
+                await finish(violation_codes=[repair_errors[0]["code"]])
             else:
-                verdict = validate(result.raw_output)
+                output_status = output_status_of(stage, result.raw_output)
+                try:
+                    verdict = validate(result.raw_output)
+                except Exception:
+                    await finish(output_status)
+                    raise
                 if verdict["valid"]:
                     output = json.loads(result.raw_output)
-                    opened = getattr(result, "opened_template_ids", None) or []
-                    if stage == "scenarios" and opened and isinstance(output.get("scenarios"), list):
-                        unopened = [s.get("template_id") for s in output["scenarios"]
-                                    if s.get("template_id") not in set(opened)]
-                        if unopened:
-                            log("unopened_selection", room_code=job.room_code, template_ids=unopened)
+                    unopened = self._unopened(job, stage, result, output, meter)
+                    await finish(output_status, [], unopened)
                     return ("ready", output)
                 repair_errors = verdict["errors"]
+                await finish(output_status, [e.get("code") for e in repair_errors if isinstance(e, dict)])
             codes = [e.get("code") for e in repair_errors if isinstance(e, dict)]
             log("output_invalid", room_code=job.room_code, stage=stage, round=round_no, codes=codes)
             if round_no == 0:
                 await self._assert_current(job)
         return ("failed", "output_invalid")
+
+    @staticmethod
+    def _unopened(job, stage, result, output, meter):
+        """도구로 열지 않고 고른 문항. 도구 루프를 돈 호출에만 값이 있다(재생 클라이언트는 None)."""
+        if stage != "scenarios" or not meter.requests or not isinstance(output.get("scenarios"), list):
+            return None
+        opened = set(result.opened_template_ids or [])
+        unopened = [s.get("template_id") for s in output["scenarios"] if s.get("template_id") not in opened]
+        if unopened:
+            log("unopened_selection", room_code=job.room_code, template_ids=unopened)
+        return unopened
 
     # ---- 문항 작업
 
