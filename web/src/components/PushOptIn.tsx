@@ -98,7 +98,7 @@ export function PushOptIn({
 
   return (
     <div className="stack-sm">
-      <button type="button" className="btn-text" onClick={enable} disabled={busy}>
+      <button type="button" className="btn btn-outline" onClick={enable} disabled={busy}>
         <Bell {...ICON} />
         {role === "host" ? "응답 완료·생성 알림 받기" : "결과가 공개되면 알림 받기"}
       </button>

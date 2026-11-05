@@ -8,11 +8,12 @@ import type { RoomView } from "../api/types";
 import { contactSectionId } from "../components/Markdown";
 import { HostPanel } from "../components/HostPanel";
 import { OpenPact } from "../components/OpenPact";
-import { BottomBar, ConfirmSheet, Count, ErrorMessage, ICON, RoomNotFound } from "../components/ui";
+import { BottomBar, ConfirmSheet, CopyButton, ErrorMessage, ICON, RoomNotFound, StatusLine } from "../components/ui";
 import { clearSession, loadSession, loadSubmitted, saveSession } from "../lib/answerSession";
 import { useHeaderBack } from "../lib/back";
 import { useHasResult, useHostToken, usePolling } from "../lib/hooks";
-import { ROOM_STATUS_TEXT, SCENARIO_STATUS_TEXT } from "../lib/status";
+import { inviteUrl } from "../lib/hostToken";
+import { FAILURE_TEXT, SCENARIO_STATUS_TEXT } from "../lib/status";
 import { tripMetaText } from "../lib/trip";
 
 const CONTACT = contactSectionId(privacyMd);
@@ -114,8 +115,16 @@ export function RoomEntry() {
         {!token && <p className="secondary">같은 상황에 각자 답하면, 서로의 바람과 한계를 담은 추천 협약서를 받아요.</p>}
       </div>
 
+      {token && (
+        <section className="status-block" aria-live="polite">
+          <StatusLine room={room} host />
+          {room.room_status === "failed" && room.failure_reason && <p className="secondary">{FAILURE_TEXT[room.failure_reason]}</p>}
+          <CopyButton text={inviteUrl(code)} label="초대 링크 복사" />
+        </section>
+      )}
+
       {token && room.scenario_notice && (room.scenario_notice.message || room.scenario_notice.clarification_questions) && (
-        <section className="card" aria-label="문항 준비 안내">
+        <section className="status-block" aria-label="문항 준비 안내">
           {room.scenario_notice.message && <p>{room.scenario_notice.message}</p>}
           {room.scenario_notice.clarification_questions && (
             <ul className="stack-sm">
@@ -132,8 +141,8 @@ export function RoomEntry() {
       )}
 
       {room.scenario_status !== "ready" && (
-        <section className="card status-card" aria-live="polite">
-          <p>{SCENARIO_STATUS_TEXT[room.scenario_status]}</p>
+        <section className="status-block" aria-live="polite">
+          {!(token && room.scenario_status === "preparing") && <p>{SCENARIO_STATUS_TEXT[room.scenario_status]}</p>}
           {room.scenario_status === "preparing" && (
             <div className="progress-track" aria-hidden="true">
               <div className="progress-flow" />
@@ -143,10 +152,9 @@ export function RoomEntry() {
       )}
 
       {showProgress && (
-        <section className="card status-card" aria-live="polite">
+        <section className="status-block" aria-live="polite">
           <p>이 기기에서 답변을 제출했어요.</p>
-          {!token && <p className="secondary">{ROOM_STATUS_TEXT[room.room_status]}</p>}
-          {!token && <Count label="제출" value={room.submitted_count} total={room.party_size} />}
+          {!token && <StatusLine room={room} />}
           {canAnswer && (
             <button type="button" className="btn-text" onClick={() => setAnswerAgain(true)}>
               다른 이름으로 답하기
@@ -156,13 +164,13 @@ export function RoomEntry() {
       )}
 
       {closedForAnswers && !showProgress && !token && (
-        <section className="card status-card">
+        <section className="status-block">
           <p>응답을 마감했어요. 더는 답을 받지 않아요.</p>
         </section>
       )}
 
       {resuming && (
-        <section className="card status-card">
+        <section className="status-block">
           <p>{inProgress.display_name} 이름으로 답하던 중이에요.</p>
           <button type="button" className="btn-text" onClick={() => setConfirmRestart(true)}>
             처음부터 다시 답하기

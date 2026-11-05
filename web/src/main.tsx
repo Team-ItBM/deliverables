@@ -4,7 +4,6 @@ import { BrowserRouter } from "react-router-dom";
 import { App } from "./App";
 import { setTransport } from "./api/client";
 import { captureHostTokenFromHash } from "./lib/hostToken";
-import { boxVariant } from "./mock/boxes";
 import "./styles/fonts.css";
 import "./styles/tokens.css";
 import "./styles/app.css";
@@ -12,7 +11,6 @@ import "./styles/app.css";
 async function boot() {
   // 방장 링크의 #host=... 를 먼저 저장하고 주소창에서 지운다.
   captureHostTokenFromHash();
-  document.documentElement.dataset.boxes = boxVariant() ?? "";
 
   if (import.meta.env.VITE_MOCK === "1") {
     const { mockTransport } = await import("./mock/server");

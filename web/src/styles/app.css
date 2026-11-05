@@ -232,11 +232,14 @@ a {
 .btn-secondary:active:not(:disabled) {
   background: var(--c-surface-pressed);
 }
-/* 표면 위에서는 표면색 버튼이 사라지므로 한 단계 앞의 종이 바탕과 윤곽선을 쓴다. */
+/* 윤곽선 보조 버튼. 면을 쓰지 않고 테두리로 조작 대상임을 보인다. 표면 위에서도 사라지지 않는다. */
+.btn-outline,
 .card .btn-secondary:not(:disabled) {
   background: var(--c-paper);
+  color: var(--c-primary);
   border: 1px solid var(--c-outline);
 }
+.btn-outline:active:not(:disabled),
 .card .btn-secondary:active:not(:disabled) {
   background: var(--c-surface-pressed);
 }
@@ -580,10 +583,7 @@ select.input {
 
 /* ---------- 안내와 오류 ---------- */
 .notice-privacy {
-  background: var(--c-surface);
   color: var(--c-secondary);
-  border-radius: var(--r-lg);
-  padding: var(--s-lg);
   font-size: 14px;
   line-height: 1.6;
   display: flex;
@@ -621,6 +621,27 @@ select.input {
   display: flex;
   gap: var(--s-sm);
   align-items: flex-start;
+}
+.status-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-sm);
+}
+.status-line {
+  color: var(--c-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.status-line .num {
+  font-weight: 500;
+  font-feature-settings: "tnum" 1;
+}
+.host-menu {
+  border-top: 1px solid var(--c-hairline);
+  padding-top: var(--s-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-md);
 }
 .count-label {
   color: var(--c-muted);
@@ -703,7 +724,6 @@ body.result-bg {
 .result-bg .bottom-bar {
   background: var(--c-surface);
 }
-.result-bg .card,
 .result-bg .tabs,
 .result-bg .tab-result:not([aria-selected="true"]) {
   background: var(--c-neutral);
@@ -1223,40 +1243,3 @@ body.result-bg {
   border: 0;
 }
 
-/* ---------- 박스 정리 시안(모의 모드 전용, 사람이 고른 뒤 지운다) ---------- */
-/* A안: 종이 위 글줄. 상태와 메뉴를 헤어라인으로 나누고 면을 쓰지 않는다. */
-[data-boxes="a"] .status-card,
-[data-boxes="a"] .card.host-menu {
-  background: none;
-  border-radius: 0;
-  padding: var(--s-lg) 0 0;
-  border-top: 1px solid var(--c-hairline);
-}
-[data-boxes="a"] .notice-privacy,
-[data-boxes="b"] .notice-privacy {
-  background: none;
-  padding: 0;
-  border-radius: 0;
-}
-[data-boxes="a"] .card.host-menu .btn-secondary:not(:disabled) {
-  background: var(--c-surface);
-  border: 0;
-}
-/* B안: 상태 한 줄과 접기. 제목 아래에 상태만 남기고 메뉴는 접어 둔다. */
-[data-boxes="b"] .status-card {
-  background: none;
-  border-radius: 0;
-  padding: 0;
-  gap: var(--s-xs);
-  margin-top: calc(-1 * var(--s-md));
-}
-[data-boxes="b"] .status-card p:not(.count-label) {
-  font-size: 15px;
-}
-[data-boxes="b"] .host-menu .fold-body {
-  gap: var(--s-md);
-}
-[data-boxes="b"] .host-menu .btn-secondary:not(:disabled) {
-  background: var(--c-paper);
-  border: 1px solid var(--c-outline);
-}

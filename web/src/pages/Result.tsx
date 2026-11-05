@@ -67,7 +67,7 @@ function SheetWithSave({
   const saveButton = (
     <button
       type="button"
-      className={`btn ${saveIsPrimary ? "btn-primary" : "btn-secondary"}`}
+      className={`btn ${saveIsPrimary ? "btn-primary" : "btn-outline"}`}
       onClick={() => void makeImage()}
       disabled={state === "busy"}
     >
@@ -97,7 +97,7 @@ function SheetWithSave({
         <p className="t-body-sm secondary">{NAMES_NOTICE}</p>
         <button
           type="button"
-          className="btn btn-secondary"
+          className="btn btn-outline"
           disabled={state === "busy"}
           onClick={() => void makeImage(resultShare)}
         >
@@ -243,7 +243,7 @@ function HostResults({
     <div className="stack-lg">
       {error !== null && <ErrorMessage error={error} onRetry={() => void load()} />}
       {roomStatus === "generating" && (
-        <section className="card" aria-live="polite">
+        <section className="status-block" aria-live="polite">
           <p>새 결과를 만들고 있어요. 지금 공개된 결과는 그대로예요.</p>
           <div className="progress-track" aria-hidden="true">
             <div className="progress-flow" />
@@ -251,7 +251,7 @@ function HostResults({
         </section>
       )}
       {newResult !== null && (
-        <p className="card" role="status">
+        <p role="status">
           {newResult}번째 결과가 나왔어요. 고르기 전까지 동행에게는 보이지 않아요.
         </p>
       )}
@@ -274,7 +274,7 @@ function HostResults({
           ))}
         </div>
       )}
-      {current && current.state === "failed" && <p className="card">이 결과는 만들지 못했어요.</p>}
+      {current && current.state === "failed" && <p>이 결과는 만들지 못했어요.</p>}
       {current && overlay && (
         <>
           <p className="secondary" role="status">
@@ -380,7 +380,7 @@ export function Result() {
     <main className="page">
       <h1 className="t-headline-lg">추천 협약서</h1>
       {notReady && (
-        <section className="card">
+        <section className="status-block">
           <p>아직 공개된 협약서가 없어요.</p>
           <Link className="btn-text" to={`/r/${encodeURIComponent(code)}/wait`}>
             진행 상황 보기

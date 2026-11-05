@@ -149,14 +149,14 @@ components:
   button-secondary-pressed:
     backgroundColor: "{colors.surface-pressed}"
     textColor: "{colors.primary}"
-  button-secondary-on-surface:
+  button-outline:
     backgroundColor: "{colors.paper}"
     textColor: "{colors.primary}"
     typography: "{typography.label-lg}"
     rounded: "{rounded.md}"
     height: 52px
     padding: 16px
-  button-secondary-on-surface-pressed:
+  button-outline-pressed:
     backgroundColor: "{colors.surface-pressed}"
     textColor: "{colors.primary}"
   button-text:
@@ -204,11 +204,8 @@ components:
     rounded: "{rounded.full}"
     height: 4px
   notice-privacy:
-    backgroundColor: "{colors.surface}"
     textColor: "{colors.secondary}"
     typography: "{typography.body-sm}"
-    rounded: "{rounded.lg}"
-    padding: 16px
   notice-duplicate-name:
     textColor: "{colors.error}"
     typography: "{typography.body-sm}"
@@ -311,7 +308,7 @@ components:
 - **놋쇠** {colors.tertiary}: 강조가 필요한 **글자**(조항 번호, 텍스트 버튼, ‘방장 수정’ 표시). 발표자료의 `#9A6F42`는 바탕 위 작은 글자에서 4.08:1이라 한 단계 어둡게 했다.
 - **놋쇠 표시** {colors.tertiary-mark}: 글자가 아닌 표시(선택한 라디오 점, 진행 막대, 제목 아래 짧은 밑줄, 포커스 링).
 - **바탕** {colors.neutral}: 모든 화면의 기본 배경.
-- **표면** {colors.surface}, **표면 눌림** {colors.surface-pressed}: 카드·선택지·보조 버튼. 결과 화면에서는 이 색을 배경으로 써서 종이가 한 단계 떠 보이게 한다.
+- **표면** {colors.surface}, **표면 눌림** {colors.surface-pressed}: 조작 대상의 카드·선택지·보조 버튼. 결과 화면에서는 이 색을 배경으로 써서 종이가 한 단계 떠 보이게 한다.
 - **종이** {colors.paper}: 협약서 종이, 입력란, 선택한 선택지.
 - **윤곽선** {colors.outline}: 입력란 테두리처럼 경계가 조작 단서인 곳. 바탕 대비 3.38:1로 WCAG의 비텍스트 대비 3:1을 넘는다.
 - **옅은 윤곽선** {colors.outline-variant}, **헤어라인** {colors.hairline}: 장식이 아닌 구분선. 조작 단서로 쓰지 않는다.
@@ -351,6 +348,10 @@ components:
 - 응답 화면은 문항 하나를 한 화면에 담는다. 위에서부터 진행 표시, 장면, 질문, 선택지, 메모, 아래 고정 버튼 순이다.
 - 필수 입력과 선택 입력이 섞인 폼은 선택 입력을 접힌 영역에 묶는다. 폼의 묶음 사이는 {spacing.3xl}이다. 방 만들기는 단계별 입력이라 선택 입력을 마지막 단계에 따로 둔다.
 - 글자 크기를 200%로 키워도(Apple HIG 권고) 가로 스크롤 없이 세로로 늘어나야 한다. 높이를 고정한 카드는 `min-height`로 둔다.
+
+- 카드(표면 면)는 조작 대상에만 쓴다. 선택지, 접는 영역, 답 확인 목록, 편집 폼이 해당한다. 상태와 안내는 면 없이 글로 두고, 묶음을 나눌 때는 {colors.hairline} 선을 쓴다.
+- 진행 상태는 제목 바로 아래 한 줄로 둔다. 제출 수 뒤에 가운데점으로 상태 문구를 잇는다. 대기 화면과 제출 뒤 방 화면이 같은 규칙을 쓴다.
+- 방장 방 화면은 제목 아래에 진행 상태와 초대 링크 복사를 두고, 방장 메뉴는 접지 않는다. 방장 메뉴는 헤어라인 아래에 둔다.
 
 ## Elevation &amp; Depth
 
@@ -405,7 +406,8 @@ components:
 
 - **주 버튼** `button-primary`: 화면당 하나. 너비는 본문 폭 전체, 높이 52px. 비활성 상태는 {colors.surface-pressed} 바탕에 {colors.muted} 글자다. 비활성 사유를 글로 둘 때는 버튼 바로 위에 {typography.body-sm}로 놓는다. 답 확인 화면에서는 비활성 사유와 오류를 본문 끝에 둔다.
 - **보조 버튼** `button-secondary`: 주 버튼과 같은 크기, 표면 바탕. 주 동작 위에 두는 선택 동작.
-- **표면 위 보조 버튼** `button-secondary-on-surface`: 카드처럼 표면 위에 놓는 보조 버튼. 종이 바탕에 {colors.outline} 1px 테두리를 둔다.
+- **윤곽선 버튼** `button-outline`: 본문 안의 보조 동작(초대 링크 복사, 알림 받기, 이미지 저장). 종이 바탕에 {colors.outline} 1px 테두리를 둔다. 표면 위에서도 쓴다.
+- 강조는 화면당 주 버튼 하나다. 주 버튼이 따로 있을 때 "지금까지 모인 응답으로 만들기"처럼 한 번 더 생각할 동작은 텍스트 버튼으로 낮춰, 비활성 주 버튼과 구분되게 한다.
 - **텍스트 버튼** `button-text`: 놋쇠 글자, 밑줄 없음. 본문 흐름 안의 가벼운 동작.
 - 모든 버튼에 키보드 포커스 링을 둔다: {colors.tertiary-mark} 2px, 2px 바깥 간격.
 
@@ -435,7 +437,7 @@ components:
 
 ### 안내와 오류
 
-- **공개 안내** `notice-privacy`: 자물쇠 아이콘과 안내문을 담은 카드. 안내가 표시되는 화면에서 주 버튼 바로 위에 둔다(AC3). 답 확인 화면에서는 본문 끝, 마지막 문항 아래에 둔다.
+- **공개 안내** `notice-privacy`: 자물쇠 아이콘과 안내문. 면 없이 글로 둔다. 안내가 표시되는 화면에서 주 버튼 바로 위에 둔다(AC3). 답 확인 화면에서는 본문 끝, 마지막 문항 아래에 둔다.
 - **같은 이름 안내** `notice-duplicate-name`: 이름 선택 목록 바로 아래 {colors.error} 글자와 경고 아이콘(AC16).
 - **오류** `message-error`: 경고 아이콘 뒤에 글자를 두고, 재시도 버튼이 있으면 바로 아래 둔다. 색이나 아이콘만으로 오류를 표시하지 않는다(AC14).
 - **개수 표시** `count-label`: 흐린 글자와 고정폭 숫자.

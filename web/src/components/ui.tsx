@@ -2,7 +2,9 @@ import { ArrowLeft, CircleAlert, Copy, Check, Share2 } from "lucide-react";
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { errorText } from "../api/errors";
+import type { RoomView } from "../api/types";
 import { useBackHandler, useHeaderBack } from "../lib/back";
+import { STATUS_LINE_TEXT } from "../lib/status";
 
 export const ICON = { size: 20, strokeWidth: 1.5, "aria-hidden": true } as const;
 
@@ -76,10 +78,15 @@ export function ErrorMessage({
   );
 }
 
-export function Count({ label, value, total }: { label: string; value: number; total?: number }) {
+/** 진행 상황 한 줄. 예: 제출 1 / 3 · 다른 동행을 기다리고 있어요 */
+export function StatusLine({ room, host }: { room: Pick<RoomView, "room_status" | "submitted_count" | "party_size">; host?: boolean }) {
   return (
-    <p className="count-label">
-      {label} <span className="num">{total === undefined ? value : `${value} / ${total}`}</span>
+    <p className="status-line">
+      {host ? "제출(나 포함)" : "제출"}{" "}
+      <span className="num">
+        {room.submitted_count} / {room.party_size}
+      </span>{" "}
+      · {STATUS_LINE_TEXT[room.room_status]}
     </p>
   );
 }
@@ -109,13 +116,13 @@ async function copyText(text: string): Promise<boolean> {
   }
 }
 
-export function CopyButton({ text, label, primary }: { text: string; label: string; primary?: boolean }) {
+export function CopyButton({ text, label }: { text: string; label: string }) {
   const [state, setState] = useState<"idle" | "done" | "fail">("idle");
   return (
     <div className="stack-sm">
       <button
         type="button"
-        className={`btn ${primary ? "btn-primary" : "btn-secondary"}`}
+        className="btn btn-outline"
         onClick={async () => setState((await copyText(text)) ? "done" : "fail")}
       >
         {state === "done" ? <Check {...ICON} /> : <Copy {...ICON} />}
@@ -168,7 +175,7 @@ export function ShareButton({
           <p className="link-box">{url}</p>
         </>
       )}
-      <button type="button" className={`btn ${secondary ? "btn-secondary" : "btn-primary"}`} onClick={onClick}>
+      <button type="button" className={`btn ${secondary ? "btn-outline" : "btn-primary"}`} onClick={onClick}>
         {state === "copied" ? <Check {...ICON} /> : canShare ? <Share2 {...ICON} /> : <Copy {...ICON} />}
         {state === "copied" ? "복사했어요" : canShare ? shareLabel : copyLabel}
       </button>

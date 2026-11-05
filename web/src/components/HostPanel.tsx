@@ -1,4 +1,3 @@
-import { ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import type { RoomView } from "../api/types";
@@ -6,12 +5,12 @@ import { inviteUrl } from "../lib/hostToken";
 import { FAILURE_TEXT } from "../lib/status";
 import { OpenPact } from "./OpenPact";
 import { PushOptIn } from "./PushOptIn";
-import { boxVariant } from "../mock/boxes";
-import { BottomBar, ConfirmSheet, CopyButton, Count, ErrorMessage, ICON } from "./ui";
+import { BottomBar, ConfirmSheet, CopyButton, ErrorMessage } from "./ui";
 
 /**
  * 방장 토큰이 있는 기기에서만 보이는 메뉴. 생성은 자동으로 다시 시도하지 않는다.
  * room 모드는 상태별 주 동작 하나를 아래 고정 영역에 둔다. 화면이 자기 주 동작을 가지면 ownPrimary로 알린다.
+ * 제출 수와 초대 링크 복사는 화면이 제목 바로 아래에 둔다.
  * result 모드에서는 고정 영역을 결과 화면이 쓰므로 모든 조작을 보조 버튼으로 둔다.
  */
 export function HostPanel({
@@ -21,7 +20,6 @@ export function HostPanel({
   onChanged,
   mode = "room",
   ownPrimary = false,
-  showStatus = true,
 }: {
   code: string;
   token: string;
@@ -29,7 +27,6 @@ export function HostPanel({
   onChanged: () => void;
   mode?: "room" | "result";
   ownPrimary?: boolean;
-  showStatus?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
@@ -73,7 +70,7 @@ export function HostPanel({
   const generateButton = (primary: boolean) => (
     <button
       type="button"
-      className={`btn ${primary ? "btn-primary" : "btn-secondary"}`}
+      className={primary ? "btn btn-primary" : "btn-text"}
       disabled={busy || noResponses}
       onClick={() => setConfirmEarly(true)}
     >
@@ -83,7 +80,7 @@ export function HostPanel({
   const retryButton = (primary: boolean) => (
     <button
       type="button"
-      className={`btn ${primary ? "btn-primary" : "btn-secondary"}`}
+      className={`btn ${primary ? "btn-primary" : "btn-outline"}`}
       disabled={busy}
       onClick={() => run(() => api.retry(code, token))}
     >
@@ -91,31 +88,29 @@ export function HostPanel({
     </button>
   );
 
-  const items = (
-    <>
-      {showStatus && s === "failed" && room.failure_reason && <p className="secondary">{FAILURE_TEXT[room.failure_reason]}</p>}
-      {showStatus && <Count label="제출(나 포함)" value={room.submitted_count} total={room.party_size} />}
+  return (
+    <section className="host-menu" aria-labelledby="host-panel-title">
+      <h2 id="host-panel-title" className="t-label-md">
+        방장 메뉴
+      </h2>
+      {!inBar && s === "failed" && room.failure_reason && <p className="secondary">{FAILURE_TEXT[room.failure_reason]}</p>}
       {canGenerate && noResponses && <p className="disabled-reason">한 명 이상 답하면 지금 만들 수 있어요.</p>}
       {canGenerate && (!inBar || ownPrimary) && generateButton(false)}
       {s === "failed" && !inBar && retryButton(false)}
       {s === "ready" && !inBar && canRegenerate && (
         <button
           type="button"
-          className="btn btn-secondary"
+          className="btn btn-outline"
           disabled={busy}
           onClick={() => run(() => api.regenerate(code, token))}
         >
           같은 응답으로 한 번 더 만들기
         </button>
       )}
-      <CopyButton text={inviteUrl(code)} label="초대 링크 복사" />
+      {!inBar && <CopyButton text={inviteUrl(code)} label="초대 링크 복사" />}
       {error !== null && <ErrorMessage error={error} />}
       <PushOptIn code={code} role="host" hostToken={token} />
 
-    </>
-  );
-  const overlays = (
-    <>
       {inBar && canGenerate && !ownPrimary && <BottomBar>{generateButton(true)}</BottomBar>}
       {inBar && s === "failed" && <BottomBar>{retryButton(true)}</BottomBar>}
       {inBar && s === "ready" && <OpenPact code={code} />}
@@ -135,31 +130,6 @@ export function HostPanel({
           </p>
         </ConfirmSheet>
       )}
-    </>
-  );
-
-  if (boxVariant() === "b") {
-    return (
-      <>
-        <details className="fold host-menu">
-          <summary>
-            <span>방장 메뉴</span>
-            <ChevronDown {...ICON} />
-          </summary>
-          <div className="fold-body">{items}</div>
-        </details>
-        {overlays}
-      </>
-    );
-  }
-
-  return (
-    <section className="card host-menu" aria-labelledby="host-panel-title">
-      <h2 id="host-panel-title" className="t-label-md">
-        방장 메뉴
-      </h2>
-      {items}
-      {overlays}
     </section>
   );
 }

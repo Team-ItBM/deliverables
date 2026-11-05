@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { MOCK_AS_PARTICIPANT } from "../lib/hostToken";
-import { BOX_KEY, boxVariant } from "./boxes";
 import { readJSON, writeJSON } from "../lib/storage";
 
 // 모의 모드(VITE_MOCK=1)에서만 보이는 막대. 다음 생성 결과의 종류와 방장 토큰 숨김을 바꾼다.
@@ -63,24 +62,6 @@ export function MockBar() {
               {n}개
             </option>
           ))}
-        </select>
-      </label>
-      <label>
-        박스
-        <select
-          value={boxVariant() ?? ""}
-          onChange={(e) => {
-            try {
-              localStorage.setItem(BOX_KEY, e.target.value);
-            } catch {
-              /* 무시 */
-            }
-            window.location.reload();
-          }}
-        >
-          <option value="">현재</option>
-          <option value="a">A안</option>
-          <option value="b">B안</option>
         </select>
       </label>
       <label>
