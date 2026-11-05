@@ -358,11 +358,11 @@ Terraform 17개 파일(VPC, ALB, ECS Fargate ARM, RDS 16, S3와 CloudFront, Clou
 | S3 문항 복구 | 2 | `tests/test_scenario_recovery.py` | 10/13 | 13 통과 |
 | S4 비용·기록 | 3, 11 | `tests/test_llm_cost_ledger.py` | 10/10 | 10 통과 |
 | S5 추천 입력 | 12 | `tests/test_pact_input_constraints.py` | 4/5 | 5 통과 |
-| S6 화면 | 4, 5, 6 | `web/src/test/failurePaths.test.tsx` | 16/19 | 21 통과 |
+| S6 화면 | 4, 5, 6 | `web/src/test/failurePaths.test.tsx` | 16/21 | 21 통과 |
 | S7 배포·관측 | 8, 9, 10 | `tests/test_deploy_and_access.py` | 25/26 | 26 통과 |
 | S8 하니스 | 13 | 기존 OUT-N05·N07·CLS-N04 | [서버 위임 기록 §2-5](delegation_server.md) | 통과 |
 
-실패하지 않은 테스트는 허용해야 할 입력이 그대로 통과하는지 보는 것이다. S6의 2개는 `91665a2`를 확인한 뒤 더한 결과 화면 테스트라 수정 전 코드에서 돌리지 않았다. S7의 일부는 새 스크립트가 없어서 실패한 것이다. 기본 Docker 빌드는 `91665a2`에서 실패하고 수정 뒤 성공하는 것을 로컬에서 따로 확인했다.
+실패하지 않은 테스트는 고치지 않아도 되는 동작을 지키는 검사다. S6의 결과 화면 2개(방장이 실패·재생성 중인 방에서 고르고 저장)는 `91665a2`에서도 통과했다. 그 경로의 문제는 결과 화면이 아니라 거기로 가는 버튼이었다. S7의 일부는 새 스크립트가 없어서 실패한 것이다. 기본 Docker 빌드는 `91665a2`에서 실패하고 수정 뒤 성공하는 것을 로컬에서 따로 확인했다.
 
 **사람 결정**(2026-11-05)
 
