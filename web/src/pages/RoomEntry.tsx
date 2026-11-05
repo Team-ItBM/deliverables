@@ -9,9 +9,9 @@ import { contactSectionId } from "../components/Markdown";
 import { HostPanel } from "../components/HostPanel";
 import { OpenPact } from "../components/OpenPact";
 import { BottomBar, ConfirmSheet, CopyButton, ErrorMessage, ICON, RoomNotFound, StatusLine } from "../components/ui";
-import { clearSession, loadSession, loadSubmitted, saveSession } from "../lib/answerSession";
+import { clearSession, loadPending, loadSession, loadSubmitted, resendPending, saveSession } from "../lib/answerSession";
 import { useHeaderBack } from "../lib/back";
-import { useHasResult, useHostToken, usePolling } from "../lib/hooks";
+import { useHostToken, usePolling, useResultCheck } from "../lib/hooks";
 import { inviteUrl } from "../lib/hostToken";
 import { FAILURE_TEXT, SCENARIO_STATUS_TEXT } from "../lib/status";
 import { tripMetaText } from "../lib/trip";
@@ -37,18 +37,23 @@ export function RoomEntry() {
     (r) =>
       !r ||
       r.scenario_status === "preparing" ||
+      r.scenario_status === "failed" ||
       r.room_status === "closed" ||
       r.room_status === "generating" ||
       (token !== null && r.room_status !== "ready"),
     [code, token]
   );
-  const hasResult = useHasResult(code, room?.room_status);
+  const resultCheck = useResultCheck(code, room?.room_status);
+  const hasResult = resultCheck.has;
   const [picked, setPicked] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [sessionError, setSessionError] = useState<unknown>(null);
   const [inProgress, setInProgress] = useState(() => loadSession(code));
   const [confirmRestart, setConfirmRestart] = useState(false);
   const [answerAgain, setAnswerAgain] = useState(false);
+  // 결과를 모르는 제출이 있으면 새 키로 다시 답하지 못하게 다른 흐름을 막고 그 요청부터 확인한다.
+  const [pending, setPending] = useState(() => loadPending(code) !== null);
+  const [pendingError, setPendingError] = useState<unknown>(null);
   const submitted = loadSubmitted(code);
   const roomPath = `/r/${encodeURIComponent(code)}`;
 
@@ -62,14 +67,14 @@ export function RoomEntry() {
     );
   }
 
-  if (hasResult && !token && !submitted) return <Navigate to={`${roomPath}/result`} replace />;
+  if (hasResult && !token && !submitted && !pending) return <Navigate to={`${roomPath}/result`} replace />;
 
-  const canAnswer = room.room_status === "open" && room.scenario_status === "ready";
+  const canAnswer = !pending && room.room_status === "open" && room.scenario_status === "ready";
   const resuming = canAnswer && inProgress !== null;
   const showNames = canAnswer && !resuming && (!submitted || answerAgain);
-  const showProgress = !!submitted && !answerAgain && !resuming;
+  const showProgress = !!submitted && !answerAgain && !resuming && !pending;
   const profile = room.profiles.find((p) => p.profile_id === picked);
-  const closedForAnswers = room.scenario_status === "ready" && room.room_status !== "open";
+  const closedForAnswers = !pending && room.scenario_status === "ready" && room.room_status !== "open";
 
   const start = async () => {
     if (!profile) return;
@@ -87,6 +92,22 @@ export function RoomEntry() {
       navigate(`${roomPath}/answer`, { state: { fromRoom: true } });
     } catch (err) {
       setSessionError(err);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const confirmPending = async () => {
+    setBusy(true);
+    setPendingError(null);
+    try {
+      await resendPending(code);
+      setPending(false);
+      navigate(`${roomPath}/wait`);
+    } catch (err) {
+      setPendingError(err);
+      setPending(loadPending(code) !== null);
+      setInProgress(loadSession(code));
     } finally {
       setBusy(false);
     }
@@ -151,6 +172,17 @@ export function RoomEntry() {
         </section>
       )}
 
+      {resultCheck.failed && (
+        <ErrorMessage text="협약서가 있는지 확인하지 못했어요." onRetry={resultCheck.retry} retryLabel="다시 확인" />
+      )}
+
+      {pending && (
+        <section className="status-block" aria-live="polite">
+          <p>이 기기에서 보낸 답변의 제출 결과를 확인하지 못했어요. 먼저 확인해 주세요.</p>
+        </section>
+      )}
+      {pendingError !== null && <ErrorMessage error={pendingError} />}
+
       {showProgress && (
         <section className="status-block" aria-live="polite">
           <p>이 기기에서 답변을 제출했어요.</p>
@@ -211,7 +243,14 @@ export function RoomEntry() {
       )}
 
       {token && (
-        <HostPanel code={code} token={token} room={room} onChanged={reload} ownPrimary={showNames || resuming} />
+        <HostPanel
+          code={code}
+          token={token}
+          room={room}
+          onChanged={reload}
+          ownPrimary={showNames || resuming || pending}
+          hasResult={hasResult}
+        />
       )}
 
       {(showNames || room.scenario_status === "preparing") && (
@@ -225,6 +264,13 @@ export function RoomEntry() {
         </section>
       )}
 
+      {pending && (
+        <BottomBar>
+          <button type="button" className="btn btn-primary" disabled={busy} onClick={confirmPending}>
+            {busy ? "확인하는 중이에요" : "제출 결과 확인하기"}
+          </button>
+        </BottomBar>
+      )}
       {resuming && <BottomBar>{resumeButton}</BottomBar>}
       {showNames && (
         <BottomBar>

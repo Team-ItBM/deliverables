@@ -8,7 +8,7 @@ import { OpenPact } from "../components/OpenPact";
 import { CopyButton, ErrorMessage, RoomNotFound, StatusLine } from "../components/ui";
 import { loadSubmitted } from "../lib/answerSession";
 import { useHeaderBack } from "../lib/back";
-import { useHasResult, useHostToken, usePolling } from "../lib/hooks";
+import { useHostToken, usePolling, useResultCheck } from "../lib/hooks";
 import { inviteUrl } from "../lib/hostToken";
 import { FAILURE_TEXT } from "../lib/status";
 
@@ -24,7 +24,8 @@ export function Wait() {
     (r) => !r || r.room_status !== "ready",
     [code, token]
   );
-  const hasResult = useHasResult(code, room?.room_status);
+  const resultCheck = useResultCheck(code, room?.room_status);
+  const hasResult = resultCheck.has;
 
   if (!room && isNotFound(error)) return <RoomNotFound />;
   // 제출한 기기와 방장은 진행 상황을 먼저 보고 직접 협약서를 연다. 그 밖의 사람은 결과로 바로 간다.
@@ -48,7 +49,10 @@ export function Wait() {
       )}
       {room && token && <CopyButton text={inviteUrl(code)} label="초대 링크 복사" />}
       {error !== null && <ErrorMessage error={error} onRetry={reload} />}
-      {room && token && <HostPanel code={code} token={token} room={room} onChanged={reload} />}
+      {resultCheck.failed && (
+        <ErrorMessage text="협약서가 있는지 확인하지 못했어요." onRetry={resultCheck.retry} retryLabel="다시 확인" />
+      )}
+      {room && token && <HostPanel code={code} token={token} room={room} onChanged={reload} hasResult={hasResult} />}
       {submitted && !token && <PushOptIn code={code} role="participant" sessionId={submitted.session_id} />}
       <p className="t-body-sm secondary">이 화면을 닫아도 돼요. 초대 링크로 다시 열면 진행 상황을 볼 수 있어요.</p>
       {hasResult && !token && <OpenPact code={code} />}

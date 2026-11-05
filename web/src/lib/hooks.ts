@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
+import { ApiError } from "../api/errors";
 import type { RoomStatus } from "../api/types";
 import { getHostToken } from "./hostToken";
 
@@ -66,28 +67,70 @@ export function usePolling<T>(
   return { data, error, reload, loading };
 }
 
+export interface ResultCheck {
+  /** 결과가 있으면 true, 없으면 false, 아직 모르면 null이다. */
+  has: boolean | null;
+  /** 결과 존재 여부를 확인하지 못했다. has는 null이다. */
+  failed: boolean;
+  retry: () => void;
+}
+
+const RESULT_CHECK_AUTO_RETRIES = 3;
+const RESULT_CHECK_DELAY_MS = 3000;
+
 /**
  * 공개할 결과가 있는지 본다. 재생성이 실패하거나 진행 중이어도 기존 결과는 남아 있어서
- * room_status로는 판단할 수 없다. 응답을 받는 동안에는 결과가 없다. 확인 전에는 null이다.
+ * room_status로는 판단할 수 없다. 응답을 받는 동안에는 결과가 없다.
+ * 서버가 없다고 답한 경우(invalid_state)만 "없음"이다. 연결 끊김·429·5xx는 "확인 실패"로 두고
+ * 몇 번 자동으로 다시 본다. 그래도 실패하면 화면의 retry로 다시 확인한다.
  */
-export function useHasResult(code: string, status: RoomStatus | undefined): boolean | null {
+export function useResultCheck(code: string, status: RoomStatus | undefined): ResultCheck {
   const [has, setHas] = useState<boolean | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [tick, setTick] = useState(0);
+  const autoRetries = useRef(0);
   useEffect(() => {
     if (!status) return;
     if (status === "open") {
       setHas(false);
+      setFailed(false);
       return;
     }
     let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     api
       .getResult(code)
-      .then(() => !cancelled && setHas(true))
-      .catch(() => !cancelled && setHas(false));
+      .then(() => {
+        if (cancelled) return;
+        setHas(true);
+        setFailed(false);
+        autoRetries.current = 0;
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        if (err instanceof ApiError && err.definitive) {
+          setHas(false);
+          setFailed(false);
+          autoRetries.current = 0;
+          return;
+        }
+        setHas(null);
+        setFailed(true);
+        if (autoRetries.current < RESULT_CHECK_AUTO_RETRIES) {
+          autoRetries.current += 1;
+          timer = setTimeout(() => setTick((t) => t + 1), RESULT_CHECK_DELAY_MS * autoRetries.current);
+        }
+      });
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
-  }, [code, status]);
-  return has;
+  }, [code, status, tick]);
+  const retry = useCallback(() => {
+    autoRetries.current = 0;
+    setTick((t) => t + 1);
+  }, []);
+  return { has, failed, retry };
 }
 
 export function useHostToken(code: string): string | null {

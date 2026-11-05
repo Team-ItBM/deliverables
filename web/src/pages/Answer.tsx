@@ -6,6 +6,7 @@ import { BottomBar, ErrorMessage, ICON } from "../components/ui";
 import { useHeaderBack } from "../lib/back";
 import {
   clearSession,
+  loadPending,
   loadSession,
   loadSubmitted,
   saveSession,
@@ -169,7 +170,10 @@ export function Answer() {
   const submittedRef = useRef(false);
   const failureRef = useRef<HTMLDivElement>(null);
 
-  const urlStep = s ? readStep(params.get("step"), s) : 0;
+  // 보낸 답의 결과를 모르는 동안은 답을 고칠 수 없다. 처음 보낸 요청을 그대로 다시 보내 결과를 확인한다.
+  const [locked, setLocked] = useState(() => loadPending(code) !== null);
+
+  const urlStep = s ? (locked ? s.scenarios.length : readStep(params.get("step"), s)) : 0;
 
   useEffect(() => {
     if (s && !submittedRef.current) saveSession(code, s);
@@ -212,7 +216,7 @@ export function Answer() {
 
   const patch = (id: string, p: Partial<{ option_id: string; memo: string }>) =>
     setS((prev) =>
-      prev ? { ...prev, answers: { ...prev.answers, [id]: { memo: "", ...prev.answers[id], ...p } } } : prev
+      prev && !locked ? { ...prev, answers: { ...prev.answers, [id]: { memo: "", ...prev.answers[id], ...p } } } : prev
     );
   const go = (n: number, fromReview = false) =>
     navigate({ search: stepSearch(n, total) }, { state: { depth: depth + 1, fromReview } satisfies StepState });
@@ -230,7 +234,8 @@ export function Answer() {
       else navigate(`${roomPath}/wait`, { replace: true });
     } catch (err) {
       setError(err);
-      // submitSession이 키를 유지하거나 버린 상태를 setS로 반영했다.
+      // submitSession이 키를 유지하거나 버린 상태를 setS로 반영했다. 결과를 모르면 보존이 남아 있어 답을 잠근다.
+      setLocked(loadPending(code) !== null);
     } finally {
       setBusy(false);
     }
@@ -277,7 +282,11 @@ export function Answer() {
       {isReview && (
         <div className="stack-lg">
           <h1 className="t-headline-md">답을 확인해 주세요</h1>
-          <p className="secondary">제출하면 고칠 수 없어요. 고칠 문항이 있으면 눌러서 바꿔 주세요.</p>
+          <p className="secondary">
+            {locked
+              ? "제출 결과를 확인하지 못했어요. 처음 보낸 답 그대로 다시 보내 확인해 주세요. 확인 전에는 답을 고칠 수 없어요."
+              : "제출하면 고칠 수 없어요. 고칠 문항이 있으면 눌러서 바꿔 주세요."}
+          </p>
           <ol className="stack-sm">
             {s.scenarios.map((sc, i) => {
               const a = s.answers[sc.scenario_id];
@@ -287,9 +296,11 @@ export function Answer() {
                   <p className="t-body-sm secondary">{sc.question}</p>
                   <p>{label ?? "아직 고르지 않았어요"}</p>
                   {a?.memo.trim() && <p className="t-body-sm secondary">메모 {memoLength(a.memo)}자</p>}
-                  <button type="button" className="btn-text" onClick={() => go(i, true)}>
-                    {i + 1}번 고치기
-                  </button>
+                  {!locked && (
+                    <button type="button" className="btn-text" onClick={() => go(i, true)}>
+                      {i + 1}번 고치기
+                    </button>
+                  )}
                 </li>
               );
             })}
@@ -310,7 +321,7 @@ export function Answer() {
       <BottomBar>
         {isReview && (
           <button type="button" className="btn btn-primary" disabled={!allAnswered || busy} onClick={submit}>
-            {busy ? "보내는 중이에요" : error !== null ? "다시 제출하기" : "제출하기"}
+            {busy ? "보내는 중이에요" : locked ? "같은 답으로 다시 보내기" : error !== null ? "다시 제출하기" : "제출하기"}
           </button>
         )}
         {!isReview && (

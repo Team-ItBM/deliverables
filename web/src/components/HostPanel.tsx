@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import type { RoomView } from "../api/types";
 import { inviteUrl } from "../lib/hostToken";
@@ -12,6 +13,7 @@ import { BottomBar, ConfirmSheet, CopyButton, ErrorMessage } from "./ui";
  * room 모드는 상태별 주 동작 하나를 아래 고정 영역에 둔다. 화면이 자기 주 동작을 가지면 ownPrimary로 알린다.
  * 제출 수와 초대 링크 복사는 화면이 제목 바로 아래에 둔다.
  * result 모드에서는 고정 영역을 결과 화면이 쓰므로 모든 조작을 보조 버튼으로 둔다.
+ * 작업 상태와 기존 결과의 존재는 따로 본다. 재생성 중이거나 실패해도 정상 결과가 있으면 그 결과를 여는 것이 주 동작이다.
  */
 export function HostPanel({
   code,
@@ -20,6 +22,7 @@ export function HostPanel({
   onChanged,
   mode = "room",
   ownPrimary = false,
+  hasResult = null,
 }: {
   code: string;
   token: string;
@@ -27,6 +30,7 @@ export function HostPanel({
   onChanged: () => void;
   mode?: "room" | "result";
   ownPrimary?: boolean;
+  hasResult?: boolean | null;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
@@ -66,6 +70,8 @@ export function HostPanel({
   const canGenerate = s === "open" && room.scenario_status === "ready";
   const noResponses = room.submitted_count === 0;
   const inBar = mode === "room";
+  const canOpen = inBar && (s === "ready" || hasResult === true);
+  const scenariosFailed = s === "open" && room.scenario_status === "failed";
 
   const generateButton = (primary: boolean) => (
     <button
@@ -96,7 +102,15 @@ export function HostPanel({
       {!inBar && s === "failed" && room.failure_reason && <p className="secondary">{FAILURE_TEXT[room.failure_reason]}</p>}
       {canGenerate && noResponses && <p className="disabled-reason">한 명 이상 답하면 지금 만들 수 있어요.</p>}
       {canGenerate && (!inBar || ownPrimary) && generateButton(false)}
-      {s === "failed" && !inBar && retryButton(false)}
+      {s === "failed" && (!inBar || hasResult === true) && retryButton(false)}
+      {scenariosFailed && (
+        <>
+          <p className="t-body-sm secondary">다시 시도해도 안 되면 새 방을 만들어 주세요. 새 방은 초대 링크가 달라져요.</p>
+          <Link className="btn-text" to="/new">
+            새 방 만들기
+          </Link>
+        </>
+      )}
       {s === "ready" && !inBar && canRegenerate && (
         <button
           type="button"
@@ -112,8 +126,20 @@ export function HostPanel({
       <PushOptIn code={code} role="host" hostToken={token} />
 
       {inBar && canGenerate && !ownPrimary && <BottomBar>{generateButton(true)}</BottomBar>}
-      {inBar && s === "failed" && <BottomBar>{retryButton(true)}</BottomBar>}
-      {inBar && s === "ready" && <OpenPact code={code} />}
+      {inBar && s === "failed" && !canOpen && <BottomBar>{retryButton(true)}</BottomBar>}
+      {inBar && scenariosFailed && (
+        <BottomBar>
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={busy}
+            onClick={() => run(() => api.retry(code, token))}
+          >
+            문항 다시 만들기
+          </button>
+        </BottomBar>
+      )}
+      {canOpen && <OpenPact code={code} />}
 
       {confirmEarly && (
         <ConfirmSheet
