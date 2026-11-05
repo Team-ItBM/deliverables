@@ -3,7 +3,7 @@
 환경변수(2026-11-05 확정): DATABASE_URL, OPENAI_API_KEY, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT,
 ORIGIN_VERIFY_SECRET(현재 서버는 검사하지 않고 ALB 규칙이 검사한다), PUBLIC_BASE_URL, LLM_MODE(live | replay), AWS_REGION.
 선택: LLM_CONFIG(기본 config/llm.yaml), LLM_REPLAY_FILE(replay 모드의 문항 출력 JSON, 기본 config/replay/scenario_set_d01.json),
-POOL_PATH, WEB_DIST(SPA 정적 파일),
+POOL_PATH, WEB_DIST(SPA 정적 파일), TRUSTED_PROXY_HOPS(믿는 프록시 구간 수, 기본 0, 운영 이미지 2),
 DB_INIT_ON_START(1이면 시작 때 스키마를 만든다. 로컬 실행용).
 
 replay 모드는 테스트·동료 로컬 실행·장애 대비용이며 실제 모델을 부르지 않는다(README에 밝힌다).
@@ -79,6 +79,7 @@ def build_settings(env, llm_config):
         stall_limit_seconds=int(job.get("stall_limit_seconds", 600)),
         llm_timeout_seconds=llm_config.timeout_seconds,
         max_concurrent_generations=int(concurrency.get("max_generations", 4)),
+        trusted_proxy_hops=int(env.get("TRUSTED_PROXY_HOPS", "0")),
         public_base_url=env.get("PUBLIC_BASE_URL", "http://localhost:5173").rstrip("/"),
         vapid_public_key=env.get("VAPID_PUBLIC_KEY", ""),
         model_id=llm_config.model,

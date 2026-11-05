@@ -83,6 +83,7 @@ class Settings:
     schema_versions: dict = field(default_factory=lambda: {"scenarios": "2", "pact": "4"})
     maintenance_interval_seconds: float = 0
     access_log: bool = True
+    trusted_proxy_hops: int = 0  # 앱 앞의 믿는 프록시 구간 수. 운영 이미지는 2(CloudFront, ALB)다
     push_allowed_hosts: tuple = DEFAULT_PUSH_HOSTS
     push_timeout_seconds: float = 10  # 제안값이며 측정값이 아니다. 없으면 pywebpush 기본값 10000초가 쓰인다
     room_cap_usd: float = None  # 방당 비용 상한(config/llm.yaml room_cap_usd). None이면 검사하지 않는다(테스트 기본)
@@ -182,7 +183,7 @@ def create_app(*, settings, llm_client, push_sender, sleeper, clock):
         return error_response("render_failed")
 
     _register_routes(app, settings, jobs, notifier, clock, pool_source)
-    app.add_middleware(AccessLogMiddleware, enabled=settings.access_log)
+    app.add_middleware(AccessLogMiddleware, enabled=settings.access_log, trusted_proxy_hops=settings.trusted_proxy_hops)
     return app
 
 

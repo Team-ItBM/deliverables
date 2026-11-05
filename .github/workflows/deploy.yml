@@ -24,7 +24,9 @@ concurrency:
 
 env:
   AWS_REGION: ap-northeast-2
-  # Assumed schema init command; the server implementer must provide it.
+  SITE_URL: https://dowonpact.com
+  # Creates or migrates the schema; idempotent (src/travel/server/db.py). The
+  # result, including removed duplicate rows, goes to CloudWatch Logs.
   DB_INIT_COMMAND: '["python","-m","travel.server.db","--init"]'
 
 jobs:
@@ -51,18 +53,13 @@ jobs:
 
       - uses: docker/setup-buildx-action@v3
 
-      - name: Build and push image (linux/arm64)
+      - name: Build and push image (linux/arm64), or reuse it on a rerun
         id: image
         env:
+          REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+          TAG: ${{ github.sha }}
           IMAGE: ${{ steps.ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:${{ github.sha }}
-        run: |
-          docker buildx build \
-            --platform linux/arm64 \
-            --build-arg SKIP_WEB=1 \
-            --tag "$IMAGE" \
-            --push \
-            .
-          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+        run: .github/scripts/ensure_image.sh
 
       - name: Register task definition revision
         id: taskdef
@@ -135,7 +132,10 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
 
-      - name: Build SPA and sync to S3
+      # Order matters: open pages keep working only if new assets are in place
+      # before the HTML that references them, and old assets leave after the
+      # site is confirmed to serve the new build.
+      - name: Build SPA, upload new assets, then switch HTML
         if: ${{ hashFiles('web/package.json') != '' }}
         working-directory: web
         env:
@@ -144,7 +144,7 @@ jobs:
           npm ci
           npm run build
           # Hashed assets: long cache. Entry points and crawler files: revalidate.
-          aws s3 sync dist "s3://$BUCKET" --delete \
+          aws s3 sync dist "s3://$BUCKET" \
             --exclude index.html --exclude sw.js --exclude "*.webmanifest" \
             --exclude robots.txt --exclude sitemap.xml --exclude favicon.ico \
             --cache-control "public,max-age=31536000,immutable"
@@ -161,3 +161,13 @@ jobs:
           ID=$(aws cloudfront create-invalidation --distribution-id "$DIST" --paths "/*" \
                  --query Invalidation.Id --output text)
           aws cloudfront wait invalidation-completed --distribution-id "$DIST" --id "$ID"
+
+      - name: Confirm the site serves this build
+        if: ${{ hashFiles('web/package.json') != '' }}
+        run: python3 .github/scripts/verify_spa.py "$SITE_URL" web/dist
+
+      - name: Remove old assets
+        if: ${{ hashFiles('web/package.json') != '' }}
+        env:
+          BUCKET: ${{ vars.SPA_BUCKET }}
+        run: python3 .github/scripts/prune_spa.py "$BUCKET" web/dist

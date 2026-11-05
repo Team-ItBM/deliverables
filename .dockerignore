@@ -4,6 +4,8 @@
 !src/
 !config/
 !web/
+# The web build imports the privacy policy as text.
+!docs/PRIVACY.md
 
 # Never send these even inside allowed directories
 **/.env

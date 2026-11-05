@@ -13,6 +13,7 @@ RUN --mount=type=bind,source=.,target=/ctx \
     if [ "$SKIP_WEB" = "1" ] || [ ! -f /ctx/web/package.json ]; then \
       echo "Skipping web build (SKIP_WEB=$SKIP_WEB)"; \
     else \
+      mkdir -p /docs && cp /ctx/docs/PRIVACY.md /docs/PRIVACY.md && \
       cp -R /ctx/web/. /web/ && npm ci && npm run build; \
     fi
 
@@ -23,7 +24,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PYTHONPATH=/app/src
+    PYTHONPATH=/app/src \
+    TRUSTED_PROXY_HOPS=2
 
 RUN groupadd --system --gid 10001 app && \
     useradd --system --uid 10001 --gid app --home-dir /app --shell /usr/sbin/nologin app
@@ -42,4 +44,7 @@ COPY --from=web /web/dist ./web/dist
 USER app
 EXPOSE 8000
 
-CMD ["uvicorn", "travel.server.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log", "--proxy-headers", "--forwarded-allow-ips", "*"]
+# The access log reads X-Forwarded-For itself (src/travel/server/logging.py).
+# Uvicorn's proxy handling is off because it trusted the first, viewer-supplied
+# entry with "*", and a CIDR list would report the CloudFront edge address.
+CMD ["uvicorn", "travel.server.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log", "--no-proxy-headers"]

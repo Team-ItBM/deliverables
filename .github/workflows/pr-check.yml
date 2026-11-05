@@ -75,6 +75,12 @@ jobs:
       - run: npm run build
       - run: npm run test
 
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build --tag dowon-check .
+
   terraform:
     runs-on: ubuntu-latest
     defaults:
