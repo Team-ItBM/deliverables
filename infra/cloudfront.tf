@@ -162,7 +162,7 @@ resource "aws_cloudfront_distribution" "main" {
 
     custom_header {
       name  = "X-Origin-Verify"
-      value = data.aws_secretsmanager_secret_version.origin_verify.secret_string
+      value = random_password.origin_verify.result
     }
   }
 

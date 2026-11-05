@@ -137,9 +137,9 @@ variable "db_deletion_protection" {
 }
 
 variable "db_skip_final_snapshot" {
-  description = "false keeps a final snapshot on destroy. PRIVACY 제7조 requires deleting backups within 7 days of service end, so that snapshot must then be deleted by hand (README teardown)."
+  description = "true skips the final snapshot on destroy (team decision 2026-11-05: PRIVACY 제7조 deletes backups within 7 days of service end). Accidental destroy is guarded by db_deletion_protection instead."
   type        = bool
-  default     = false
+  default     = true
 }
 
 # ---- Secrets ----

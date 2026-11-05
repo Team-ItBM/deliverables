@@ -55,23 +55,21 @@ ALB (보안 그룹: CloudFront origin-facing 접두사 목록 443만, 리스너:
   credential_process = aws configure export-credentials --profile itbm --format process
   ```
 - `infra/.terraform.lock.hcl`은 darwin_arm64·linux_amd64·linux_arm64 해시를 담고 있으므로 커밋한다.
+- 계정 ID와 호스팅 영역 ID는 저장소에 두지 않는다. `infra/terraform.tfvars.example`을 `infra/terraform.tfvars`로 복사해 값을 채운다(gitignore. 2026-11-05 팀 결정).
 
 ## 부트스트랩 순서 (사람이 한다)
 
 1. `cd infra && terraform init`
-2. 비밀만 먼저 만든다.
+2. 비밀 두 개만 먼저 만든다. `origin-verify`와 `db`는 Terraform이 값까지 쓴다(2026-11-05 팀 결정).
    ```
    terraform apply \
      -target=aws_secretsmanager_secret.openai \
-     -target=aws_secretsmanager_secret.vapid \
-     -target=aws_secretsmanager_secret.origin_verify \
-     -target=aws_secretsmanager_secret.db
+     -target=aws_secretsmanager_secret.vapid
    ```
 3. 값을 넣는다(콘솔 또는 CLI. 값을 셸 기록·저장소에 남기지 않는다).
-   - `dowonpact/origin-verify`: 32바이트 이상 난수 문자열(예: `openssl rand -hex 32` 결과를 콘솔에 붙여 넣기).
    - `dowonpact/openai-api-key`: OpenAI API 키 문자열.
    - `dowonpact/vapid`: `{"public_key": "...", "private_key": "...", "subject": "mailto:teamitbm@gmail.com"}`. 키 형식(base64url 원시 키인지 PEM인지)은 서버 구현(`pywebpush`)에 맞춘다.
-   - `dowonpact/db`는 넣지 않는다. 4단계에서 Terraform이 쓴다.
+   - `dowonpact/db`와 `dowonpact/origin-verify`는 넣지 않는다. 4단계에서 Terraform이 쓴다.
 4. 첫 전체 apply. ECR에 이미지가 아직 없으므로 태스크 수 0으로 한다.
    ```
    terraform plan -var app_desired_count=0 -out tfplan

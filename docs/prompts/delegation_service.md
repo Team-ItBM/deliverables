@@ -183,3 +183,15 @@ Terraform 17개 파일(VPC, ALB, ECS Fargate ARM, RDS 16, S3와 CloudFront, Clou
 4. `config/llm.yaml`의 값은 유지한다. 호출 타임아웃 90초는 최대 지연 53초의 1.7배, 작업 한도 300초는 재요청·재시도를 포함해도 남는다. 방당 상한 $0.20과 일일 한도 $5(약 60방)는 측정값 기준으로 여유가 있다. 서비스 예산 $45는 평균 $0.083로 방 약 540개다.
 
 실제 Sol 호출이며 품질 판정(H1~H3)은 하지 않았다. D01~D08 자동 판정은 요청별 판정 기준 고정 뒤에 한다(사용자 결정).
+
+### §2-5. 인프라 결정 반영과 읽기 전용 plan (2026-11-05)
+
+사용자 결정(2026-11-05, 전민규): RDS 삭제 때 최종 스냅샷을 남기지 않는다(`db_skip_final_snapshot` 기본값 true. 처리방침 제7조 3항). `origin-verify` 비밀 값은 Terraform `random_password`가 만들어 Secrets Manager에 쓴다(사람 입력과 2단계 apply를 없앤다). 두 결정을 `infra/`에 반영했다. `terraform fmt -check`, `validate`가 통과했다.
+
+`terraform plan -var aws_profile=itbm-tf`(읽기 전용, state 없음)는 **70개 생성, 변경·삭제 0**이었다. 원문은 `.local-work/infra/plan_2026-11-05.txt`에 있다. 자격 증명은 README의 `itbm-tf` 프로필(`credential_process`)을 `~/.aws/config`에 더해 썼다. 확인한 값: RDS `db.t4g.micro`, 단일 AZ, gp3 20GB, 저장 암호화, 백업 7일, 삭제 보호 켬. ECS Fargate ARM64 태스크 2개. CloudFront `PriceClass_200`. CloudWatch 30일. WAF 규칙 4개(`rate-room-create`, `rate-generation`, `rate-api-post`, `rate-api-all`). 비밀 4개. GitHub OIDC 역할. apply는 하지 않았다.
+
+남은 팀장 확인 항목: 관리자 접속기록 1년 보관 저장 방식(미구성), 월 $99 추정의 항목 대조(공인 IPv4·WAF 규칙·비밀 요금), us-east-1 생성이 SCP에 막히는지(apply 때 드러난다).
+
+계정 ID와 호스팅 영역 ID 처리(2026-11-05, 전민규 결정): 공개 저장소에 두지 않는다. `infra/variables.tf`의 기본값을 빼고 gitignore된 `infra/terraform.tfvars`에 두며, `terraform.tfvars.example`에 자리표시자를 둔다. 두 ID가 들어 있던 로컬 커밋 2개는 푸시 전이어서 `git filter-branch`로 내용을 다시 썼고 백업 ref와 reflog를 지웠다. 모든 ref를 다시 검사해 두 ID가 남지 않음을 확인했다. AWS는 계정 ID를 비밀로 보지 않지만 불필요한 공개를 피하라고 안내한다.
+
+부트스트랩 2단계(2026-11-05): `terraform apply -target`으로 비밀 `dowonpact/openai-api-key`, `dowonpact/vapid` 두 개를 만들었다(값 없음, 기본 KMS 키 `aws/secretsmanager`. AWS 비밀 생성 스킬이 권하는 전용 KMS 키·자동 교체는 MVP에서 쓰지 않는다). state는 `infra/terraform.tfstate`(gitignore)에 있다.

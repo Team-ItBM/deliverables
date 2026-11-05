@@ -57,7 +57,7 @@ resource "aws_lb_listener_rule" "from_cloudfront" {
   condition {
     http_header {
       http_header_name = "X-Origin-Verify"
-      values           = [data.aws_secretsmanager_secret_version.origin_verify.secret_string]
+      values           = [random_password.origin_verify.result]
     }
   }
 
