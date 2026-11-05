@@ -194,7 +194,11 @@ def as_json(value):
 
 
 class Pool:
-    """autocommit 연결의 작은 큐 풀. 트랜잭션은 `transaction()`으로 명시한다."""
+    """autocommit 연결의 작은 큐 풀. 트랜잭션은 `transaction()`으로 명시한다.
+
+    대기자는 큐만 기다리므로, 연결 슬롯이 빌 때마다 큐에 None을 넣어 깨운다. 깨어난 대기자는 새 연결을 만든다.
+    연결을 내줄 때 살아 있는지 확인해 DB 재시작 뒤 쉬던 연결이 요청을 실패시키지 않게 한다.
+    """
 
     def __init__(self, database_url, size=5):
         self._url = normalize_url(database_url)
@@ -203,31 +207,54 @@ class Pool:
         self._made = 0
         self._closed = False
 
+    def _free_slot(self):
+        self._made -= 1
+        self._queue.put_nowait(None)
+
+    def _discard(self, conn):
+        """취소 중에도 쓸 수 있게 기다리지 않고 버린다."""
+        asyncio.ensure_future(conn.close())
+        self._free_slot()
+
+    async def _alive(self, conn):
+        if conn.closed:
+            return False
+        try:
+            await conn.execute("SELECT 1")
+        except psycopg.Error:
+            return False
+        except BaseException:
+            self._discard(conn)
+            raise
+        return True
+
     async def acquire(self):
         while True:
             if self._queue.empty() and self._made < self._size:
                 self._made += 1
                 try:
                     return await psycopg.AsyncConnection.connect(self._url, autocommit=True, row_factory=dict_row)
-                except Exception:
-                    self._made -= 1
+                except BaseException:
+                    self._free_slot()
                     raise
             conn = await self._queue.get()
-            if conn.closed:
-                self._made -= 1
+            if conn is None:
                 continue
-            return conn
+            if await self._alive(conn):
+                return conn
+            self._discard(conn)
 
     async def release(self, conn):
         if conn.closed:
-            self._made -= 1
+            self._free_slot()
             return
         if conn.info.transaction_status != psycopg.pq.TransactionStatus.IDLE:
             try:
                 await conn.rollback()
-            except Exception:
-                await conn.close()
-                self._made -= 1
+            except BaseException as exc:
+                self._discard(conn)
+                if not isinstance(exc, Exception):
+                    raise
                 return
         self._queue.put_nowait(conn)
 
@@ -249,6 +276,8 @@ class Pool:
         self._closed = True
         while not self._queue.empty():
             conn = self._queue.get_nowait()
+            if conn is None:
+                continue
             try:
                 await conn.close()
             except Exception:
