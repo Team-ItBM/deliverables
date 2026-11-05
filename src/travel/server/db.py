@@ -19,7 +19,7 @@ import psycopg
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 DDL = """
 CREATE TABLE IF NOT EXISTS schema_version (
@@ -153,14 +153,31 @@ def normalize_url(url):
     return urlunsplit((scheme, parts.netloc, parts.path, parts.query, parts.fragment))
 
 
+def _migrate_push_subscriptions(conn):
+    """구독 유일 색인을 만들기 전에 기존 중복을 지운다. 먼저 등록한 행을 남긴다. 지운 행 수를 돌려준다."""
+    with conn.transaction():
+        conn.execute("LOCK TABLE push_subscriptions IN SHARE ROW EXCLUSIVE MODE")
+        cur = conn.execute(
+            "DELETE FROM push_subscriptions a USING push_subscriptions b "
+            "WHERE a.room_id = b.room_id AND a.role = b.role AND a.endpoint = b.endpoint "
+            "AND a.session_id IS NOT DISTINCT FROM b.session_id "
+            "AND (a.created_at, a.subscription_id) > (b.created_at, b.subscription_id)")
+        removed = cur.rowcount
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS push_subscriptions_one_per_device "
+                     "ON push_subscriptions (room_id, role, session_id, endpoint) NULLS NOT DISTINCT")
+    return removed
+
+
 def init_schema(database_url):
-    """표를 만든다. 여러 번 불러도 같다."""
+    """표를 만든다. 여러 번 불러도 같다. 마이그레이션이 지운 행 수를 돌려준다."""
     with psycopg.connect(normalize_url(database_url), autocommit=True) as conn:
         conn.execute(DDL)
+        removed = _migrate_push_subscriptions(conn)
         conn.execute(
             "INSERT INTO schema_version (version) VALUES (%s) ON CONFLICT (version) DO NOTHING",
             (SCHEMA_VERSION,),
         )
+    return {"duplicate_push_subscriptions_removed": removed}
 
 
 def jsonb(value):
@@ -381,8 +398,8 @@ def _main(argv=None):
         parser.error("--init을 지정한다")
     if not args.database_url:
         parser.error("DATABASE_URL이 없다")
-    init_schema(args.database_url)
-    print(json.dumps({"event": "schema_initialized", "version": SCHEMA_VERSION}))
+    summary = init_schema(args.database_url)
+    print(json.dumps({"event": "schema_initialized", "version": SCHEMA_VERSION, **summary}))
 
 
 if __name__ == "__main__":

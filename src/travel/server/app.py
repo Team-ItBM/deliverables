@@ -31,7 +31,7 @@ from travel.pact import InputIndex, check_memo_quotes
 from . import db, render
 from .jobs import JobManager
 from .logging import AccessLogMiddleware, log
-from .push import Notifier
+from .push import DEFAULT_PUSH_HOSTS, Notifier, endpoint_allowed
 
 PRIVACY_NOTICE = ("선택과 메모 원문은 다른 사람에게 공개되지 않아요. "
                   "다만 답변에 담긴 바람과 한계는 선택한 이름과 함께 추천 결과에 반영될 수 있어요.")
@@ -83,6 +83,8 @@ class Settings:
     schema_versions: dict = field(default_factory=lambda: {"scenarios": "2", "pact": "4"})
     maintenance_interval_seconds: float = 0
     access_log: bool = True
+    push_allowed_hosts: tuple = DEFAULT_PUSH_HOSTS
+    push_timeout_seconds: float = 10  # 제안값이며 측정값이 아니다. 없으면 pywebpush 기본값 10000초가 쓰인다
     room_cap_usd: float = None  # 방당 비용 상한(config/llm.yaml room_cap_usd). None이면 검사하지 않는다(테스트 기본)
 
     def __post_init__(self):
@@ -705,7 +707,7 @@ def _register_routes(app, settings, jobs, notifier, clock, pool_source):
         subscription = body.get("subscription")
         if role not in ("host", "participant") or not isinstance(subscription, dict):
             raise ApiError("invalid_input")
-        if not _is_nonempty_str(subscription.get("endpoint")):
+        if not endpoint_allowed(subscription.get("endpoint"), settings.push_allowed_hosts):
             raise ApiError("invalid_input")
         keys = subscription.get("keys")
         if keys is not None and not isinstance(keys, dict):
@@ -723,13 +725,17 @@ def _register_routes(app, settings, jobs, notifier, clock, pool_source):
                                          (session_id, room["room_id"]))
                 if await cur.fetchone() is None:
                     raise ApiError("not_found")
-            subscription_id = uuid.uuid4()
-            await conn.execute(
+            # 같은 방·역할·세션·endpoint는 한 구독이다. 다시 등록하면 키만 새 값으로 바꾼다.
+            cur = await conn.execute(
                 "INSERT INTO push_subscriptions (subscription_id, room_id, role, session_id, endpoint, keys, created_at) "
-                "VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                (subscription_id, room["room_id"], role, session_id, subscription["endpoint"],
+                "VALUES (%s, %s, %s, %s, %s, %s, %s) "
+                "ON CONFLICT (room_id, role, session_id, endpoint) DO UPDATE SET keys = EXCLUDED.keys "
+                "RETURNING subscription_id, (xmax = 0) AS created",
+                (uuid.uuid4(), room["room_id"], role, session_id, subscription["endpoint"],
                  db.jsonb(keys) if keys is not None else None, now))
-        return {"subscription_id": str(subscription_id)}
+            row = await cur.fetchone()
+        return JSONResponse(status_code=201 if row["created"] else 200,
+                            content={"subscription_id": str(row["subscription_id"])})
 
     @app.get("/api/health")
     async def health():

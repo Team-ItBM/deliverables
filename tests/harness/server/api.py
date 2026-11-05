@@ -450,6 +450,8 @@ class ServerHarness:
             "pool_path": str(self.pool_path),
             "scenario_requested_count": scenario_outputs.ex1()["input"]["requested_count"],
             "scenario_request": request,
+            # 기본값은 실제 푸시 서비스만 허용한다. 테스트 주소는 하니스에서만 더한다(2026-11-05 사람 승인, tests/test_push_endpoint.py).
+            "push_allowed_hosts": (*self.server.app.Settings.push_allowed_hosts, "push.test"),
         }
         values.update(overrides)
         return self.server.app.Settings(**values)

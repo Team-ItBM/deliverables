@@ -8,12 +8,19 @@
 그래서 dispatch(room_code, event)를 두 번 불러도 다시 보내지 않는다.
 본문은 키가 text(상태 문구)와 url(방 링크) 둘인 JSON 객체다. 이름·메모·선택지 문구를 넣지 않는다(결정 25).
 410·404는 구독을 지우고, 그 밖의 실패는 상태 코드만 기록한다. 재발송은 하지 않는다.
+구독 주소는 사용자가 보내는 값이라 서버가 그 주소로 요청을 보내면 내부망 접근 통로가 된다. 그래서 등록과 발송 두 곳에서
+endpoint_allowed로 검사한다. 발송 때 다시 보는 이유는 제한을 넣기 전에 저장된 구독이 있기 때문이다.
 """
 
 import asyncio
+from urllib.parse import urlsplit
 
 from . import db
 from .logging import log
+
+# 처리방침 제5조의 브라우저 제공사(Google, Mozilla, Apple)와 같다. "*."는 하위 도메인만 뜻하고 기준 호스트 자체는 뺀다.
+DEFAULT_PUSH_HOSTS = ("fcm.googleapis.com", "*.push.services.mozilla.com", "*.push.apple.com")
+ENDPOINT_MAX_LENGTH = 2048
 
 TEXTS = {
     "ready": "협약서가 준비됐어요. 방에서 확인해 주세요.",
@@ -21,6 +28,38 @@ TEXTS = {
     "selected": "방장이 협약서 결과를 골랐어요. 방에서 확인해 주세요.",
 }
 EXPIRED_STATUSES = (404, 410)
+
+
+def host_allowed(host, allowed_hosts):
+    """정확한 일치 또는 점 경계의 하위 도메인만 받는다."""
+    for rule in allowed_hosts:
+        if rule.startswith("*."):
+            suffix = rule[1:]
+            if host.endswith(suffix) and len(host) > len(suffix):
+                return True
+        elif host == rule:
+            return True
+    return False
+
+
+def endpoint_allowed(endpoint, allowed_hosts):
+    """HTTPS, 포트 443, userinfo 없음, 허용 호스트인 주소만 참이다. 내부·루프백 주소와 IP 표기는 허용 목록에 없어 함께 막힌다."""
+    if not isinstance(endpoint, str) or len(endpoint) > ENDPOINT_MAX_LENGTH or not endpoint.isascii():
+        return False
+    # urlsplit은 탭·개행을 지우고, 브라우저와 파서는 역슬래시를 다르게 읽는다. 해석 차이가 생기기 전에 거절한다.
+    if "\\" in endpoint or any(ch <= " " or ch == "\x7f" for ch in endpoint):
+        return False
+    try:
+        parts = urlsplit(endpoint)
+        port = parts.port
+    except ValueError:
+        return False
+    if parts.scheme != "https" or parts.username is not None or parts.password is not None:
+        return False
+    if port not in (None, 443) or "@" in parts.netloc:
+        return False
+    host = parts.hostname
+    return bool(host) and host_allowed(host, allowed_hosts)
 
 
 def event_kind(event):
@@ -58,24 +97,31 @@ class Notifier:
         if not pending:
             return
         payload = self.payload(room_code, event)
-        for item in pending:
-            subscription = {"endpoint": item["endpoint"], "keys": item["keys"]}
+        # 동시에 보낸다. 순서대로 보내면 응답 없는 구독 하나가 timeout만큼 나머지와 호출자(결과 선택 요청)를 붙잡는다.
+        await asyncio.gather(*(self._deliver_one(room_code, event, item, payload) for item in pending))
+
+    async def _deliver_one(self, room_code, event, item, payload):
+        subscription = {"endpoint": item["endpoint"], "keys": item["keys"]}
+        if not endpoint_allowed(item["endpoint"], self.settings.push_allowed_hosts):
+            log("push_blocked", room_code=room_code, push_event=event)  # 주소는 로그에 쓰지 않는다
+            status = 0
+        else:
             try:
                 status = await asyncio.to_thread(self.sender.send, subscription, payload)
             except Exception as exc:  # 발송기 오류는 기록만 한다
                 log("push_error", room_code=room_code, push_event=event, error=type(exc).__name__)
                 status = 0
-            try:
-                async with self.pool.transaction() as conn:
-                    await conn.execute(
-                        "UPDATE notifications SET status_code = %s, sent_at = %s WHERE notification_id = %s",
-                        (status, self.clock(), item["notification_id"]))
-                    if status in EXPIRED_STATUSES:
-                        await conn.execute("DELETE FROM push_subscriptions WHERE subscription_id = %s",
-                                           (item["subscription_id"],))
-            except Exception as exc:
-                log("push_record_error", room_code=room_code, push_event=event, error=type(exc).__name__)
-            log("push_sent", room_code=room_code, push_event=event, status=status)
+        try:
+            async with self.pool.transaction() as conn:
+                await conn.execute(
+                    "UPDATE notifications SET status_code = %s, sent_at = %s WHERE notification_id = %s",
+                    (status, self.clock(), item["notification_id"]))
+                if status in EXPIRED_STATUSES:
+                    await conn.execute("DELETE FROM push_subscriptions WHERE subscription_id = %s",
+                                       (item["subscription_id"],))
+        except Exception as exc:
+            log("push_record_error", room_code=room_code, push_event=event, error=type(exc).__name__)
+        log("push_sent", room_code=room_code, push_event=event, status=status)
 
     async def dispatch(self, room_code, event):
         """이벤트를 다시 처리한다. 이미 보낸 구독에는 다시 보내지 않는다."""

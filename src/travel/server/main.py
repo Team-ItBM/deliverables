@@ -27,19 +27,34 @@ def utc_now():
     return datetime.now(timezone.utc)
 
 
+def no_redirect_session():
+    """리다이렉트를 따라가지 않는 세션. 허용한 푸시 서비스가 돌려준 Location으로 서버가 요청을 보내지 않게 한다."""
+    import requests
+
+    class NoRedirectSession(requests.Session):
+        def request(self, *args, **kwargs):
+            kwargs["allow_redirects"] = False
+            return super().request(*args, **kwargs)
+
+    return NoRedirectSession()
+
+
 class WebPushSender:
     """pywebpush로 보낸다. send(subscription, payload) -> HTTP 상태 코드. 실패는 상태 코드로만 알린다."""
 
-    def __init__(self, private_key, subject):
+    def __init__(self, private_key, subject, timeout_seconds=10):
         self.private_key = private_key
         self.subject = subject
+        self.timeout_seconds = timeout_seconds
 
     def send(self, subscription, payload):
-        from pywebpush import WebPushException, webpush
+        import pywebpush
+        from pywebpush import WebPushException
 
         try:
-            response = webpush(subscription_info=subscription, data=json.dumps(payload, ensure_ascii=False),
-                               vapid_private_key=self.private_key, vapid_claims={"sub": self.subject}, ttl=3600)
+            response = pywebpush.webpush(subscription_info=subscription, data=json.dumps(payload, ensure_ascii=False),
+                                         vapid_private_key=self.private_key, vapid_claims={"sub": self.subject}, ttl=3600,
+                                         timeout=self.timeout_seconds, requests_session=no_redirect_session())
             return getattr(response, "status_code", 201)
         except WebPushException as exc:
             response = getattr(exc, "response", None)
@@ -96,7 +111,8 @@ def build_app(env=None):
     else:
         raise ValueError(f"LLM_MODE는 live 또는 replay다: {mode}")
     if env.get("VAPID_PRIVATE_KEY") and env.get("VAPID_SUBJECT"):
-        push_sender = WebPushSender(env["VAPID_PRIVATE_KEY"], env["VAPID_SUBJECT"])
+        push_sender = WebPushSender(env["VAPID_PRIVATE_KEY"], env["VAPID_SUBJECT"],
+                                    timeout_seconds=settings.push_timeout_seconds)
     else:
         push_sender = DisabledPushSender()
         log("push_disabled", reason="VAPID 키 없음")
