@@ -9,6 +9,7 @@ ARCHITECTURE 2절 `infra/`·`.github/workflows/` 행과 5절 진입 경로·과�
 ```
 브라우저 ─HTTPS─> CloudFront (dowonpact.com, www → 301 apex, WAF, PriceClass_200)
                    ├─ 기본 동작 → S3 (비공개, OAC) SPA. CloudFront Function이 확장자 없는 경로를 /index.html로 바꾼다
+                   ├─ /r/* → 같은 S3와 함수. 응답에 X-Robots-Tag: noindex, nofollow를 더한다
                    └─ /api/* → origin.dowonpact.com (ALB, HTTPS, 캐시 없음, Host 외 헤더·쿠키·쿼리 전달, X-Origin-Verify 헤더 추가)
 ALB (보안 그룹: CloudFront origin-facing 접두사 목록 443만, 리스너: 헤더 일치 시에만 전달, 나머지 403)
  └─ ECS Fargate ARM64 0.5 vCPU/1 GB × 2, 공개 서브넷·공인 IP(NAT 없음), 보안 그룹: ALB에서 8000만
@@ -27,9 +28,10 @@ ALB (보안 그룹: CloudFront origin-facing 접두사 목록 443만, 리스너:
 | `ecr.tf` | ECR(태그 불변, 푸시 시 기본 스캔, 최근 10개 유지) |
 | `rds.tf` | RDS와 서브넷 그룹 |
 | `secrets.tf` | 비밀 4개(이름만), DB 비밀번호 `random_password`, `dowonpact/db` 값(접속 URL) |
-| `cloudfront.tf` | SPA 버킷, OAC, 라우터 함수, 배포 |
+| `cloudfront.tf` | SPA 버킷, OAC, 라우터 함수, 응답 헤더 정책(CSP 값), 배포 |
 | `waf.tf` | CLOUDFRONT 범위 web ACL, IP별 rate rule 4개, 선택적 공통 규칙 세트(Count) |
 | `github_oidc.tf` | GitHub OIDC 공급자, main 전용 배포 역할과 최소 권한 정책 |
+| `alarms.tf` | SNS 토픽과 메일 구독, 장애 알람 8개 |
 | `budget.tf` | 주석만. 기존 예산을 Terraform으로 관리하지 않는 이유 |
 | `outputs.tf` | GitHub 저장소 변수에 넣을 값 |
 
@@ -99,6 +101,89 @@ ALB (보안 그룹: CloudFront origin-facing 접두사 목록 443만, 리스너:
 1. state 버킷을 콘솔이나 CLI로 따로 만든다(이 구성 밖. 버전 관리·SSE·퍼블릭 차단). 이 구성이 자기 state 버킷을 만들면 destroy 때 함께 지워진다.
 2. `versions.tf`의 `backend "s3"` 주석을 풀고 `terraform init -migrate-state`.
 3. 정리 단계에서 state 버킷을 마지막에 수동으로 지운다.
+
+## 응답 헤더와 CSP
+
+`cloudfront.tf`의 `aws_cloudfront_response_headers_policy.spa`가 정책 두 개를 만든다.
+
+| 정책 | 쓰는 동작 | 헤더 |
+|---|---|---|
+| `dowonpact-spa` | 기본 동작 | 보안 헤더, CSP |
+| `dowonpact-spa-noindex` | `/r/*` | 보안 헤더, CSP, `X-Robots-Tag: noindex, nofollow` |
+
+`/api/*`는 관리형 `Managed-SecurityHeadersPolicy`를 그대로 쓴다. 보안 헤더의 값과 override는 이 관리형 정책과 같다(2026-11-05 `GetResponseHeadersPolicy`로 확인).
+
+CSP 값은 `cloudfront.tf`의 `local.content_security_policy` 한 곳에만 있다. 여기를 고치면 두 정책이 함께 바뀐다.
+
+| `csp_enforce` | 보내는 헤더 | 동작 |
+|---|---|---|
+| `true`(기본) | `Content-Security-Policy` | 브라우저가 위반을 막는다 |
+| `false` | `Content-Security-Policy-Report-Only` | 값은 같고 막지 않는다. 보고 주소가 없어 위반은 브라우저 콘솔에서만 보인다 |
+
+### CSP를 되돌리는 절차
+
+화면이 깨지거나 요청이 막히면 강제를 끈다.
+
+1. `infra/terraform.tfvars`에 `csp_enforce = false`를 넣는다. `-var csp_enforce=false`로도 되지만, 그러면 다음 apply 때 `true`로 돌아간다.
+2. 적용한다. plan에는 응답 헤더 정책 두 개의 변경만 나와야 한다.
+   ```
+   cd infra
+   terraform plan -var aws_profile=itbm-tf -out tfplan
+   terraform apply tfplan
+   ```
+3. 응답을 확인한다. 두 주소 모두 `content-security-policy-report-only`가 보이고 `content-security-policy:`는 없어야 한다. CloudFront 전파에 걸리는 시간은 재지 않았으니, 바뀔 때까지 다시 확인한다.
+   ```
+   curl -sI https://dowonpact.com/ | grep -i content-security-policy
+   curl -sI https://dowonpact.com/r/test | grep -iE 'content-security-policy|x-robots-tag'
+   ```
+4. 브라우저 콘솔에서 위반 내용을 보고 `local.content_security_policy`를 고친다. 고친 뒤 `csp_enforce` 줄을 지우고 2~3단계를 반복한다.
+
+## 장애 알람
+
+`alarms.tf`가 서울 리전에 토픽 `dowonpact-alerts`와 알람 8개를 만든다. 알람은 ALARM과 OK로 바뀔 때 모두 토픽으로 보낸다. Container Insights는 쓰지 않는다.
+
+| 알람 | 지표 | 조건 | 누락 처리 |
+|---|---|---|---|
+| `dowonpact-service-down` | HealthyHostCount Minimum | 1 미만, 60초 3회 | breaching |
+| `dowonpact-tasks-below-desired` | HealthyHostCount Minimum | `app_desired_count` 미만, 60초 5회 | breaching |
+| `dowonpact-unhealthy-targets` | UnHealthyHostCount Maximum | 1 이상, 60초 5회 | ignore |
+| `dowonpact-target-5xx` | HTTPCode_Target_5XX_Count Sum | 300초 합 10 이상 | notBreaching |
+| `dowonpact-elb-5xx` | HTTPCode_ELB_5XX_Count Sum | 300초 합 5 이상 | notBreaching |
+| `dowonpact-no-running-tasks` | AWS/ECS CPUUtilization SampleCount | 1 미만, 60초 3회 | breaching |
+| `dowonpact-rds-free-storage` | FreeStorageSpace Minimum | 4 GiB 미만, 300초 1회 | missing |
+| `dowonpact-rds-cpu` | AWS/RDS CPUUtilization Average | 80 초과, 300초 3회 | missing |
+
+### 누락 처리와 태스크 0
+
+2026-11-05 운영 지표를 읽은 결과다. ALB는 10:21(UTC)에 생겼고 대상은 10:32에 등록됐다. 그 사이 HealthyHostCount에는 값 0도 없이 데이터가 비어 있었다. 등록 뒤 154분은 1분 간격으로 빠짐없이 들어왔고, 태스크가 AZ마다 1개인 상태에서 Minimum은 계속 2였다.
+
+- HealthyHostCount 두 알람은 breaching이다. 대상이 모두 빠지면 지표가 끊기므로 누락이 곧 중단일 수 있다.
+- UnHealthyHostCount는 ignore다. 지표가 끊겨도 상태를 유지한다. notBreaching이면 중단 중에 OK 메일이 갈 수 있다. 중단은 앞의 두 알람이 잡는다.
+- RDS 두 알람은 missing이다. 데이터가 끊기면 INSUFFICIENT_DATA가 되고 메일은 가지 않는다.
+- CloudWatch는 평가 범위 안의 실제 값이 평가 횟수보다 적을 때만 누락을 채운다. 그래서 값 하나가 늦어도 바로 울리지 않는다. 지표가 끊긴 뒤 울리기까지는 평가 횟수 × 60초보다 오래 걸릴 수 있다.
+
+`app_desired_count`가 0이면 HealthyHostCount 두 알람, UnHealthyHostCount, ECS 알람을 만들지 않는다(`local.task_alarm_count`). 태스크가 없으면 지표도 없어 breaching 알람이 ALARM에 머물기 때문이다. 부트스트랩 4단계에는 4개만 생기고 7단계에서 나머지 4개가 생긴다. 운영 중에 `-var app_desired_count=0`으로 apply하면 이 4개가 지워진다.
+
+### 메일 받기
+
+1. `infra/terraform.tfvars`에 `alert_email = "주소"`를 넣는다. 저장소에는 넣지 않는다. 값은 Terraform state에도 남는다.
+2. CSP 절차 2단계와 같은 plan, apply 명령을 실행한다. `alert_email`이 `null`이면 토픽과 알람만 생기고 구독은 없다.
+3. 사람이 메일함에서 "AWS Notification - Subscription Confirmation" 메일을 열고 "Confirm subscription"을 누른다. 누르기 전에는 알람 메일이 오지 않는다. 링크 유효 기간은 AWS 문서에 2일과 3일이 섞여 있으니 이틀 안에 누른다. 기간이 지나면 SNS 콘솔 Subscriptions에서 해당 구독을 고르고 "Request confirmation"을 누른다.
+4. 상태를 확인한다. `SubscriptionArn`이 `PendingConfirmation`이 아니어야 한다.
+   ```
+   aws sns list-subscriptions-by-topic --profile itbm --region ap-northeast-2 \
+     --topic-arn "$(terraform output -raw alert_topic_arn)"
+   ```
+
+알람이 처음 데이터를 평가해 OK가 되면 OK 메일이 올 수 있다. 장애 알림으로 보지 않는다.
+
+### 비용
+
+서울 표준 알람은 월 $0.10/지표이고 8개면 월 $0.80이다(AWS Pricing API 확인). 무료 구간 적용 여부와 SNS 메일 요금은 확인 필요.
+
+### 잡지 못하는 장애
+
+`/api/health`는 DB를 조회하지 않고 항상 200을 돌려준다. DB만 멈추면 대상은 정상으로 남아 HealthyHostCount 알람이 울리지 않는다. 이때는 요청이 들어와야 `dowonpact-target-5xx`로 드러난다.
 
 ## 비용 메모
 

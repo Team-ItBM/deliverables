@@ -130,6 +130,105 @@ data "aws_cloudfront_response_headers_policy" "security_headers" {
   name = "Managed-SecurityHeadersPolicy"
 }
 
+# ---- Response headers for the SPA ----
+
+locals {
+  # The one place to edit the CSP. Both SPA policies below use this value,
+  # whether csp_enforce sends it as enforced or as report-only.
+  content_security_policy = join("; ", [
+    "default-src 'none'",
+    "script-src 'self'",
+    "style-src 'self'",
+    "font-src 'self' data:",
+    "img-src 'self' data: blob:",
+    "connect-src 'self' data:",
+    "manifest-src 'self'",
+    "worker-src 'self'",
+    "base-uri 'none'",
+    "form-action 'none'",
+    "frame-ancestors 'none'",
+    "object-src 'none'",
+  ])
+
+  csp_report_only_headers = var.csp_enforce ? [] : [{
+    name  = "Content-Security-Policy-Report-Only"
+    value = local.content_security_policy
+  }]
+
+  # Key is the policy name suffix. Both policies share the headers in the
+  # resource below and differ only in extra_headers.
+  spa_response_headers = {
+    spa = {
+      comment       = "SPA security headers and CSP"
+      extra_headers = []
+    }
+    spa-noindex = {
+      comment = "SPA security headers and CSP, room pages kept out of search"
+      extra_headers = [{
+        name  = "X-Robots-Tag"
+        value = "noindex, nofollow"
+      }]
+    }
+  }
+}
+
+# Security header values and override flags match Managed-SecurityHeadersPolicy.
+resource "aws_cloudfront_response_headers_policy" "spa" {
+  for_each = local.spa_response_headers
+
+  name    = "${local.name}-${each.key}"
+  comment = each.value.comment
+
+  dynamic "custom_headers_config" {
+    for_each = length(concat(local.csp_report_only_headers, each.value.extra_headers)) > 0 ? [1] : []
+    content {
+      dynamic "items" {
+        for_each = concat(local.csp_report_only_headers, each.value.extra_headers)
+        content {
+          header   = items.value.name
+          value    = items.value.value
+          override = true
+        }
+      }
+    }
+  }
+
+  security_headers_config {
+    dynamic "content_security_policy" {
+      for_each = var.csp_enforce ? [1] : []
+      content {
+        content_security_policy = local.content_security_policy
+        override                = true
+      }
+    }
+
+    content_type_options {
+      override = true
+    }
+
+    frame_options {
+      frame_option = "SAMEORIGIN"
+      override     = false
+    }
+
+    referrer_policy {
+      referrer_policy = "strict-origin-when-cross-origin"
+      override        = false
+    }
+
+    strict_transport_security {
+      access_control_max_age_sec = 31536000
+      override                   = false
+    }
+
+    xss_protection {
+      protection = true
+      mode_block = true
+      override   = false
+    }
+  }
+}
+
 # ---- Distribution ----
 
 resource "aws_cloudfront_distribution" "main" {
@@ -173,7 +272,7 @@ resource "aws_cloudfront_distribution" "main" {
     cached_methods             = ["GET", "HEAD"]
     compress                   = true
     cache_policy_id            = data.aws_cloudfront_cache_policy.caching_optimized.id
-    response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security_headers.id
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.spa["spa"].id
 
     function_association {
       event_type   = "viewer-request"
@@ -192,6 +291,24 @@ resource "aws_cloudfront_distribution" "main" {
     cache_policy_id            = data.aws_cloudfront_cache_policy.caching_disabled.id
     origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.all_viewer_except_host.id
     response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security_headers.id
+  }
+
+  # Room pages: same as the default behavior plus X-Robots-Tag. The pattern does
+  # not overlap /api/*, so the order of the two behaviors does not change routing.
+  ordered_cache_behavior {
+    path_pattern               = "/r/*"
+    target_origin_id           = "spa-s3"
+    viewer_protocol_policy     = "redirect-to-https"
+    allowed_methods            = ["GET", "HEAD", "OPTIONS"]
+    cached_methods             = ["GET", "HEAD"]
+    compress                   = true
+    cache_policy_id            = data.aws_cloudfront_cache_policy.caching_optimized.id
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.spa["spa-noindex"].id
+
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.spa_router.arn
+    }
   }
 
   restrictions {

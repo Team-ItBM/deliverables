@@ -52,6 +52,11 @@ output "secret_names" {
   value = local.secret_names
 }
 
+output "alert_topic_arn" {
+  description = "Alarm topic, for checking the subscription status (README 장애 알람)"
+  value       = aws_sns_topic.alerts.arn
+}
+
 output "db_init_command" {
   value = local.db_init_command
 }

@@ -188,6 +188,24 @@ variable "waf_enable_common_rule_set" {
   default     = false
 }
 
+# ---- CloudFront response headers ----
+
+variable "csp_enforce" {
+  description = "true enforces the CSP in local.content_security_policy. false sends the same value as Content-Security-Policy-Report-Only (README 응답 헤더와 CSP)."
+  type        = bool
+  default     = true
+}
+
+# ---- Alarms ----
+
+variable "alert_email" {
+  description = "Address subscribed to the alarm topic. null creates no subscription. Set in terraform.tfvars (gitignored). The value also lands in Terraform state."
+  type        = string
+  sensitive   = true
+  default     = null
+  nullable    = true
+}
+
 # ---- S3 ----
 
 variable "spa_bucket_force_destroy" {
