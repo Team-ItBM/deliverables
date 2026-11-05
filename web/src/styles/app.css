@@ -784,6 +784,20 @@ body.result-bg {
   gap: var(--s-xs);
   flex-wrap: wrap;
 }
+.draft-block {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.draft-block .draft-label {
+  align-self: flex-end;
+}
+.draft-note {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--c-muted);
+}
 .pact-title-block {
   display: flex;
   flex-direction: column;

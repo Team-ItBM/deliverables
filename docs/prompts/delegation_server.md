@@ -63,7 +63,7 @@ editable: [{path, segments: [{text} | {participant_id, display, pair}]}]
 ```
 {
   result_id, kind, source_result_id?, label,          // label: kind가 host_edited면 "방장 수정", 아니면 null
-  draft,                                              // bool. 방장이 고르기 전 공개 결과면 true("방장 확인 전 초안")
+  draft,                                              // bool. 방장이 고르기 전 공개 결과면 true(화면 표시 "초안")
   pact_status,                                        // PactRecommendation.status
   included_count, excluded_names: [display_name],     // 반영한 제출 수, 반영되지 않은 등록 이름
   trip: {destination, duration_days, party_size},     // 공개 여행 정보(결정 47)
@@ -383,6 +383,7 @@ editable: [{path, segments: [{text} | {participant_id, display, pair}]}]
 45. 실패 결과(`state: failed`)의 편집 요청은 409 `invalid_state`로 둔다(§0-D 포괄 코드).
 46. 작업 한도·멈춤 판정은 300초·600초 정각(`>=`)에 적용한다. 하니스 OUT-N05·N06의 기대값을 따르며 결정 12의 "넘으면"은 이렇게 읽는다.
 47. 방 조회(§0-B 2)와 공유 결과(§0-C)에 `trip`을 더한다. 키는 `destination`, `duration_days`, `party_size` 세 개다. `relationship`, 선택 프로필, 이름 자리표시자는 넣지 않는다. `trip`은 편집 위치가 아니다. 사람이 2026-11-05에 승인했고, 공유 결과 허용 키 변경과 `tests/test_room_trip.py` 추가도 같은 승인에 들어 있다. 서버 케이스 86개의 기대값은 바꾸지 않았다.
+48. 화면의 초안 표시를 ‘초안’과 그 아래 ‘방장이 고르기 전이에요’로 바꾼다. `draft` 필드와 공개 정책(결정 28)은 그대로다. 사람이 2026-11-05에 승인했다.
 
 ## §1. 프롬프트 원본
 

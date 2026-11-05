@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { isNotFound } from "../api/errors";
-import type { RoomView } from "../api/types";
+import type { RoomView, SharedResult } from "../api/types";
+import { ResultSheet } from "../components/PactSheet";
 import { BottomBar } from "../components/ui";
 import { forgetHostToken, hostRoomCodes, getHostToken } from "../lib/hostToken";
 import { ROOM_STATUS_TEXT } from "../lib/status";
@@ -40,43 +41,37 @@ function useHostRooms(): { code: string; room: RoomView }[] {
   return rooms;
 }
 
-/** 예시 협약서. 지어낸 이름과 문장만 쓰고 선택·메모·선택 프로필은 넣지 않는다. 도장과 가지는 발급된 종이 전용이다. */
-function SamplePaper() {
-  return (
-    <figure className="sample" aria-label="예시 협약서 일부">
-      <article className="pact-paper">
-        <div className="pact-head">
-          <span className="t-wordmark">도원결의</span>
-          <span className="draft-label">예시</span>
-        </div>
-        <div className="pact-title-block">
-          <p className="pact-title">여행 동행 협약서</p>
-          <span className="pact-underline" aria-hidden="true" />
-          <p className="pact-meta">제주 · 3일 · 3명</p>
-        </div>
-        <div className="pact-clause">
-          <p className="pact-clause-number">제1조</p>
-          <p>오후에 일정이 비면 시간을 나눠 각자 가고 싶은 곳에 다녀와요.</p>
-          <p className="pact-names">적용 대상: 민지, 서준, 하늘</p>
-          <div className="pact-sub">
-            <p className="pact-sub-label">제안 조건</p>
-            <ul>
-              <li>저녁 식사 시간에는 다시 모여요.</li>
-            </ul>
-          </div>
-        </div>
-        <p className="pact-disclaimer">AI가 각자의 응답을 바탕으로 만든 추천안이에요. 동행 모두가 정한 약속은 아니에요.</p>
-      </article>
-    </figure>
-  );
-}
+/** 예시 협약서. 실제 종이를 그대로 쓴다. 지어낸 이름과 문장만 넣고 선택·메모·선택 프로필은 넣지 않는다. */
+const SAMPLE: Partial<SharedResult> = {
+  pact_status: "proposed",
+  trip: { destination: "제주", duration_days: 3, party_size: 3 },
+  clauses: [
+    {
+      scenario_id: "sample",
+      participant_names: ["민지", "서준", "하늘"],
+      action: "오후에 일정이 비면 시간을 나눠 각자 가고 싶은 곳에 다녀와요.",
+      proposed_conditions: ["저녁 식사 시간에는 다시 모여요."],
+    },
+  ],
+};
 
 export function Landing() {
   const navigate = useNavigate();
   const rooms = useHostRooms();
   return (
     <main className="page">
-      <h1 className="t-headline-lg">여행을 떠나기 전, 동행과 같은 상황에 각자 답하고 추천 협약서를 받아 보세요.</h1>
+      <div className="stack-sm">
+        <h1 className="t-headline-lg">
+          떠나기 전에,
+          <br />
+          서로의 마음을 한 장에.
+        </h1>
+        <p className="secondary">말 못 한 바람도 각자 답하면 추천 협약서에 담겨요.</p>
+      </div>
+
+      <figure className="sample" aria-label="예시 협약서">
+        <ResultSheet result={SAMPLE} sample />
+      </figure>
 
       {rooms.length > 0 && (
         <section className="stack-sm" aria-labelledby="my-rooms">
@@ -106,8 +101,6 @@ export function Landing() {
           </li>
         ))}
       </ol>
-
-      <SamplePaper />
 
       <Link className="btn-text" to="/privacy">
         개인정보 처리방침

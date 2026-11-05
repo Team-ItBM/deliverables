@@ -147,7 +147,7 @@ describe("랜딩", () => {
     expect(window.localStorage.getItem(keys.host("gone"))).toBeNull();
   });
 
-  it("방장 토큰이 없으면 이어가기가 없고, 예시에 도장·비공개 항목이 없다", () => {
+  it("방장 토큰이 없으면 이어가기가 없고, 예시에 도장은 있고 가지와 비공개 항목은 없다", () => {
     setTransport(async () => ({ status: 200, body: view }));
     const { container } = render(
       <MemoryRouter>
@@ -155,7 +155,9 @@ describe("랜딩", () => {
       </MemoryRouter>
     );
     expect(container.textContent).not.toContain("진행 중인 방 이어가기");
-    expect(container.querySelector(".stamp")).toBeNull();
+    expect(container.querySelector(".stamp")).toBeTruthy();
+    expect(container.querySelector(".pact-branch")).toBeNull();
+    expect(screen.getByText("예시")).toBeTruthy();
     expect(container.textContent).not.toMatch(/메모|MBTI|성별|나이대/);
     expect(container.textContent).toContain("동행 모두가 정한 약속은 아니에요");
     expect(screen.getByRole("button", { name: "방 만들기" })).toBeTruthy();

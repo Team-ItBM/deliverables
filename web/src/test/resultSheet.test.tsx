@@ -72,15 +72,16 @@ describe("결과 렌더러", () => {
     }
   });
 
-  it("초안이면 '방장 확인 전 초안', 수정본이면 label을 보여 준다", () => {
+  it("초안이면 '초안'과 뜻풀이를, 수정본이면 label을 보여 준다", () => {
     render(<ResultSheet result={base({ draft: true, kind: "host_edited", label: "방장 수정" })} />);
-    expect(screen.getByText("방장 확인 전 초안")).toBeTruthy();
+    expect(screen.getByText("초안")).toBeTruthy();
+    expect(screen.getByText("방장이 고르기 전이에요")).toBeTruthy();
     expect(screen.getByText("방장 수정")).toBeTruthy();
   });
 
   it("초안도 수정본도 아니면 두 표시가 없다", () => {
     const { container } = render(<ResultSheet result={base()} />);
-    expect(container.textContent).not.toContain("방장 확인 전 초안");
+    expect(container.textContent).not.toContain("초안");
     expect(container.textContent).not.toContain("방장 수정");
   });
 

@@ -18,6 +18,8 @@ export interface SheetProps {
   capture?: boolean;
   /** 방장 화면에서 수정 문장을 덮어 그린 경우. 서버 label이 없을 때 '방장 수정'을 붙인다. */
   edited?: boolean;
+  /** 랜딩의 예시 종이. '예시'를 표시하고 가지와 꽃은 그리지 않는다. */
+  sample?: boolean;
 }
 
 const HOST_EDITED = "방장 수정";
@@ -43,12 +45,18 @@ function InclusionNote({ result }: { result: Partial<SharedResult> }) {
   );
 }
 
-function Labels({ result, edited }: { result: Partial<SharedResult>; edited?: boolean }) {
+function Labels({ result, edited, sample }: { result: Partial<SharedResult>; edited?: boolean; sample?: boolean }) {
   const hostLabel = result.kind === "host_edited" ? result.label || HOST_EDITED : edited ? HOST_EDITED : null;
-  if (!result.draft && !hostLabel) return null;
+  if (!result.draft && !hostLabel && !sample) return null;
   return (
     <div className="pact-labels">
-      {result.draft && <span className="draft-label">방장 확인 전 초안</span>}
+      {sample && <span className="draft-label">예시</span>}
+      {result.draft && (
+        <span className="draft-block">
+          <span className="draft-label">초안</span>
+          <span className="draft-note">방장이 고르기 전이에요</span>
+        </span>
+      )}
       {hostLabel && (
         <span className="host-label">
           <PencilLine size={16} strokeWidth={1.5} aria-hidden />
@@ -159,7 +167,7 @@ function AlternativeItem({ alt, index }: { alt: ConditionalAlternative; index: n
 }
 
 export const PactPaper = forwardRef<HTMLDivElement, SheetProps>(function PactPaper(
-  { result, phase, capture, edited },
+  { result, phase, capture, edited, sample },
   ref
 ) {
   const clauses = result.pact_status === "conditional_only" ? [] : (result.clauses ?? []);
@@ -172,11 +180,11 @@ export const PactPaper = forwardRef<HTMLDivElement, SheetProps>(function PactPap
       className={`pact-paper${phase && phase !== "done" ? " issue" : ""}${phase === "stamped" ? " stamp-go" : ""}${capture ? " capture" : ""}`}
       aria-label="여행 동행 협약서"
     >
-      <PactBranch corner="top" />
-      <PactBranch corner="bottom" />
+      {!sample && <PactBranch corner="top" />}
+      {!sample && <PactBranch corner="bottom" />}
       <div className="pact-head">
         <span className="t-wordmark">도원결의</span>
-        <Labels result={result} edited={edited} />
+        <Labels result={result} edited={edited} sample={sample} />
       </div>
       <div className="pact-title-block">
         <h2 className="pact-title">여행 동행 협약서</h2>
