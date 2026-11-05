@@ -128,7 +128,7 @@ CSP 값은 `cloudfront.tf`의 `local.content_security_policy` 한 곳에만 있�
 2. 적용한다. plan에는 응답 헤더 정책 두 개의 변경만 나와야 한다.
    ```
    cd infra
-   terraform plan -var aws_profile=itbm-tf -out tfplan
+   terraform plan -var aws_profile=itbm-tf -var image_tag=<지금 태그> -out tfplan
    terraform apply tfplan
    ```
 3. 응답을 확인한다. 두 주소 모두 `content-security-policy-report-only`가 보이고 `content-security-policy:`는 없어야 한다. CloudFront 전파에 걸리는 시간은 재지 않았으니, 바뀔 때까지 다시 확인한다.
@@ -167,7 +167,7 @@ CSP 값은 `cloudfront.tf`의 `local.content_security_policy` 한 곳에만 있�
 ### 메일 받기
 
 1. `infra/terraform.tfvars`에 `alert_email = "주소"`를 넣는다. 저장소에는 넣지 않는다. 값은 Terraform state에도 남는다.
-2. 알람만 먼저 적용한다. 일반 `apply`는 CSP까지 함께 켠다. CSP는 새 폰트가 배포된 뒤에 켜야 한다. 지금 배포본은 Google Fonts를 불러서 CSP가 막기 때문이다. `alert_email`이 `null`이면 토픽과 알람만 생기고 구독은 없다.
+2. 알람만 먼저 적용한다. 일반 `apply`는 CSP까지 함께 켠다. CSP는 새 폰트가 배포된 뒤에 켠다. 그 전의 화면은 Google Fonts를 불러서 CSP에 막힌다. `alert_email`이 `null`이면 토픽과 알람만 생기고 구독은 없다.
 
    ```sh
    terraform apply -var aws_profile=itbm-tf -var app_desired_count=2 -var image_tag=<지금 태그> \

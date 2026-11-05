@@ -232,7 +232,7 @@ a {
 .btn-secondary:active:not(:disabled) {
   background: var(--c-surface-pressed);
 }
-/* 윤곽선 보조 버튼. 면을 쓰지 않고 테두리로 조작 대상임을 보인다. 표면 위에서도 사라지지 않는다. */
+/* 윤곽선 보조 버튼. 종이 바탕과 테두리를 써서 표면 위에서도 버튼으로 보인다. */
 .btn-outline,
 .card .btn-secondary:not(:disabled) {
   background: var(--c-paper);
