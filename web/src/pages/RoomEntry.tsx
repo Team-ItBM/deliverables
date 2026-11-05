@@ -132,7 +132,7 @@ export function RoomEntry() {
       )}
 
       {room.scenario_status !== "ready" && (
-        <section className="card" aria-live="polite">
+        <section className="card status-card" aria-live="polite">
           <p>{SCENARIO_STATUS_TEXT[room.scenario_status]}</p>
           {room.scenario_status === "preparing" && (
             <div className="progress-track" aria-hidden="true">
@@ -143,7 +143,7 @@ export function RoomEntry() {
       )}
 
       {showProgress && (
-        <section className="card" aria-live="polite">
+        <section className="card status-card" aria-live="polite">
           <p>이 기기에서 답변을 제출했어요.</p>
           {!token && <p className="secondary">{ROOM_STATUS_TEXT[room.room_status]}</p>}
           {!token && <Count label="제출" value={room.submitted_count} total={room.party_size} />}
@@ -156,13 +156,13 @@ export function RoomEntry() {
       )}
 
       {closedForAnswers && !showProgress && !token && (
-        <section className="card">
+        <section className="card status-card">
           <p>응답을 마감했어요. 더는 답을 받지 않아요.</p>
         </section>
       )}
 
       {resuming && (
-        <section className="card">
+        <section className="card status-card">
           <p>{inProgress.display_name} 이름으로 답하던 중이에요.</p>
           <button type="button" className="btn-text" onClick={() => setConfirmRestart(true)}>
             처음부터 다시 답하기

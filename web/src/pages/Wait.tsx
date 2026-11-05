@@ -34,7 +34,7 @@ export function Wait() {
       <h1 className="t-headline-lg">진행 상황</h1>
       {submitted && <p className="secondary">답변을 제출했어요. 제출한 답변은 다른 동행에게 보이지 않아요.</p>}
       {room && (
-        <section className="card" aria-live="polite">
+        <section className="card status-card" aria-live="polite">
           <p>{ROOM_STATUS_TEXT[room.room_status]}</p>
           {room.room_status === "open" && <p className="secondary">다른 동행의 응답을 기다리고 있어요.</p>}
           {room.room_status === "failed" && (

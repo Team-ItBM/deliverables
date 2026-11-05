@@ -1,3 +1,4 @@
+import { ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import type { RoomView } from "../api/types";
@@ -5,7 +6,8 @@ import { inviteUrl } from "../lib/hostToken";
 import { FAILURE_TEXT } from "../lib/status";
 import { OpenPact } from "./OpenPact";
 import { PushOptIn } from "./PushOptIn";
-import { BottomBar, ConfirmSheet, CopyButton, Count, ErrorMessage } from "./ui";
+import { boxVariant } from "../mock/boxes";
+import { BottomBar, ConfirmSheet, CopyButton, Count, ErrorMessage, ICON } from "./ui";
 
 /**
  * 방장 토큰이 있는 기기에서만 보이는 메뉴. 생성은 자동으로 다시 시도하지 않는다.
@@ -89,11 +91,8 @@ export function HostPanel({
     </button>
   );
 
-  return (
-    <section className="card" aria-labelledby="host-panel-title">
-      <h2 id="host-panel-title" className="t-label-md">
-        방장 메뉴
-      </h2>
+  const items = (
+    <>
       {showStatus && s === "failed" && room.failure_reason && <p className="secondary">{FAILURE_TEXT[room.failure_reason]}</p>}
       {showStatus && <Count label="제출(나 포함)" value={room.submitted_count} total={room.party_size} />}
       {canGenerate && noResponses && <p className="disabled-reason">한 명 이상 답하면 지금 만들 수 있어요.</p>}
@@ -113,6 +112,10 @@ export function HostPanel({
       {error !== null && <ErrorMessage error={error} />}
       <PushOptIn code={code} role="host" hostToken={token} />
 
+    </>
+  );
+  const overlays = (
+    <>
       {inBar && canGenerate && !ownPrimary && <BottomBar>{generateButton(true)}</BottomBar>}
       {inBar && s === "failed" && <BottomBar>{retryButton(true)}</BottomBar>}
       {inBar && s === "ready" && <OpenPact code={code} />}
@@ -132,6 +135,31 @@ export function HostPanel({
           </p>
         </ConfirmSheet>
       )}
+    </>
+  );
+
+  if (boxVariant() === "b") {
+    return (
+      <>
+        <details className="fold host-menu">
+          <summary>
+            <span>방장 메뉴</span>
+            <ChevronDown {...ICON} />
+          </summary>
+          <div className="fold-body">{items}</div>
+        </details>
+        {overlays}
+      </>
+    );
+  }
+
+  return (
+    <section className="card host-menu" aria-labelledby="host-panel-title">
+      <h2 id="host-panel-title" className="t-label-md">
+        방장 메뉴
+      </h2>
+      {items}
+      {overlays}
     </section>
   );
 }

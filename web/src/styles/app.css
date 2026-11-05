@@ -1208,3 +1208,41 @@ body.result-bg {
   white-space: nowrap;
   border: 0;
 }
+
+/* ---------- 박스 정리 시안(모의 모드 전용, 사람이 고른 뒤 지운다) ---------- */
+/* A안: 종이 위 글줄. 상태와 메뉴를 헤어라인으로 나누고 면을 쓰지 않는다. */
+[data-boxes="a"] .status-card,
+[data-boxes="a"] .card.host-menu {
+  background: none;
+  border-radius: 0;
+  padding: var(--s-lg) 0 0;
+  border-top: 1px solid var(--c-hairline);
+}
+[data-boxes="a"] .notice-privacy,
+[data-boxes="b"] .notice-privacy {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+}
+[data-boxes="a"] .card.host-menu .btn-secondary:not(:disabled) {
+  background: var(--c-surface);
+  border: 0;
+}
+/* B안: 상태 한 줄과 접기. 제목 아래에 상태만 남기고 메뉴는 접어 둔다. */
+[data-boxes="b"] .status-card {
+  background: none;
+  border-radius: 0;
+  padding: 0;
+  gap: var(--s-xs);
+  margin-top: calc(-1 * var(--s-md));
+}
+[data-boxes="b"] .status-card p:not(.count-label) {
+  font-size: 15px;
+}
+[data-boxes="b"] .host-menu .fold-body {
+  gap: var(--s-md);
+}
+[data-boxes="b"] .host-menu .btn-secondary:not(:disabled) {
+  background: var(--c-paper);
+  border: 1px solid var(--c-outline);
+}
