@@ -132,7 +132,7 @@ S1~S6은 v6·pool v2 시점 출력이고 입력에 자기 pool 8개가 들어 �
 ```text
 프롬프트 5: 문항 출력 검증기 골든 케이스·테스트 하니스 위임
 
-도원결의 저장소(/Users/mingyu/orca/workspaces/deliverables/implementation, 브랜치 implementation)에서 강의 5 C절 테스트 하니스 위임을 진행해줘. 목표는 사람이 확정한 골든 케이스 43개를 YAML과 fixture로 옮기고, 그것을 실행하는 테스트 하니스를 만들어 사람이 수용할 수 있게 하는 거야. 검증기(validate_scenario_output) 구현은 이번 범위가 아니야.
+도원결의 저장소(브랜치 implementation)에서 강의 5 C절 테스트 하니스 위임을 진행해줘. 목표는 사람이 확정한 골든 케이스 43개를 YAML과 fixture로 옮기고, 그것을 실행하는 테스트 하니스를 만들어 사람이 수용할 수 있게 하는 거야. 검증기(validate_scenario_output) 구현은 이번 범위가 아니야.
 
 ## 시작하기 전에
 1. git rev-parse HEAD와 git status --short --untracked-files=all을 실행해 위임 직전 상태로 기록해. 보고에 그대로 넣어.
@@ -217,7 +217,7 @@ S1~S6은 v6·pool v2 시점 출력이고 입력에 자기 pool 8개가 들어 �
 ```text
 프롬프트 6: validate_scenario_output 문항 출력 검증기 위임
 
-도원결의 저장소(/Users/mingyu/orca/workspaces/deliverables/implementation, 브랜치 implementation)에서 강의 5 D절 기능 위임을 진행해줘. 목표는 사람이 수용한 문항 골든 테스트(tests/test_scenario_golden.py)를 고치지 않고 통과하는 validate_scenario_output과 route_scenario_result를 src/travel/scenarios.py에 새로 만드는 거야.
+도원결의 저장소(브랜치 implementation)에서 강의 5 D절 기능 위임을 진행해줘. 목표는 사람이 수용한 문항 골든 테스트(tests/test_scenario_golden.py)를 고치지 않고 통과하는 validate_scenario_output과 route_scenario_result를 src/travel/scenarios.py에 새로 만드는 거야.
 
 ## 시작하기 전에
 1. git rev-parse HEAD와 git status --short --untracked-files=all을 실행해 위임 직전 상태로 기록해. 보고에 그대로 넣어. tests/ 아래에 커밋하지 않은 변경이나 새 파일이 있으면 시작하지 말고 보고해.

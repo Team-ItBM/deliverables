@@ -13,7 +13,7 @@
 ```text
 프롬프트 1: 도구 계약 테스트 확정
 
-도원결의 저장소(/Users/mingyu/orca/workspaces/deliverables/implementation, 브랜치 implementation)에서 강의 6 "도구 계약 테스트" 단계를 진행해줘. 목표는 tests/test_tools.py를 확정해 사람이 수용할 수 있게 만드는 것이야. 도구 코드(get_scenario_template)는 이번 범위가 아니야.
+도원결의 저장소(브랜치 implementation)에서 강의 6 "도구 계약 테스트" 단계를 진행해줘. 목표는 tests/test_tools.py를 확정해 사람이 수용할 수 있게 만드는 것이야. 도구 코드(get_scenario_template)는 이번 범위가 아니야.
 
 ## 먼저 읽을 것 (순서대로, 해당 절만)
 1. AGENTS.md 전체 (절대 규칙, 금지 사항, 완료의 정의, 7절 명령)
@@ -59,7 +59,7 @@
 ```text
 프롬프트 2: get_scenario_template 도구 코드 위임
 
-도원결의 저장소(/Users/mingyu/orca/workspaces/deliverables/implementation, 브랜치 implementation)에서 강의 6 도구 코드 생성 절차 5단계를 진행해줘. 목표는 tests/test_tools.py(기준 커밋 c027358)를 고치지 않고 통과하는 get_scenario_template 도구 코드를 만드는 것이야.
+도원결의 저장소(브랜치 implementation)에서 강의 6 도구 코드 생성 절차 5단계를 진행해줘. 목표는 tests/test_tools.py(기준 커밋 c027358)를 고치지 않고 통과하는 get_scenario_template 도구 코드를 만드는 것이야.
 
 ## 먼저 읽을 것 (해당 절만)
 1. AGENTS.md 전체

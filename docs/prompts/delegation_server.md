@@ -402,7 +402,7 @@ editable: [{path, segments: [{text} | {participant_id, display, pair}]}]
 ```text
 프롬프트 8: 서버 계약 골든 케이스·테스트 하니스 위임
 
-도원결의 저장소(/Users/mingyu/orca/workspaces/deliverables/implementation, 브랜치 implementation)에서 강의 5 C절 테스트 하니스 위임을 진행해줘. 목표는 사람이 수용한 서버 계약 골든 케이스 80개를 YAML로 옮기고, 그것을 실행하는 테스트 하니스를 만들어 사람이 수용할 수 있게 하는 거야. 서버(src/travel/server/) 구현은 이번 범위가 아니야.
+도원결의 저장소(브랜치 implementation)에서 강의 5 C절 테스트 하니스 위임을 진행해줘. 목표는 사람이 수용한 서버 계약 골든 케이스 80개를 YAML로 옮기고, 그것을 실행하는 테스트 하니스를 만들어 사람이 수용할 수 있게 하는 거야. 서버(src/travel/server/) 구현은 이번 범위가 아니야.
 
 ## 시작하기 전에
 1. git rev-parse HEAD와 git status --short --untracked-files=all을 실행해 위임 직전 상태로 기록해. 보고에 그대로 넣어.
