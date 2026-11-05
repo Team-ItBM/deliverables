@@ -6,6 +6,8 @@ import { BottomBar, ErrorMessage, ICON } from "../components/ui";
 import { clearSession, loadSession, saveSession, submitSession, type AnswerSession } from "../lib/answerSession";
 import { clampMemo, memoLength, MEMO_MAX, splitScene } from "../lib/scene";
 
+const MEMO_NOTICE = "메모에는 건강 상태처럼 일정 조율과 상관없는 개인 사정은 적지 말아 주세요.";
+
 export function MemoField({
   id,
   value,
@@ -25,7 +27,7 @@ export function MemoField({
         className="memo"
         value={value}
         rows={3}
-        aria-describedby={`${id}-count`}
+        aria-describedby={`${id}-count ${id}-notice`}
         onChange={(e) => onChange(clampMemo(e.target.value))}
       />
       <div className="field-help">
@@ -34,6 +36,9 @@ export function MemoField({
           {memoLength(value)} / {MEMO_MAX}
         </span>
       </div>
+      <p id={`${id}-notice`} className="t-body-sm muted">
+        {MEMO_NOTICE}
+      </p>
     </div>
   );
 }
@@ -129,6 +134,7 @@ export function Answer() {
   const [error, setError] = useState<unknown>(null);
   const topRef = useRef<HTMLDivElement>(null);
   const submittedRef = useRef(false);
+  const failureRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (s && !submittedRef.current) saveSession(code, s);
@@ -137,6 +143,10 @@ export function Answer() {
     window.scrollTo(0, 0);
     topRef.current?.focus();
   }, [s?.step]);
+  // 답 확인 화면의 오류는 본문 끝에 있어서, 제출에 실패하면 그 자리를 화면에 올린다.
+  useEffect(() => {
+    if (error !== null) failureRef.current?.scrollIntoView?.({ block: "center" });
+  }, [error]);
 
   if (!s) return <Navigate to={`/r/${encodeURIComponent(code)}`} replace />;
 
@@ -233,25 +243,24 @@ export function Answer() {
               );
             })}
           </ol>
+          <div className="notice-privacy">
+            <Lock {...ICON} />
+            <p>{s.privacy_notice}</p>
+          </div>
+          {!allAnswered && <p className="disabled-reason">모든 문항에 답해야 제출할 수 있어요.</p>}
+          {error !== null && (
+            <div ref={failureRef}>
+              <ErrorMessage error={error} />
+            </div>
+          )}
         </div>
       )}
 
       <BottomBar>
         {isReview && (
-          <>
-            <div className="notice-privacy">
-              <Lock {...ICON} />
-              <div className="stack-sm">
-                <p>{s.privacy_notice}</p>
-                <p>메모에는 건강 상태처럼 일정 조율과 상관없는 개인 사정은 적지 말아 주세요.</p>
-              </div>
-            </div>
-            {error !== null && <ErrorMessage error={error} />}
-            {!allAnswered && <p className="disabled-reason">모든 문항에 답해야 제출할 수 있어요.</p>}
-            <button type="button" className="btn btn-primary" disabled={!allAnswered || busy} onClick={submit}>
-              {busy ? "보내는 중이에요" : error !== null ? "다시 제출하기" : "제출하기"}
-            </button>
-          </>
+          <button type="button" className="btn btn-primary" disabled={!allAnswered || busy} onClick={submit}>
+            {busy ? "보내는 중이에요" : error !== null ? "다시 제출하기" : "제출하기"}
+          </button>
         )}
         {!isReview && (
           <>

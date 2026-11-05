@@ -2,12 +2,12 @@ import { Download } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
-import { ApiError } from "../api/errors";
+import { ApiError, isNotFound } from "../api/errors";
 import type { ResultEntry, ResultsList, RoomView, SharedResult, Trip } from "../api/types";
 import { EditForm } from "../components/EditForm";
 import { HostPanel } from "../components/HostPanel";
 import { ResultSheet } from "../components/PactSheet";
-import { ErrorMessage, ICON } from "../components/ui";
+import { ErrorMessage, ICON, RoomNotFound } from "../components/ui";
 import { displaySegments, setAtPointer } from "../lib/editable";
 import { useHostToken, usePolling, usePrefersReducedMotion } from "../lib/hooks";
 import { savePaperImage } from "../lib/saveImage";
@@ -239,6 +239,8 @@ export function Result() {
   }, [code, tick]);
 
   const notReady = error instanceof ApiError && error.code === "invalid_state";
+
+  if (isNotFound(error)) return <RoomNotFound />;
 
   return (
     <main className="page">

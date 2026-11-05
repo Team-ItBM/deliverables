@@ -149,6 +149,16 @@ components:
   button-secondary-pressed:
     backgroundColor: "{colors.surface-pressed}"
     textColor: "{colors.primary}"
+  button-secondary-on-surface:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.primary}"
+    typography: "{typography.label-lg}"
+    rounded: "{rounded.md}"
+    height: 52px
+    padding: 16px
+  button-secondary-on-surface-pressed:
+    backgroundColor: "{colors.surface-pressed}"
+    textColor: "{colors.primary}"
   button-text:
     textColor: "{colors.tertiary}"
     typography: "{typography.label-md}"
@@ -334,7 +344,7 @@ components:
 - 모든 간격은 4px 격자다. 토큰은 {spacing.xs}부터 {spacing.4xl}까지이며, 토큰 사이 값이 필요하면 4의 배수를 쓴다.
 - 화면 좌우 여백은 {spacing.gutter}, 카드 안쪽은 {spacing.lg}~{spacing.xl}, 협약서 종이 안쪽은 {spacing.2xl}이다.
 - 묶음 안은 좁게, 묶음 사이는 넓게 둔다. 질문과 선택지 목록 사이 {spacing.xl}, 선택지끼리 {spacing.sm}, 선택지 목록과 메모 사이 {spacing.2xl}.
-- 화면당 주 동작은 하나이며 화면 아래에 고정한다. 고정 영역은 `env(safe-area-inset-bottom)`만큼 아래 여백을 더해 홈 표시줄과 겹치지 않게 한다. 보조 동작은 주 동작 위에 하나까지 둔다.
+- 화면당 주 동작은 하나이며 화면 아래에 고정한다. 고정 영역은 `env(safe-area-inset-bottom)`만큼 아래 여백을 더해 홈 표시줄과 겹치지 않게 한다. 보조 동작은 주 동작 위에 하나까지 둔다. 답 확인 화면은 예외로 고정 영역에 주 버튼만 둔다. 고정 영역이 커지면 마지막 문항을 가리기 때문이다.
 - 손가락으로 누르는 모든 대상은 {spacing.touch-min} 이상이다. 아이콘만 있는 버튼도 보이는 크기와 상관없이 누르는 영역을 이만큼 둔다.
 - 응답 화면은 문항 하나를 한 화면에 담는다. 위에서부터 진행 표시, 장면, 질문, 선택지, 메모, 아래 고정 버튼 순이다.
 - 필수 입력과 선택 입력이 섞인 폼은 선택 입력을 접힌 영역에 묶는다. 폼의 묶음 사이는 {spacing.3xl}이다.
@@ -391,8 +401,9 @@ components:
 
 ### 버튼
 
-- **주 버튼** `button-primary`: 화면당 하나. 너비는 본문 폭 전체, 높이 52px. 비활성 상태는 {colors.surface-pressed} 바탕에 {colors.muted} 글자다. 비활성 사유를 글로 둘 때는 버튼 바로 위에 {typography.body-sm}로 놓는다.
+- **주 버튼** `button-primary`: 화면당 하나. 너비는 본문 폭 전체, 높이 52px. 비활성 상태는 {colors.surface-pressed} 바탕에 {colors.muted} 글자다. 비활성 사유를 글로 둘 때는 버튼 바로 위에 {typography.body-sm}로 놓는다. 답 확인 화면에서는 비활성 사유와 오류를 본문 끝에 둔다.
 - **보조 버튼** `button-secondary`: 주 버튼과 같은 크기, 표면 바탕. 주 동작 위에 두는 선택 동작.
+- **표면 위 보조 버튼** `button-secondary-on-surface`: 카드처럼 표면 위에 놓는 보조 버튼. 종이 바탕에 {colors.outline} 1px 테두리를 둔다.
 - **텍스트 버튼** `button-text`: 놋쇠 글자, 밑줄 없음. 본문 흐름 안의 가벼운 동작.
 - 모든 버튼에 키보드 포커스 링을 둔다: {colors.tertiary-mark} 2px, 2px 바깥 간격.
 
@@ -421,7 +432,7 @@ components:
 
 ### 안내와 오류
 
-- **공개 안내** `notice-privacy`: 자물쇠 아이콘과 안내문을 담은 카드. 안내가 표시되는 화면에서 주 버튼 바로 위에 둔다(AC3).
+- **공개 안내** `notice-privacy`: 자물쇠 아이콘과 안내문을 담은 카드. 안내가 표시되는 화면에서 주 버튼 바로 위에 둔다(AC3). 답 확인 화면에서는 본문 끝, 마지막 문항 아래에 둔다.
 - **같은 이름 안내** `notice-duplicate-name`: 이름 선택 목록 바로 아래 {colors.error} 글자와 경고 아이콘(AC16).
 - **오류** `message-error`: 경고 아이콘 뒤에 글자를 두고, 재시도 버튼이 있으면 바로 아래 둔다. 색이나 아이콘만으로 오류를 표시하지 않는다(AC14).
 - **개수 표시** `count-label`: 흐린 글자와 고정폭 숫자.
@@ -440,7 +451,7 @@ components:
 4. **조항**: `제1조`부터 번호를 붙인다 `pact-clause-number`. 번호 아래 조항 문장, 그 아래 적용 대상 이름을 둔다. 제안 조건(`proposed_conditions`)은 한 단계 들여 쓰고 앞에 {colors.tertiary} {typography.label-sm} 라벨을 둬 조항 문장과 구분한다(AC7).
 5. **조건부 대안**: 조항 아래 헤어라인으로 구분한 묶음. 대안 문장 아래 필요한 변경을 한 단계 들여 쓴다. 표시하는 필드는 AC3·AC8을 따른다.
 6. **미해결 조건**: 조건부 대안과 같은 모양의 묶음.
-7. **바닥글**: 헤어라인 아래 {typography.caption} 글자 영역. 오른쪽 아래에 바닥글 글자와 테두리선에 걸쳐 찍힌 도장.
+7. **바닥글**: 헤어라인 아래 {typography.caption} 글자 영역. 추천안 안내 문장만 {typography.body-sm}, {colors.secondary}로 둔다. 오른쪽 아래에 바닥글 글자와 테두리선에 걸쳐 찍힌 도장.
 
 ### 방장 수정 표시 `host-edit-label`
 

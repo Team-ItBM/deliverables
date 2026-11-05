@@ -3,10 +3,11 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import privacyMd from "../../../docs/PRIVACY.md?raw";
 import { api } from "../api/client";
+import { isNotFound } from "../api/errors";
 import type { RoomView } from "../api/types";
 import { contactSectionId } from "../components/Markdown";
 import { HostPanel } from "../components/HostPanel";
-import { BottomBar, ErrorMessage, ICON } from "../components/ui";
+import { BottomBar, ErrorMessage, ICON, RoomNotFound } from "../components/ui";
 import { loadSession, loadSubmitted, saveSession } from "../lib/answerSession";
 import { usePolling, useHostToken } from "../lib/hooks";
 import { SCENARIO_STATUS_TEXT } from "../lib/status";
@@ -29,6 +30,7 @@ export function RoomEntry() {
   const submitted = loadSubmitted(code);
 
   if (loading && !room) return <main className="page"><p className="secondary">방 정보를 불러오고 있어요.</p></main>;
+  if (!room && isNotFound(error)) return <RoomNotFound />;
   if (!room) {
     return (
       <main className="page">

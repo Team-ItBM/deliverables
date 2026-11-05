@@ -1,10 +1,11 @@
 import { useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
+import { isNotFound } from "../api/errors";
 import type { RoomView } from "../api/types";
 import { HostPanel } from "../components/HostPanel";
 import { PushOptIn } from "../components/PushOptIn";
-import { Count, ErrorMessage } from "../components/ui";
+import { Count, ErrorMessage, RoomNotFound } from "../components/ui";
 import { loadSubmitted } from "../lib/answerSession";
 import { useHostToken, usePolling } from "../lib/hooks";
 import { FAILURE_TEXT, ROOM_STATUS_TEXT } from "../lib/status";
@@ -23,6 +24,8 @@ export function Wait() {
   useEffect(() => {
     if (room?.room_status === "ready") navigate(`/r/${encodeURIComponent(code)}/result`, { replace: true });
   }, [room?.room_status, code, navigate]);
+
+  if (!room && isNotFound(error)) return <RoomNotFound />;
 
   return (
     <main className="page">

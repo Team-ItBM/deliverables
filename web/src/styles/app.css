@@ -196,6 +196,17 @@ a {
 .btn-secondary:active:not(:disabled) {
   background: var(--c-surface-pressed);
 }
+/* 표면 위에서는 표면색 버튼이 사라지므로 한 단계 앞의 종이 바탕과 윤곽선을 쓴다. */
+.card .btn-secondary:not(:disabled) {
+  background: var(--c-paper);
+  border: 1px solid var(--c-outline);
+}
+.card .btn-secondary:active:not(:disabled) {
+  background: var(--c-surface-pressed);
+}
+a.btn {
+  text-decoration: none;
+}
 .btn:disabled {
   background: var(--c-surface-pressed);
   color: var(--c-muted);
@@ -395,8 +406,10 @@ select.input {
   align-items: center;
   gap: var(--s-md);
 }
-.progress-track {
+.progress > .progress-track {
   flex: 1;
+}
+.progress-track {
   height: 4px;
   background: var(--c-surface-pressed);
   border-radius: var(--r-full);
@@ -729,6 +742,11 @@ select.input {
 }
 .pact-message {
   font-size: 14px;
+  color: var(--c-secondary);
+}
+.pact-disclaimer {
+  font-size: 14px;
+  line-height: 1.6;
   color: var(--c-secondary);
 }
 .pact-footer {

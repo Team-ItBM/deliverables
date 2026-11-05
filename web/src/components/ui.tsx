@@ -23,6 +23,23 @@ export function BottomBar({ children }: { children: ReactNode }) {
   );
 }
 
+/** 없는 방의 화면. 재시도로 풀리지 않으므로 다시 시도 버튼을 두지 않는다. */
+export function RoomNotFound() {
+  return (
+    <main className="page">
+      <div className="stack-sm">
+        <h1 className="t-headline-lg">방을 찾지 못했어요</h1>
+        <p className="secondary">링크가 맞는지 방장에게 확인해 주세요. 새 여행이라면 방을 새로 만들 수 있어요.</p>
+      </div>
+      <BottomBar>
+        <Link className="btn btn-primary" to="/">
+          새 방 만들기
+        </Link>
+      </BottomBar>
+    </main>
+  );
+}
+
 export function ErrorMessage({
   error,
   text,

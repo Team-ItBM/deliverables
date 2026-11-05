@@ -35,7 +35,7 @@ function InclusionNote({ result }: { result: Partial<SharedResult> }) {
       {excluded.length > 0 && (
         <p>아직 응답이 반영되지 않은 이름: {excluded.join(", ")}. 이 사람들의 의견은 들어 있지 않아요.</p>
       )}
-      <p>AI가 각자의 응답을 바탕으로 만든 추천안이에요. 동행 모두가 정한 약속은 아니에요.</p>
+      <p className="pact-disclaimer">AI가 각자의 응답을 바탕으로 만든 추천안이에요. 동행 모두가 정한 약속은 아니에요.</p>
     </>
   );
 }

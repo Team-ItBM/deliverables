@@ -40,6 +40,10 @@ export function errorText(err: unknown): string {
   return MESSAGES.server_error!;
 }
 
+export function isNotFound(err: unknown): boolean {
+  return err instanceof ApiError && err.code === "not_found";
+}
+
 /** HTTP 응답을 ApiError로 바꾼다. WAF 차단·429처럼 JSON이 아닌 응답도 처리한다. */
 export function toApiError(status: number, body: unknown): ApiError {
   const e = (body as { error?: { code?: unknown; message?: unknown } } | null)?.error;
