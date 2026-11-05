@@ -328,7 +328,9 @@ def _register_routes(app, settings, jobs, notifier, clock, pool_source):
         subs = await db.fetch_submissions(conn, room["room_id"])
         responses = await db.fetch_responses(conn, room["room_id"])
         participant_ids = [str(s["participant_id"]) for s in subs]
-        scenarios = [{"scenario_id": s["template_id"], "scene": s["scene"], "question": s["question"],
+        # 추천 프롬프트 v12는 scenarios[].template_id를 읽고, SPEC 5절은 scenario_id=template_id로 연결한다. 둘 다 보낸다.
+        scenarios = [{"scenario_id": s["template_id"], "template_id": s["template_id"], "scene": s["scene"],
+                      "question": s["question"],
                       "options": [{"option_id": o["option_id"], "label": o["label"]} for o in s["options"]]}
                      for s in room["scenario_set"]["scenarios"]]
         rows = []
