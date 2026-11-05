@@ -1,0 +1,7 @@
+# 린트 기준. 강의 5 예시의 ruff를 PR 검사에 쓴다. 기존 검증기·하니스 코드가 통과하는 범위로 규칙을 고정한다.
+line-length = 150
+target-version = "py313"
+extend-exclude = [".local-work", "web", "infra"]
+
+[lint]
+select = ["E", "F", "W"]

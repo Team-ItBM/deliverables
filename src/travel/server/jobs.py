@@ -196,7 +196,7 @@ class JobManager:
                     result = await self._llm(job, stage, model_input, repair_errors)
             except LLMCallError as exc:
                 await record(stage, repair_errors, attempt, None, exc.kind)
-                if attempt == len(bases):
+                if attempt == len(bases) or exc.kind == "budget_exceeded":
                     raise
                 if exc.kind == "rate_limited" and exc.retry_after is not None:
                     wait = exc.retry_after

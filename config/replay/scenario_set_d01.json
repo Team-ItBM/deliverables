@@ -1,0 +1,194 @@
+{
+ "source": "2026-11-05 v8 경로 호출 확인 A''(gpt-6.1-sol, pool v3, D01 입력: 수원·국내 당일·총 2명·6문항). 실제 모델 출력이며 재생 모드 전용. 요청 ID req_42a9799f6c5a4666818af53e9c6b378e",
+ "scenario_set": {
+  "status": "ready",
+  "scenarios": [
+   {
+    "template_id": "paid_activity",
+    "scene": "수원 여행 중 오후 자유 시간에 1인 3만 원짜리 체험을 할 수 있어요\n체험은 1시간이에요\n아직 예약하지 않았어요\n신청하지 않으면 같은 구역에서 무료로 산책할 수 있어요\n이후 공동 일정은 그대로예요",
+    "question": "이 시간에 어떻게 하고 싶어요?",
+    "options": [
+     {
+      "option_id": "paid_activity_1",
+      "label": "3만 원을 내고 체험하고 싶어요"
+     },
+     {
+      "option_id": "paid_activity_2",
+      "label": "체험 대신 무료 산책을 하고 싶어요"
+     },
+     {
+      "option_id": "paid_activity_3",
+      "label": "유료 체험 대신 모두 함께할 무료 활동을 찾아보고 싶어요"
+     },
+     {
+      "option_id": "paid_activity_any",
+      "label": "어느 쪽이든 괜찮아요"
+     },
+     {
+      "option_id": "paid_activity_other",
+      "label": "다른 의견이 있어요"
+     },
+     {
+      "option_id": "paid_activity_info",
+      "label": "정보가 더 필요해요"
+     }
+    ]
+   },
+   {
+    "template_id": "walk_or_ride",
+    "scene": "수원에서 다음 장소까지 걸으면 25분, 차량으로는 10분이 걸려요\n차량은 1인 7천 원을 내야 해요\n걸어갈 수 있는 길이고 짐은 가벼워요\n예약 시간에 쫓기는 상황은 아니에요",
+    "question": "어떻게 이동하고 싶어요?",
+    "options": [
+     {
+      "option_id": "walk_or_ride_1",
+      "label": "25분 걸어가고 싶어요"
+     },
+     {
+      "option_id": "walk_or_ride_2",
+      "label": "7천 원을 내고 차량으로 가고 싶어요"
+     },
+     {
+      "option_id": "walk_or_ride_3",
+      "label": "각자 이동 수단을 고르고 도착해서 만나고 싶어요"
+     },
+     {
+      "option_id": "walk_or_ride_any",
+      "label": "어느 쪽이든 괜찮아요"
+     },
+     {
+      "option_id": "walk_or_ride_other",
+      "label": "다른 의견이 있어요"
+     },
+     {
+      "option_id": "walk_or_ride_info",
+      "label": "정보가 더 필요해요"
+     }
+    ]
+   },
+   {
+    "template_id": "restaurant_full",
+    "scene": "가려던 식당이 만석이고 언제 자리가 날지 몰라요\n근처에 바로 식사할 수 있는 다른 식당이 있어요\n각자 먹고 다시 만날 수 있어요\n다음 예약까지는 1시간이 남았어요",
+    "question": "지금 어떻게 하고 싶어요?",
+    "options": [
+     {
+      "option_id": "restaurant_full_1",
+      "label": "바로 들어갈 수 있는 식당에서 먹고 싶어요"
+     },
+     {
+      "option_id": "restaurant_full_2",
+      "label": "남은 1시간 안에 다른 식당을 더 찾아보고 싶어요"
+     },
+     {
+      "option_id": "restaurant_full_3",
+      "label": "각자 원하는 곳에서 따로 먹고 다시 만나고 싶어요"
+     },
+     {
+      "option_id": "restaurant_full_any",
+      "label": "어느 쪽이든 괜찮아요"
+     },
+     {
+      "option_id": "restaurant_full_other",
+      "label": "다른 의견이 있어요"
+     },
+     {
+      "option_id": "restaurant_full_info",
+      "label": "정보가 더 필요해요"
+     }
+    ]
+   },
+   {
+    "template_id": "advance_ticket",
+    "scene": "가고 싶은 전시는 시간 지정 예약이 필요해요\n지금 예약하면 자리를 확보할 수 있지만 다른 시각으로 바꿀 수 없어요\n현장에서 표를 구할 수 있을지는 몰라요\n전시 대신 무료로 둘러볼 거리도 있어요",
+    "question": "어떻게 하고 싶어요?",
+    "options": [
+     {
+      "option_id": "advance_ticket_1",
+      "label": "시간을 정해 지금 예약하고 싶어요"
+     },
+     {
+      "option_id": "advance_ticket_2",
+      "label": "예약하지 않고 현장에서 표가 있으면 보고 싶어요"
+     },
+     {
+      "option_id": "advance_ticket_3",
+      "label": "전시는 빼고 자유롭게 둘러보고 싶어요"
+     },
+     {
+      "option_id": "advance_ticket_any",
+      "label": "어느 쪽이든 괜찮아요"
+     },
+     {
+      "option_id": "advance_ticket_other",
+      "label": "다른 의견이 있어요"
+     },
+     {
+      "option_id": "advance_ticket_info",
+      "label": "정보가 더 필요해요"
+     }
+    ]
+   },
+   {
+    "template_id": "photo_queue",
+    "scene": "사진 명소에서 한 차례 촬영을 마쳤고 뒤에 다른 방문객이 기다려요\n자리를 비워준 뒤 다시 줄을 서면 약 15분이 걸려요\n근처에는 줄 없이 찍을 수 있는 다른 구도도 있어요",
+    "question": "사진이 더 필요하다면 어떻게 하고 싶어요?",
+    "options": [
+     {
+      "option_id": "photo_queue_1",
+      "label": "다시 줄을 서서 같은 구도로 찍고 싶어요"
+     },
+     {
+      "option_id": "photo_queue_2",
+      "label": "줄 없는 다른 구도에서 찍고 싶어요"
+     },
+     {
+      "option_id": "photo_queue_3",
+      "label": "지금 사진으로 마무리하고 다음 장소로 가고 싶어요"
+     },
+     {
+      "option_id": "photo_queue_any",
+      "label": "어느 쪽이든 괜찮아요"
+     },
+     {
+      "option_id": "photo_queue_other",
+      "label": "다른 의견이 있어요"
+     },
+     {
+      "option_id": "photo_queue_info",
+      "label": "정보가 더 필요해요"
+     }
+    ]
+   },
+   {
+    "template_id": "itinerary_feedback",
+    "scene": "일행이 수원에서 가볼 장소와 식당이 담긴 일정표를 공유했어요\n아직 결제한 예약은 없어요\n출발 전에 수정할 시간이 있어요\n일정표를 만든 사람이 바꾸고 싶은 점을 각자 알려달라고 했어요",
+    "question": "어떤 방식으로 의견을 보내고 싶어요?",
+    "options": [
+     {
+      "option_id": "itinerary_feedback_1",
+      "label": "일정 전체를 읽고 바꾸고 싶은 부분을 한 번에 보내고 싶어요"
+     },
+     {
+      "option_id": "itinerary_feedback_2",
+      "label": "꼭 하고 싶은 일과 피하고 싶은 일만 추려 보내고 싶어요"
+     },
+     {
+      "option_id": "itinerary_feedback_3",
+      "label": "시간을 잡아 일정표를 함께 보면서 정하고 싶어요"
+     },
+     {
+      "option_id": "itinerary_feedback_any",
+      "label": "어느 쪽이든 괜찮아요"
+     },
+     {
+      "option_id": "itinerary_feedback_other",
+      "label": "다른 의견이 있어요"
+     },
+     {
+      "option_id": "itinerary_feedback_info",
+      "label": "정보가 더 필요해요"
+     }
+    ]
+   }
+  ]
+ }
+}

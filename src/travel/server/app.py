@@ -443,8 +443,7 @@ def _register_routes(app, settings, jobs, notifier, clock, pool_source):
         started = None
         async with pool().transaction() as conn:
             room = await load_room(conn, room_code, for_update=True)
-            if room["status"] != "open":
-                raise ApiError("room_closed")
+            # 전송 재시도(같은 키·같은 본문)는 마감 뒤에도 같은 건으로 200을 돌려준다(§0-B 4, 결정 43).
             cur = await conn.execute(
                 "SELECT participant_id, body_hash FROM submissions WHERE room_id = %s AND idempotency_key = %s",
                 (room["room_id"], key))
@@ -455,6 +454,8 @@ def _register_routes(app, settings, jobs, notifier, clock, pool_source):
                 return JSONResponse(status_code=200, content={
                     "participant_id": str(existing["participant_id"]),
                     "submitted_count": room["submitted_count"], "party_size": room["party_size"]})
+            if room["status"] != "open":
+                raise ApiError("room_closed")
             if session_id is None:
                 raise ApiError("not_found")
             cur = await conn.execute("SELECT * FROM sessions WHERE session_id = %s AND room_id = %s",
@@ -703,6 +704,8 @@ def _register_routes(app, settings, jobs, notifier, clock, pool_source):
         if keys is not None and not isinstance(keys, dict):
             raise ApiError("invalid_input")
         session_id = parse_uuid(body["session_id"]) if body.get("session_id") is not None else None
+        if role == "participant" and session_id is None:
+            raise ApiError("invalid_input")  # 참여자 구독은 세션과 묶는다(결정 11·44)
         now = clock()
         async with pool().transaction() as conn:
             room = await load_room(conn, room_code)

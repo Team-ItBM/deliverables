@@ -1,0 +1,45 @@
+# 모델 호출 설정(ARCHITECTURE 2·5절). 코드에 값을 넣지 않고 여기서 바꾼다.
+# 전송부 해시가 다르면 서버가 시작할 때 멈춘다. 프롬프트 전송부를 바꾸면 prompt_version과 해시를 함께 올린다(AGENTS 5절).
+model: gpt-6.1-sol
+reasoning_effort: low           # 스파이크·회귀 점검과 같은 값
+store: false                    # 응답을 OpenAI 서버에 저장하지 않는다(처리방침 제6조)
+include: ["reasoning.encrypted_content"]   # store: false에서 도구 결과를 돌려줄 때 앞 차례의 추론 항목을 다시 넣기 위한 값(실제 호출로 확인)
+parallel_tool_calls: false      # 스파이크 결정 11
+timeout_seconds: 90             # 호출 타임아웃
+prompts:
+  scenarios:
+    path: src/travel/prompts/prepare_scenarios.md
+    version: 9
+    body_sha256: 26219ab99fadf0ce4d1de7f6e558884b8abe1346e526694d4a971ad7c7d3af2e
+    schema_path: src/travel/schemas/scenario_set.schema.json
+    schema_name: ScenarioSet
+    schema_version: 2
+  pact:
+    path: src/travel/prompts/generate_pact.md
+    version: 12
+    body_sha256: bf9f038fbe7bb881c3043da6a816f4c34c2897392aa64427e4f9e7d8303fd215
+    schema_path: src/travel/schemas/pact_recommendation.schema.json
+    schema_name: PactRecommendation
+    schema_version: 4
+pool:
+  path: src/travel/data/scenario_pool.json
+  version: 3
+  sha256: 5b7c2ad7750d74eac04698b994f1aa50d2387c18ed59d361c99807ed1f0c2047
+tools:
+  call_limit: 12                # 도구 호출 상한. 12번째 요청은 실행하지 않고 도구를 끈 뒤 최종 출력 1회를 요청한다
+retry:
+  backoff_seconds: [1, 2]       # 일시 오류 재시도 2회(지수 백오프) + 더하기 지터
+  jitter_seconds: 0.5
+concurrency:
+  max_generations: 4            # 프로세스당 동시 모델 호출
+job:
+  time_limit_seconds: 300       # 생성 작업 한도(결정 12)
+  stall_limit_seconds: 600      # 멈춤 판정(결정 12)
+  maintenance_interval_seconds: 30
+cost:
+  # 2026-11-05 확인한 Standard 단가(1M 토큰당 USD). 캐시 쓰기 토큰은 일반 입력 단가로 센다(스파이크 기록).
+  input_per_million: 2.0
+  cached_input_per_million: 0.10
+  output_per_million: 10.0
+  room_cap_usd: 0.20            # 방당 상한(2026-11-04 팀 결정)
+  daily_cap_usd: 5.0            # 일일 한도(2026-11-05 결정). 닿으면 그날 생성을 멈춘다
