@@ -20,7 +20,7 @@
 ### 화면·배포
 
 - [ ] 화면 연결: `web/`을 실제 서버에 붙여 전체 흐름을 확인하고, 결과 종이의 여행 정보 줄(API에 trip 없음)과 '방장 수정' 표시 위치(결과 단위 `label`)를 어떻게 할지 정한다.
-- [ ] 인프라 적용: `terraform plan`을 검토한 뒤 비밀값을 넣고 `apply`한다. 첫 배포 뒤 `dowonpact.com`에서 흐름을 확인한다. 팀장 확인 항목은 [서비스 위임 기록 §2-3](docs/prompts/delegation_service.md)에 있다.
+- [ ] 배포 마무리: `dowonpact.com`에서 실제 모델로 방 1개 흐름 확인(승인 뒤), GitHub Actions 저장소 변수 입력과 `deploy.yml` 첫 실행, Terraform state의 S3 이동 여부 결정. 남은 팀장 확인 항목은 [서비스 위임 기록 §2-5](docs/prompts/delegation_service.md)에 있다.
 
 ### 품질·기기
 

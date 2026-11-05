@@ -195,3 +195,18 @@ Terraform 17개 파일(VPC, ALB, ECS Fargate ARM, RDS 16, S3와 CloudFront, Clou
 계정 ID와 호스팅 영역 ID 처리(2026-11-05, 전민규 결정): 공개 저장소에 두지 않는다. `infra/variables.tf`의 기본값을 빼고 gitignore된 `infra/terraform.tfvars`에 두며, `terraform.tfvars.example`에 자리표시자를 둔다. 두 ID가 들어 있던 로컬 커밋 2개는 푸시 전이어서 `git filter-branch`로 내용을 다시 썼고 백업 ref와 reflog를 지웠다. 모든 ref를 다시 검사해 두 ID가 남지 않음을 확인했다. AWS는 계정 ID를 비밀로 보지 않지만 불필요한 공개를 피하라고 안내한다.
 
 부트스트랩 2단계(2026-11-05): `terraform apply -target`으로 비밀 `dowonpact/openai-api-key`, `dowonpact/vapid` 두 개를 만들었다(값 없음, 기본 KMS 키 `aws/secretsmanager`. AWS 비밀 생성 스킬이 권하는 전용 KMS 키·자동 교체는 MVP에서 쓰지 않는다). state는 `infra/terraform.tfstate`(gitignore)에 있다.
+
+부트스트랩 3단계(2026-11-05): `dowonpact/openai-api-key`에는 `.env`의 `OPENAI_API_KEY`를 셸에서 바로 넘겨 저장했다(에이전트는 값을 읽지 않았다). `dowonpact/vapid`에는 `py_vapid`로 새로 만든 키 쌍을 base64url 원시 키 형식 `{public_key, private_key, subject: mailto:teamitbm@gmail.com}`으로 저장하고 로컬 파일은 지웠다. 두 값 모두 저장소·로그에 없다. 4단계 전체 apply(태스크 0개)는 같은 날 시작했다.
+
+### §2-6. 첫 배포 (2026-11-05)
+
+| 단계 | 결과 |
+|---|---|
+| 4. 전체 apply(태스크 0개) | 70개 생성, 오류 없음. us-east-1의 ACM·WAF 생성은 SCP에 막히지 않았다 |
+| 5. 이미지 | `dowonpact-app:4da1084`(linux/arm64, SPA 스테이지 생략)를 ECR에 `4da1084`·`latest`·`bootstrap` 태그로 푸시 |
+| 5. SPA | `web/dist`를 S3 버킷에 동기화하고 CloudFront 무효화 |
+| 5. 스키마 | 서비스와 같은 네트워크 설정으로 일회성 Fargate 태스크 `python -m travel.server.db --init` 실행, 종료 코드 0 |
+| 6. 서비스 | `terraform apply -var app_desired_count=2 -var image_tag=4da1084`. 태스크 2개 실행, 롤아웃 COMPLETED |
+| 7. 스모크 | `https://dowonpact.com/api/health` 200, `/`와 `/r/abc` 200(SPA), `www` 301, `/api/nothing` 404 JSON, VAPID 공개 키 응답 |
+
+실제 모델 스모크(2026-11-05, 사용자 승인): 배포된 주소에서 방 1개(제주 3일, 2명)를 만들어 문항 ready 34초, 제출 2건, 자동 생성 42초, 결과 `proposed`(조항 4, 조건부 대안 2, 초안)까지 확인했다. 결과 응답에 메모 원문은 없었다. 확인 뒤 일회성 Fargate 태스크로 `admin delete-room`을 실행해 그 방을 지웠다(방 조회 404). GitHub Actions 저장소 변수 8개(역할 ARN, 배포 ID, ECR·ECS 이름, 버킷)는 `gh variable set`으로 넣었다. 브랜치는 푸시 전이다. Terraform state는 로컬 `infra/terraform.tfstate`(gitignore)에만 있다. 로컬 확인과 배포 확인을 구분한다. 실기기 확인(AC14)은 아직이다.

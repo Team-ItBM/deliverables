@@ -27,7 +27,7 @@
 
 ## 사용자 가이드
 
-도원결의는 로그인 없이 쓰는 모바일 웹이다. 배포 주소는 `https://dowonpact.com`이다(2026-11-05 기준 배포 전. 배포 뒤 이 줄을 갱신한다). 결과는 추천안이며 동행 전원의 합의가 아니다. 개인정보 처리는 [처리방침](docs/PRIVACY.md)을 따른다.
+도원결의는 로그인 없이 쓰는 모바일 웹이다. 배포 주소는 `https://dowonpact.com`이다(2026-11-05 첫 배포). 결과는 추천안이며 동행 전원의 합의가 아니다. 개인정보 처리는 [처리방침](docs/PRIVACY.md)을 따른다.
 
 ### 역할과 순서
 
@@ -64,6 +64,13 @@ DATABASE_URL=postgresql://postgres:postgres@localhost:55432/dowon_local LLM_MODE
 ```
 
 `http://localhost:8000`에서 화면이 뜬다. 실제 모델을 쓰려면 `LLM_MODE=live`와 `OPENAI_API_KEY`를 준다(비용이 든다). 설정은 `config/llm.yaml`이다. 환경변수 이름은 `src/travel/server/main.py` 머리말에 있다.
+
+서버는 `.env`를 자동으로 읽지 않는다. 값을 파일로 두려면 `.env.example`을 `.env`로 복사해 채우고, 실행 전에 같은 셸에서 불러온다.
+
+```sh
+set -a; source .env; set +a
+PYTHONPATH=src python -m uvicorn travel.server.main:app --port 8000
+```
 
 ### 테스트
 
