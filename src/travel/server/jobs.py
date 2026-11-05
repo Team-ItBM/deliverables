@@ -390,11 +390,18 @@ class JobManager:
         status, payload = outcome
         if status == "ready":
             scenario_status = payload["status"]
-            scenario_set = payload if payload.get("scenarios") else None
+            scenario_set = self._with_core_constraints(payload) if payload.get("scenarios") else None
             notice = {k: payload[k] for k in ("message", "clarification_questions") if k in payload}
         else:
             scenario_status, scenario_set, notice = "failed", None, None
         await self._finish_scenarios(job, scenario_status, scenario_set, notice)
+
+    def _with_core_constraints(self, payload):
+        """코드가 문항을 확정한 뒤 core_constraints를 pool에서 조회해 함께 저장한다(SPEC 5절). 추천 입력에만 쓴다.
+        검증을 통과한 template_id는 pool에 있다. 방이 열린 동안 pool이 바뀌어도 이 값을 쓴다."""
+        scenarios = [dict(s, core_constraints=self.pool_source.lookup(s["template_id"]).get("core_constraints", []))
+                     for s in payload["scenarios"]]
+        return dict(payload, scenarios=scenarios)
 
     async def _finish_scenarios(self, job, scenario_status, scenario_set, notice):
         try:

@@ -328,16 +328,31 @@ def _register_routes(app, settings, jobs, notifier, clock, pool_source):
         profiles = {p["profile_id"]: p["display_name"] for p in await db.fetch_profiles(conn, room["room_id"])}
         return [{"participant_id": str(s["participant_id"]), "display_name": profiles[s["profile_id"]]} for s in subs]
 
+    def core_constraints_of(scenario):
+        """문항을 확정할 때 저장한 값을 쓴다. 저장 전에 만든 방은 pool에서 조회한다. pool에도 없으면 필드를 뺀다."""
+        if "core_constraints" in scenario:
+            return scenario["core_constraints"]
+        try:
+            return pool_source.lookup(scenario["template_id"]).get("core_constraints")
+        except KeyError:
+            log("core_constraints_missing", template_id=scenario["template_id"])
+            return None
+
     async def build_frozen(conn, room):
         profiles = await db.fetch_profiles(conn, room["room_id"])
         subs = await db.fetch_submissions(conn, room["room_id"])
         responses = await db.fetch_responses(conn, room["room_id"])
         participant_ids = [str(s["participant_id"]) for s in subs]
         # 추천 프롬프트 v12는 scenarios[].template_id를 읽고, SPEC 5절은 scenario_id=template_id로 연결한다. 둘 다 보낸다.
-        scenarios = [{"scenario_id": s["template_id"], "template_id": s["template_id"], "scene": s["scene"],
-                      "question": s["question"],
-                      "options": [{"option_id": o["option_id"], "label": o["label"]} for o in s["options"]]}
-                     for s in room["scenario_set"]["scenarios"]]
+        scenarios = []
+        for s in room["scenario_set"]["scenarios"]:
+            item = {"scenario_id": s["template_id"], "template_id": s["template_id"], "scene": s["scene"],
+                    "question": s["question"],
+                    "options": [{"option_id": o["option_id"], "label": o["label"]} for o in s["options"]]}
+            constraints = core_constraints_of(s)
+            if constraints is not None:
+                item["core_constraints"] = constraints
+            scenarios.append(item)
         rows = []
         for r in responses:
             item = {"response_id": str(r["response_id"]), "participant_id": str(r["participant_id"]),
