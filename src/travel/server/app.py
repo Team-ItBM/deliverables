@@ -83,10 +83,13 @@ class Settings:
     schema_versions: dict = field(default_factory=lambda: {"scenarios": "2", "pact": "4"})
     maintenance_interval_seconds: float = 0
     access_log: bool = True
+    room_cap_usd: float = None  # 방당 비용 상한(config/llm.yaml room_cap_usd). None이면 검사하지 않는다(테스트 기본)
 
     def __post_init__(self):
         if self.stall_limit_seconds <= self.job_time_limit_seconds:
             raise ValueError("stall_limit_seconds는 job_time_limit_seconds보다 커야 한다(결정 12)")
+        if self.room_cap_usd is not None and self.room_cap_usd <= 0:
+            raise ValueError("room_cap_usd는 0보다 커야 한다")
 
 
 class ApiError(Exception):

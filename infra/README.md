@@ -113,16 +113,24 @@ ARCHITECTURE 5절 운영 기준안의 추정(월 약 $99, 2026-11-09~2027-01-12 
 ## 정리 (서비스 종료 2027-01-05, 기한 2027-01-12)
 
 1. `terraform apply -var db_deletion_protection=false`
-2. `terraform destroy`. 최종 스냅샷 `dowonpact-db-final`이 남는다(`db_skip_final_snapshot=false`).
-3. **최종 스냅샷을 지운다.** PRIVACY 제7조 3항은 종료 후 7일 안에 백업까지 모두 삭제한다고 밝힌다. 남길 이유가 없으면 2단계 전에 `-var db_skip_final_snapshot=true`로 apply해 스냅샷을 만들지 않아도 된다. 자동 백업은 인스턴스 삭제와 함께 지워진다.
+2. 접속기록 버킷을 Terraform 관리에서 뗀다(버킷은 남긴다. 아래 "관리자 접속기록" 참조). `terraform state rm aws_s3_bucket.audit aws_s3_bucket_public_access_block.audit aws_s3_bucket_ownership_controls.audit aws_s3_bucket_server_side_encryption_configuration.audit aws_s3_bucket_versioning.audit aws_s3_bucket_lifecycle_configuration.audit aws_s3_bucket_policy.audit`. `prevent_destroy`가 있어 state에 두고 destroy하면 실패한다.
+3. `terraform destroy`. trail(`aws_cloudtrail.audit`), RDS(최종 스냅샷 없음, `db_skip_final_snapshot=true`가 기본), ECS, CloudFront 등이 지워진다. PRIVACY 제7조 3항대로 종료 후 7일 안에 백업까지 모두 사라진다(자동 백업은 인스턴스와 함께 지워진다).
 4. ECR은 `force_delete=false`라 이미지가 있으면 destroy가 실패한다. 콘솔에서 이미지를 먼저 지우거나 `aws ecr batch-delete-image`로 지운다.
 5. 비밀은 7일 뒤 삭제된다. 로그 그룹은 destroy와 함께 지워진다.
 6. 수동으로 만든 예산, (만들었다면) state 버킷을 지운다.
-7. **관리자 접속기록은 지우지 않는다.** ARCHITECTURE 8절·PRIVACY 제10조 3항의 1년 보관 대상이며 저장 방식이 정해지지 않아 이 구성에 없다.
+7. **관리자 접속기록 버킷은 지우지 않는다.** ARCHITECTURE 8절·PRIVACY 제10조 3항의 1년 보관 대상이다. 2단계에서 state에서 뗐으므로 destroy에 영향이 없다. 버킷 정책(HTTPS만 허용, CloudTrail 쓰기)과 수명 주기는 그대로 둔다. 버킷 유지 비용은 월 $1 미만이다.
+
+## 관리자 접속기록 (`infra/audit.tf`, 2026-11-05 결정)
+
+- 기록 범위: CloudTrail 관리 이벤트(모든 리전, 읽기·쓰기, 로그 파일 검증 켬)와 앱의 `delete-room` 기록(`admin-audit/` 접두사, 이름·메모 없음). 관리자는 DB에 직접 접속하지 않는다는 전제다. 필요해지면 별도 기록 방안을 정한다.
+- 저장: 버킷 `<project>-audit-<계정 ID>`(이름은 `audit_bucket_name`으로 바꿀 수 있다). 공개 차단, SSE-S3, 버전 관리, HTTPS 요청만 허용. 수명 주기는 현재·이전 버전 모두 `audit_retention_days`(기본 400일) 뒤 삭제, 만료된 삭제 마커와 미완성 업로드 정리. `prevent_destroy`로 보호한다.
+- 비용: 관리 이벤트 첫 사본은 무료다. S3 저장 수 MB와 전송 요청으로 월 $1 미만으로 본다(사용량은 가정).
+- 앱 기록 실패: `delete-room`은 S3 저장이 실패해도 삭제를 되돌리지 않는다. 결과 JSON에 `audit_stored: false`와 이유를 넣고 종료 코드 3을 내며 표준 출력에 남긴다. 그 기록은 수동으로 보관한다.
+- 정리 뒤 버킷 삭제: 마지막 기록은 늦어도 2027-01-12(정리 완료일)에 쓰이므로, 수명 주기가 모든 객체와 이전 버전을 지운 2028-02-16 이후에 담당자(전민규, ARCHITECTURE 5절 정리 담당)가 버킷이 비었는지 확인하고 콘솔에서 지운다. 비어 있지 않으면 400일이 지나지 않은 기록이 있다는 뜻이므로 지우지 않는다.
 
 ## 확인하지 못한 것
 
-- `apply`는 실행하지 않았다. 2026-11-05에 state 없이 `terraform plan -var app_desired_count=0`(잠금 없음, 계획 파일 저장 안 함)을 실행해 "68 to add, 0 to change, 0 to destroy"를 얻었다. 읽기 데이터 소스(호스팅 영역, CloudFront 접두사 목록, 관리형 캐시·원본 요청·응답 헤더 정책)는 이때 조회됐다. 비밀 값 조회는 apply 시점으로 미뤄졌으므로 부트스트랩 2~3단계 없이 전체 apply하면 실패한다. IAM 정책, WAF 규칙 본문, CloudFront Function 코드가 AWS API에서 받아들여지는지는 apply 전까지 모른다.
+- 2026-11-05에 첫 apply를 했다(70개 생성, 서비스 위임 기록 §2-6). 그 전 읽기 전용 plan은 "68 to add, 0 to change, 0 to destroy"였다. 읽기 데이터 소스(호스팅 영역, CloudFront 접두사 목록, 관리형 캐시·원본 요청·응답 헤더 정책)는 이때 조회됐다. 비밀 값 조회는 apply 시점으로 미뤄졌으므로 부트스트랩 2~3단계 없이 전체 apply하면 실패한다. IAM 정책, WAF 규칙 본문, CloudFront Function 코드가 AWS API에서 받아들여지는지는 apply 전까지 모른다.
 - SCP: 기억 기록상 SCP는 서울만 허용한다. 2026-11-05에 us-east-1에서 `acm list-certificates`, `wafv2 list-web-acls --scope CLOUDFRONT` 읽기는 성공했지만, 생성 작업이 허용되는지는 확인하지 않았다. 막히면 SCP 예외(ACM·WAFv2의 us-east-1)가 필요하다. 우회하지 않는다.
 - 서버 쪽 계약: `/api/health`, `python -m travel.server.db --init`, 환경 변수 이름은 아직 서버 코드에 없다. `requirements.txt`에 `uvicorn`이 아직 없어 현재 이미지의 CMD는 실행되지 않는다.
 - ARM64 이미지를 GitHub의 x86 러너에서 QEMU로 빌드하는 시간, 배포 워크플로 전체, OIDC 신뢰 조건은 실행해 보지 않았다.

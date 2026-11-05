@@ -70,6 +70,7 @@ def build_settings(env, llm_config):
         prompt_versions={stage: spec["version"] for stage, spec in llm_config.prompts.items()},
         schema_versions={stage: spec["schema_version"] for stage, spec in llm_config.prompts.items()},
         maintenance_interval_seconds=float(job.get("maintenance_interval_seconds", 30)),
+        room_cap_usd=float(cost["room_cap_usd"]) if (cost := (llm_config.cost or {})).get("room_cap_usd") is not None else None,
     )
 
 

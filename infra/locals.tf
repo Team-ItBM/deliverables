@@ -23,9 +23,11 @@ locals {
   # Container environment contract. Names are provisional until the team lead
   # confirms them with the server implementer; rename here only.
   app_env_plain = {
-    PUBLIC_BASE_URL = "https://${var.domain_name}"
-    LLM_MODE        = "live"
-    AWS_REGION      = var.region
+    PUBLIC_BASE_URL    = "https://${var.domain_name}"
+    LLM_MODE           = "live"
+    AWS_REGION         = var.region
+    ADMIN_AUDIT_BUCKET = local.audit_bucket_name
+    ADMIN_AUDIT_PREFIX = local.audit_app_prefix
   }
 
   # env var name => valueFrom (secret ARN, or ARN:json-key:: for JSON secrets)

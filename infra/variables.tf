@@ -214,3 +214,20 @@ variable "create_github_oidc_provider" {
   type        = bool
   default     = true
 }
+
+variable "audit_bucket_name" {
+  description = "관리자 접속기록 버킷 이름. null이면 <project>-audit-<account_id>."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
+variable "audit_retention_days" {
+  description = "접속기록 보관 일수(현재·이전 버전 모두). 1년 이상이어야 한다(PRIVACY 제10조 3항). 기본 400일."
+  type        = number
+  default     = 400
+  validation {
+    condition     = var.audit_retention_days >= 365
+    error_message = "접속기록은 1년(365일) 이상 보관해야 한다."
+  }
+}

@@ -210,3 +210,13 @@ Terraform 17개 파일(VPC, ALB, ECS Fargate ARM, RDS 16, S3와 CloudFront, Clou
 | 7. 스모크 | `https://dowonpact.com/api/health` 200, `/`와 `/r/abc` 200(SPA), `www` 301, `/api/nothing` 404 JSON, VAPID 공개 키 응답 |
 
 실제 모델 스모크(2026-11-05, 사용자 승인): 배포된 주소에서 방 1개(제주 3일, 2명)를 만들어 문항 ready 34초, 제출 2건, 자동 생성 42초, 결과 `proposed`(조항 4, 조건부 대안 2, 초안)까지 확인했다. 결과 응답에 메모 원문은 없었다. 확인 뒤 일회성 Fargate 태스크로 `admin delete-room`을 실행해 그 방을 지웠다(방 조회 404). GitHub Actions 저장소 변수 8개(역할 ARN, 배포 ID, ECR·ECS 이름, 버킷)는 `gh variable set`으로 넣었다. 브랜치는 푸시 전이다. Terraform state는 로컬 `infra/terraform.tfstate`(gitignore)에만 있다. 로컬 확인과 배포 확인을 구분한다. 실기기 확인(AC14)은 아직이다.
+
+### §2-7. 푸시·PR과 관리자 접속기록 (2026-11-05)
+
+**푸시·PR**: `implementation`을 푸시하고 PR #16(main)을 열었다. 첫 `pr-check.yml` 실행은 워크플로 파일 오류로 실패했다. job 단위 `if`에 `hashFiles`를 써서 GitHub Actions가 "Unrecognized function"으로 거절했다. 조건을 지우고(`aaebc00`) 다시 실행해 세 job(python, web, terraform)이 모두 통과했다. python job은 `ruff check .` 통과와 `pytest tests/` 261 passed(서버 케이스 86개 포함, skip·xfail 0), web job은 vitest 12 passed, terraform job은 validate 통과였다. PR은 병합하지 않았다.
+
+**관리자 접속기록**(설계 승인 2026-11-05, 전민규. 추가 요구 6개 반영): `infra/audit.tf`에 전용 S3 버킷(공개 차단, SSE-S3, 버전 관리, HTTPS 전용 정책, 현재·이전 버전 400일 만료, 만료된 삭제 마커·미완성 업로드 정리, `prevent_destroy`), 모든 리전 관리 이벤트 trail(로그 파일 검증 켬), 태스크 역할의 `admin-audit/` PutObject 권한, 태스크 환경변수 `ADMIN_AUDIT_BUCKET`·`ADMIN_AUDIT_PREFIX`를 더했다. `admin.py`는 삭제 기록을 S3에도 쓰고, 실패하면 삭제는 유지한 채 `audit_stored: false`와 이유를 결과에 넣고 종료 코드 3을 낸다. `tests/test_admin_audit.py` 4개(가짜 S3·가짜 삭제)를 추가했다. `boto3==1.39.3`을 의존성에 더했다. 읽기 전용 plan은 10개 생성, 1개 변경(GitHub 배포 역할 정책), 0개 삭제다. apply와 새 이미지 배포는 승인 전이다. 사전 확인: 계정에 trail·Lake 저장소가 없었고, 90일 이벤트 기록에는 일회성 삭제 태스크의 `RunTask`가 실행자·시각과 함께 남아 있었다. README "정리"에 trail 삭제, state 분리, 버킷 유지, 2028-02-16 이후 담당자 삭제 절차와 DB 직접 접속을 하지 않는 전제를 적었다.
+
+**방당 $0.20 상한**(2026-11-05): `Settings.room_cap_usd`(기본 None, `config/llm.yaml`의 `room_cap_usd`로 채움)를 더하고, `jobs.py`가 다음 모델 호출 전에 그 방의 `llm_calls` 비용 합을 읽어 상한에 닿았으면 `budget_exceeded`를 낸다. 재시도하지 않고 기존 호출 실패 경로대로 `failed(call_error)`가 되며, 방장 재시도는 받되 같은 검사로 다시 실패한다(ARCHITECTURE 5절 "초과 시 실행 오류로 중단"). `tests/test_room_cost_cap.py` 6개를 더했다. 설정 필드만 넣고 검사가 없을 때 그중 2개가 실패하는 것을 확인한 뒤 검사를 넣어 통과시켰다. 기존 기대값은 바꾸지 않았다. `tests/` 271 passed(DB 있음).
+
+**처리방침 시행일**(2026-11-05): `docs/PRIVACY.md` 제15조의 "2026년 __월 __일"을 "2026년 11월 5일", 변경 이력의 "(최초 시행)"을 "2026-11-05"로 바꿨다. `web/src/pages/Privacy.tsx`는 이 파일을 빌드 때 그대로 넣어 그리므로 `npm run build` 뒤 번들에 두 문구가 들어 있음을 확인했다. 배포본 반영은 다음 SPA 동기화 때다.

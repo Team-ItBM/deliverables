@@ -187,11 +187,25 @@ class JobManager:
             if await cur.fetchone() is None:
                 raise JobStopped("stale")
 
+    async def _check_room_cap(self, job):
+        """다음 모델 호출 전에 그 방의 llm_calls 비용 합을 보고, 상한에 닿았으면 budget_exceeded를 낸다(ARCHITECTURE 5절)."""
+        cap = self.settings.room_cap_usd
+        if cap is None:
+            return
+        async with self.db.connection() as conn:
+            cur = await conn.execute("SELECT coalesce(sum(cost_usd), 0) AS total FROM llm_calls WHERE room_id = %s",
+                                     (job.room_id,))
+            total = float((await cur.fetchone())["total"])
+        if total >= cap:
+            log("budget_exceeded", scope="room", room_code=job.room_code, total_usd=total, cap_usd=cap)
+            raise LLMCallError("budget_exceeded", None)
+
     async def _call_with_retries(self, job, stage, model_input, repair_errors, record):
         bases = list(self.settings.retry_backoff_seconds)
         for attempt in range(len(bases) + 1):
             started = self.clock()
             try:
+                await self._check_room_cap(job)
                 async with self._semaphore:
                     result = await self._llm(job, stage, model_input, repair_errors)
             except LLMCallError as exc:
