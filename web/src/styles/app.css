@@ -95,8 +95,20 @@ a {
   padding: calc(var(--s-lg) + env(safe-area-inset-top)) var(--s-gutter) var(--s-lg);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--s-sm);
+  gap: var(--s-xs);
+}
+.icon-btn {
+  appearance: none;
+  border: 0;
+  background: none;
+  color: var(--c-primary);
+  width: var(--touch-min);
+  height: var(--touch-min);
+  margin-left: calc(-1 * var(--s-md));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 .app-header a {
   color: var(--c-primary);
@@ -156,6 +168,30 @@ a {
   gap: var(--s-sm);
 }
 
+/* ---------- 확인 시트 ---------- */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgb(62 56 51 / 40%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.sheet {
+  width: 100%;
+  max-width: var(--content-max);
+  max-height: 100%;
+  overflow-y: auto;
+  background: var(--c-neutral);
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+  padding: var(--s-2xl) var(--s-gutter) calc(var(--s-lg) + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-md);
+  animation: rise var(--m-enter) var(--m-easing);
+}
+
 /* ---------- 버튼 ---------- */
 .btn {
   appearance: none;
@@ -203,6 +239,11 @@ a {
 }
 .card .btn-secondary:active:not(:disabled) {
   background: var(--c-surface-pressed);
+}
+/* 시트는 카드 안에서 열려도 바닥이 바탕색이라 기본 보조 버튼을 쓴다. */
+.sheet .btn-secondary:not(:disabled) {
+  background: var(--c-surface);
+  border: 0;
 }
 a.btn {
   text-decoration: none;

@@ -1,5 +1,6 @@
-import { Link, Route, Routes } from "react-router-dom";
+import { Link, Route, Routes, useNavigate } from "react-router-dom";
 import { Header } from "./components/ui";
+import { BackProvider, useHeaderBack } from "./lib/back";
 import { MockBar } from "./mock/MockBar";
 import { Answer } from "./pages/Answer";
 import { CreateRoom } from "./pages/CreateRoom";
@@ -11,6 +12,8 @@ import { Wait } from "./pages/Wait";
 const MOCK = import.meta.env.VITE_MOCK === "1";
 
 function NotFound() {
+  const navigate = useNavigate();
+  useHeaderBack(() => navigate("/"));
   return (
     <main className="page">
       <h1 className="t-headline-lg">페이지를 찾지 못했어요</h1>
@@ -23,7 +26,7 @@ function NotFound() {
 
 export function App() {
   return (
-    <>
+    <BackProvider>
       {MOCK && <MockBar />}
       <Header />
       <Routes>
@@ -35,6 +38,6 @@ export function App() {
         <Route path="/r/:code/result" element={<Result />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
-    </>
+    </BackProvider>
   );
 }

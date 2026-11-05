@@ -1,13 +1,13 @@
-import { useEffect } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { isNotFound } from "../api/errors";
 import type { RoomView } from "../api/types";
 import { HostPanel } from "../components/HostPanel";
 import { PushOptIn } from "../components/PushOptIn";
-import { Count, ErrorMessage, RoomNotFound } from "../components/ui";
+import { BottomBar, Count, ErrorMessage, RoomNotFound } from "../components/ui";
 import { loadSubmitted } from "../lib/answerSession";
-import { useHostToken, usePolling } from "../lib/hooks";
+import { useHeaderBack } from "../lib/back";
+import { useHasResult, useHostToken, usePolling } from "../lib/hooks";
 import { FAILURE_TEXT, ROOM_STATUS_TEXT } from "../lib/status";
 
 export function Wait() {
@@ -15,17 +15,18 @@ export function Wait() {
   const navigate = useNavigate();
   const token = useHostToken(code);
   const submitted = loadSubmitted(code);
+  const roomPath = `/r/${encodeURIComponent(code)}`;
+  useHeaderBack(() => navigate(roomPath));
   const { data: room, error, reload } = usePolling<RoomView>(
     () => api.getRoom(code, token),
     (r) => !r || r.room_status !== "ready",
     [code, token]
   );
-
-  useEffect(() => {
-    if (room?.room_status === "ready") navigate(`/r/${encodeURIComponent(code)}/result`, { replace: true });
-  }, [room?.room_status, code, navigate]);
+  const hasResult = useHasResult(code, room?.room_status);
 
   if (!room && isNotFound(error)) return <RoomNotFound />;
+  // 제출한 기기와 방장은 진행 상황을 먼저 보고 직접 협약서를 연다. 그 밖의 사람은 결과로 바로 간다.
+  if (hasResult && !token && !submitted) return <Navigate to={`${roomPath}/result`} replace />;
 
   return (
     <main className="page">
@@ -41,7 +42,7 @@ export function Wait() {
               {!token && <p className="secondary">방장이 같은 응답으로 다시 시도할 수 있어요.</p>}
             </>
           )}
-          <Count label="제출" value={room.submitted_count} total={room.party_size} />
+          <Count label={token ? "제출(나 포함)" : "제출"} value={room.submitted_count} total={room.party_size} />
           {(room.room_status === "generating" || room.room_status === "closed") && (
             <div className="progress-track" aria-hidden="true">
               <div className="progress-flow" />
@@ -50,12 +51,20 @@ export function Wait() {
         </section>
       )}
       {error !== null && <ErrorMessage error={error} onRetry={reload} />}
-      {room && token && <HostPanel code={code} token={token} room={room} onChanged={reload} />}
+      {room && token && <HostPanel code={code} token={token} room={room} onChanged={reload} showStatus={false} />}
       {submitted && !token && <PushOptIn code={code} role="participant" sessionId={submitted.session_id} />}
       <p className="t-body-sm secondary">이 화면을 닫아도 돼요. 초대 링크로 다시 열면 진행 상황을 볼 수 있어요.</p>
-      <Link className="btn-text" to={`/r/${encodeURIComponent(code)}`}>
-        방 첫 화면으로
-      </Link>
+      {hasResult && !token && (
+        <BottomBar>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => navigate(`${roomPath}/result`, { state: { started: true } })}
+          >
+            협약서 보기
+          </button>
+        </BottomBar>
+      )}
     </main>
   );
 }

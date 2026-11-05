@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { api } from "../api/client";
+import type { RoomStatus } from "../api/types";
 import { getHostToken } from "./hostToken";
 
 /**
@@ -62,6 +64,30 @@ export function usePolling<T>(
     setTick((t) => t + 1);
   }, []);
   return { data, error, reload, loading };
+}
+
+/**
+ * 공개할 결과가 있는지 본다. 재생성이 실패하거나 진행 중이어도 기존 결과는 남아 있어서
+ * room_status로는 판단할 수 없다. 응답을 받는 동안에는 결과가 없다. 확인 전에는 null이다.
+ */
+export function useHasResult(code: string, status: RoomStatus | undefined): boolean | null {
+  const [has, setHas] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!status) return;
+    if (status === "open") {
+      setHas(false);
+      return;
+    }
+    let cancelled = false;
+    api
+      .getResult(code)
+      .then(() => !cancelled && setHas(true))
+      .catch(() => !cancelled && setHas(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [code, status]);
+  return has;
 }
 
 export function useHostToken(code: string): string | null {

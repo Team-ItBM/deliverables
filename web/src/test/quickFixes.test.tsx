@@ -62,7 +62,7 @@ function panelWith(results: ResultEntry[]) {
   });
   return render(
     <MemoryRouter>
-      <HostPanel code="room1" token="t" room={readyRoom} onChanged={() => {}} />
+      <HostPanel code="room1" token="t" room={readyRoom} onChanged={() => {}} mode="result" />
     </MemoryRouter>
   );
 }
@@ -80,7 +80,7 @@ describe("재생성 버튼", () => {
 
   it("정상 결과가 두 개면 숨긴다", async () => {
     panelWith([entry("r1", "normal"), entry("r2", "normal")]);
-    await waitFor(() => expect(screen.getByText("결과 보기")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("초대 링크 복사")).toBeTruthy());
     await new Promise((r) => setTimeout(r, 0));
     expect(screen.queryByText("같은 응답으로 한 번 더 만들기")).toBeNull();
   });

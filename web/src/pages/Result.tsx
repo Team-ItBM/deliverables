@@ -1,20 +1,34 @@
 import { Download } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { ApiError, isNotFound } from "../api/errors";
 import type { ResultEntry, ResultsList, RoomView, SharedResult } from "../api/types";
 import { EditForm } from "../components/EditForm";
 import { HostPanel } from "../components/HostPanel";
 import { ResultSheet } from "../components/PactSheet";
-import { ErrorMessage, ICON, RoomNotFound } from "../components/ui";
+import { BottomBar, ErrorMessage, ICON, RoomNotFound } from "../components/ui";
+import { useHeaderBack } from "../lib/back";
 import { displaySegments, setAtPointer } from "../lib/editable";
 import { useHostToken, usePolling, usePrefersReducedMotion } from "../lib/hooks";
 import { savePaperImage } from "../lib/saveImage";
 import { keys, readJSON, writeJSON } from "../lib/storage";
 
-/** 화면용 종이와, 저장 이미지용으로 화면 밖에 360px 폭으로 그린 같은 종이. */
-function SheetWithSave({ result, edited }: { result: Partial<SharedResult>; edited?: boolean }) {
+/**
+ * 화면용 종이와, 저장 이미지용으로 화면 밖에 360px 폭으로 그린 같은 종이.
+ * 저장이 그 화면의 주 동작이면 아래 고정 영역에, 아니면 종이 아래에 둔다.
+ */
+function SheetWithSave({
+  result,
+  edited,
+  saveIsPrimary,
+  belowPaper,
+}: {
+  result: Partial<SharedResult>;
+  edited?: boolean;
+  saveIsPrimary: boolean;
+  belowPaper?: ReactNode;
+}) {
   const captureRef = useRef<HTMLDivElement>(null);
   const reduced = usePrefersReducedMotion();
   const seenKey = keys.seen(result.result_id ?? "none");
@@ -37,20 +51,28 @@ function SheetWithSave({ result, edited }: { result: Partial<SharedResult>; edit
     }
   };
 
+  const saveButton = (
+    <button
+      type="button"
+      className={`btn ${saveIsPrimary ? "btn-primary" : "btn-secondary"}`}
+      onClick={save}
+      disabled={state === "busy"}
+    >
+      <Download {...ICON} />
+      {state === "busy" ? "이미지를 만드는 중이에요" : "이미지로 저장"}
+    </button>
+  );
+
   return (
     <div className="stack-lg">
       <ResultSheet result={result} animate={animate} edited={edited} />
       <div className="capture-host" aria-hidden="true">
         <ResultSheet ref={captureRef} result={result} capture edited={edited} />
       </div>
-      {state === "error" && (
-        <ErrorMessage text="이미지를 저장하지 못했어요. 화면의 협약서는 그대로 있어요." onRetry={save} retryLabel="이미지 다시 저장" />
-      )}
+      {belowPaper}
+      {state === "error" && <ErrorMessage text="이미지를 저장하지 못했어요. 화면의 협약서는 그대로 있어요." />}
       {state === "done" && <p className="secondary" role="status">이미지를 저장했어요.</p>}
-      <button type="button" className="btn btn-secondary" onClick={save} disabled={state === "busy"}>
-        <Download {...ICON} />
-        {state === "busy" ? "이미지를 만드는 중이에요" : "이미지로 저장"}
-      </button>
+      {saveIsPrimary ? <BottomBar>{saveButton}</BottomBar> : saveButton}
     </div>
   );
 }
@@ -88,6 +110,9 @@ function HostResults({ code, token, onPublicChanged }: { code: string; token: st
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<unknown>(null);
+  const [newResult, setNewResult] = useState<number | null>(null);
+  const editRef = useRef<HTMLDivElement>(null);
+  const known = useRef<Set<string> | null>(null);
 
   const load = async () => {
     try {
@@ -113,6 +138,26 @@ function HostResults({ code, token, onPublicChanged }: { code: string; token: st
   }, [code, token, roomStatus]);
 
   const entries = useMemo(() => sortEntries(list?.results ?? []), [list]);
+
+  // 재생성이 끝나 새 정상 결과가 생기면 그 결과로 옮기고 알린다.
+  useEffect(() => {
+    if (!list) return;
+    const ids = new Set(entries.map((e) => e.result_id));
+    const fresh = known.current ? entries.filter((e) => e.state === "normal" && !known.current!.has(e.result_id)) : [];
+    known.current = ids;
+    const latest = fresh[fresh.length - 1];
+    if (latest) {
+      setTab(latest.result_id);
+      setEditing(false);
+      setNewResult(latest.attempt);
+      window.scrollTo(0, 0);
+    }
+  }, [list, entries]);
+
+  useEffect(() => {
+    if (editing) editRef.current?.scrollIntoView?.({ block: "start" });
+  }, [editing]);
+
   const firstNormal = entries.find((e) => e.state === "normal");
   const publicId = list?.selected_result_id ?? firstNormal?.result_id ?? null;
   const current = entries.find((e) => e.result_id === tab) ?? entries.find((e) => e.result_id === publicId) ?? entries[0];
@@ -132,11 +177,38 @@ function HostResults({ code, token, onPublicChanged }: { code: string; token: st
   };
 
   const overlay = current && current.state === "normal" ? overlayEditable(current) : null;
+  const isSelected = current?.result_id === list?.selected_result_id;
+
+  const menu = room.data && (
+    <HostPanel
+      code={code}
+      token={token}
+      room={room.data}
+      mode="result"
+      onChanged={() => {
+        setNewResult(null);
+        room.reload();
+        window.scrollTo(0, 0);
+      }}
+    />
+  );
 
   return (
     <div className="stack-lg">
-      {room.data && <HostPanel code={code} token={token} room={room.data} onChanged={room.reload} showResultLink={false} />}
       {error !== null && <ErrorMessage error={error} onRetry={() => void load()} />}
+      {roomStatus === "generating" && (
+        <section className="card" aria-live="polite">
+          <p>새 결과를 만들고 있어요. 지금 공개된 결과는 그대로예요.</p>
+          <div className="progress-track" aria-hidden="true">
+            <div className="progress-flow" />
+          </div>
+        </section>
+      )}
+      {newResult !== null && (
+        <p className="card" role="status">
+          {newResult}번째 결과가 나왔어요. 고르기 전까지 동행에게는 보이지 않아요.
+        </p>
+      )}
       {entries.length > 1 && (
         <div className="tabs" role="tablist" aria-label="만든 결과">
           {entries.map((e) => (
@@ -160,46 +232,59 @@ function HostResults({ code, token, onPublicChanged }: { code: string; token: st
       {current && overlay && (
         <>
           <p className="secondary" role="status">
-            {current.result_id === list?.selected_result_id
+            {isSelected
               ? "이 결과가 동행에게 공개되고 있어요."
               : current.result_id === publicId
-                ? "방장이 고르기 전이라 이 결과가 초안으로 공개되고 있어요."
-                : "아직 방장에게만 보이는 결과예요."}
+                ? "고르기 전이라 이 결과가 초안으로 공개되고 있어요. 고르면 초안 표시가 사라져요."
+                : "아직 방장에게만 보이는 결과예요. 고르면 동행에게 공개돼요."}
           </p>
-          {actionError !== null && <ErrorMessage error={actionError} />}
-          {current.result_id !== list?.selected_result_id && (
-            <button
-              type="button"
-              className="btn btn-primary"
-              disabled={busy}
-              onClick={() => act(() => api.select(code, current.result_id, token))}
-            >
-              이 결과로 공개하기
-            </button>
-          )}
-          {editing && current.editable ? (
-            <EditForm
-              key={current.result_id}
-              editable={current.editable}
-              onCancel={() => setEditing(false)}
-              onSave={async (edits) => {
-                await api.edit(code, current.result_id, edits, token);
-                setEditing(false);
-                await load();
-                onPublicChanged();
-              }}
-            />
-          ) : (
-            current.editable &&
-            current.editable.length > 0 && (
-              <button type="button" className="btn-text" onClick={() => setEditing(true)}>
-                문구 고치기
+          <SheetWithSave
+            result={overlay.view}
+            edited={overlay.edited}
+            saveIsPrimary={isSelected && !editing}
+            belowPaper={
+              <>
+                {actionError !== null && <ErrorMessage error={actionError} />}
+                {editing && current.editable ? (
+                  <div ref={editRef}>
+                    <EditForm
+                      key={current.result_id}
+                      editable={current.editable}
+                      onCancel={() => setEditing(false)}
+                      onSave={async (edits) => {
+                        await api.edit(code, current.result_id, edits, token);
+                        setEditing(false);
+                        await load();
+                        onPublicChanged();
+                      }}
+                    />
+                  </div>
+                ) : (
+                  current.editable &&
+                  current.editable.length > 0 && (
+                    <button type="button" className="btn-text" onClick={() => setEditing(true)}>
+                      문구 고치기
+                    </button>
+                  )
+                )}
+              </>
+            }
+          />
+          {!isSelected && !editing && (
+            <BottomBar>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={busy}
+                onClick={() => act(() => api.select(code, current.result_id, token))}
+              >
+                이 결과로 고르기
               </button>
-            )
+            </BottomBar>
           )}
-          <SheetWithSave result={overlay.view} edited={overlay.edited} />
         </>
       )}
+      {menu}
     </div>
   );
 }
@@ -207,6 +292,8 @@ function HostResults({ code, token, onPublicChanged }: { code: string; token: st
 export function Result() {
   const { code = "" } = useParams();
   const token = useHostToken(code);
+  const navigate = useNavigate();
+  useHeaderBack(() => navigate(token ? `/r/${encodeURIComponent(code)}` : "/"));
   const [result, setResult] = useState<SharedResult | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [tick, setTick] = useState(0);
@@ -246,7 +333,7 @@ export function Result() {
       {token ? (
         <HostResults code={code} token={token} onPublicChanged={() => setTick((t) => t + 1)} />
       ) : (
-        result && <SheetWithSave result={result} />
+        result && <SheetWithSave result={result} saveIsPrimary />
       )}
     </main>
   );

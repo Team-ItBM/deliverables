@@ -1,34 +1,54 @@
 import { CircleAlert, Lock } from "lucide-react";
 import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import privacyMd from "../../../docs/PRIVACY.md?raw";
 import { api } from "../api/client";
 import { isNotFound } from "../api/errors";
 import type { RoomView } from "../api/types";
 import { contactSectionId } from "../components/Markdown";
 import { HostPanel } from "../components/HostPanel";
-import { BottomBar, ErrorMessage, ICON, RoomNotFound } from "../components/ui";
-import { loadSession, loadSubmitted, saveSession } from "../lib/answerSession";
-import { usePolling, useHostToken } from "../lib/hooks";
-import { SCENARIO_STATUS_TEXT } from "../lib/status";
+import { BottomBar, ConfirmSheet, Count, ErrorMessage, ICON, RoomNotFound } from "../components/ui";
+import { clearSession, loadSession, loadSubmitted, saveSession } from "../lib/answerSession";
+import { useHeaderBack } from "../lib/back";
+import { useHasResult, useHostToken, usePolling } from "../lib/hooks";
+import { ROOM_STATUS_TEXT, SCENARIO_STATUS_TEXT } from "../lib/status";
 import { tripMetaText } from "../lib/trip";
 
 const CONTACT = contactSectionId(privacyMd);
+
+function hostTitle(room: RoomView): string {
+  if (room.scenario_status === "preparing") return "문항을 준비하고 있어요";
+  if (room.scenario_status !== "ready") return "문항을 만들지 못했어요";
+  if (room.room_status === "open") return "동행의 답을 모으고 있어요";
+  if (room.room_status === "ready") return "협약서가 준비됐어요";
+  if (room.room_status === "failed") return "협약서를 만들지 못했어요";
+  return "협약서를 만들고 있어요";
+}
 
 export function RoomEntry() {
   const { code = "" } = useParams();
   const navigate = useNavigate();
   const token = useHostToken(code);
+  useHeaderBack(() => navigate("/"));
   const { data: room, error, reload, loading } = usePolling<RoomView>(
     () => api.getRoom(code, token),
-    (r) => !r || r.scenario_status === "preparing" || (token !== null && r.room_status !== "ready"),
+    (r) =>
+      !r ||
+      r.scenario_status === "preparing" ||
+      r.room_status === "closed" ||
+      r.room_status === "generating" ||
+      (token !== null && r.room_status !== "ready"),
     [code, token]
   );
+  const hasResult = useHasResult(code, room?.room_status);
   const [picked, setPicked] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [sessionError, setSessionError] = useState<unknown>(null);
-  const inProgress = loadSession(code);
+  const [inProgress, setInProgress] = useState(() => loadSession(code));
+  const [confirmRestart, setConfirmRestart] = useState(false);
+  const [answerAgain, setAnswerAgain] = useState(false);
   const submitted = loadSubmitted(code);
+  const roomPath = `/r/${encodeURIComponent(code)}`;
 
   if (loading && !room) return <main className="page"><p className="secondary">방 정보를 불러오고 있어요.</p></main>;
   if (!room && isNotFound(error)) return <RoomNotFound />;
@@ -40,8 +60,14 @@ export function RoomEntry() {
     );
   }
 
-  const profile = room.profiles.find((p) => p.profile_id === picked);
+  if (hasResult && !token && !submitted) return <Navigate to={`${roomPath}/result`} replace />;
+
   const canAnswer = room.room_status === "open" && room.scenario_status === "ready";
+  const resuming = canAnswer && inProgress !== null;
+  const showNames = canAnswer && !resuming && (!submitted || answerAgain);
+  const showProgress = !!submitted && !answerAgain && !resuming;
+  const profile = room.profiles.find((p) => p.profile_id === picked);
+  const closedForAnswers = room.scenario_status === "ready" && room.room_status !== "open";
 
   const start = async () => {
     if (!profile) return;
@@ -56,7 +82,7 @@ export function RoomEntry() {
         answers: {},
         step: 0,
       });
-      navigate(`/r/${encodeURIComponent(code)}/answer`);
+      navigate(`${roomPath}/answer`, { state: { fromRoom: true } });
     } catch (err) {
       setSessionError(err);
     } finally {
@@ -64,15 +90,37 @@ export function RoomEntry() {
     }
   };
 
+  const resumeButton = (
+    <button
+      type="button"
+      className="btn btn-primary"
+      onClick={() => navigate(`${roomPath}/answer`, { state: { fromRoom: true } })}
+    >
+      이어서 답하기
+    </button>
+  );
+  const progressButton = hasResult ? (
+    <button
+      type="button"
+      className="btn btn-primary"
+      onClick={() => navigate(`${roomPath}/result`, { state: { started: true } })}
+    >
+      협약서 보기
+    </button>
+  ) : (
+    <button type="button" className="btn btn-primary" onClick={() => navigate(`${roomPath}/wait`)}>
+      진행 상황 보기
+    </button>
+  );
+
   return (
     <main className="page">
       <div className="stack-sm">
-        <h1 className="t-headline-lg">여행 전 질문에 답해 주세요</h1>
+        <h1 className="t-headline-lg">{token ? hostTitle(room) : "여행 전 질문에 답해 주세요"}</h1>
         {room.trip && <p className="t-label-md">{tripMetaText(room.trip)}</p>}
-        <p className="secondary">같은 상황에 각자 답하면, 서로의 바람과 한계를 담은 추천 협약서를 받아요.</p>
+        {!token && <p className="secondary">같은 상황에 각자 답하면, 서로의 바람과 한계를 담은 추천 협약서를 받아요.</p>}
       </div>
 
-      {token && <HostPanel code={code} token={token} room={room} onChanged={reload} />}
       {token && room.scenario_notice && (room.scenario_notice.message || room.scenario_notice.clarification_questions) && (
         <section className="card" aria-label="문항 준비 안내">
           {room.scenario_notice.message && <p>{room.scenario_notice.message}</p>}
@@ -84,9 +132,6 @@ export function RoomEntry() {
             </ul>
           )}
           <p className="t-body-sm secondary">여행 정보를 고쳐 새 방을 만들어 주세요.</p>
-          <Link className="btn-text" to="/">
-            새 방 만들기
-          </Link>
         </section>
       )}
 
@@ -101,34 +146,35 @@ export function RoomEntry() {
         </section>
       )}
 
-      {room.scenario_status === "ready" && room.room_status !== "open" && (
+      {showProgress && (
+        <section className="card" aria-live="polite">
+          <p>이 기기에서 답변을 제출했어요.</p>
+          {!token && <p className="secondary">{ROOM_STATUS_TEXT[room.room_status]}</p>}
+          {!token && <Count label="제출" value={room.submitted_count} total={room.party_size} />}
+          {canAnswer && (
+            <button type="button" className="btn-text" onClick={() => setAnswerAgain(true)}>
+              다른 이름으로 답하기
+            </button>
+          )}
+        </section>
+      )}
+
+      {closedForAnswers && !showProgress && !token && (
         <section className="card">
           <p>응답을 마감했어요. 더는 답을 받지 않아요.</p>
-          <Link className="btn-text" to={`/r/${encodeURIComponent(code)}/wait`}>
-            진행 상황 보기
-          </Link>
         </section>
       )}
 
-      {submitted && (
-        <section className="card">
-          <p>이 기기에서 답변을 제출했어요.</p>
-          <Link className="btn-text" to={`/r/${encodeURIComponent(code)}/wait`}>
-            진행 상황 보기
-          </Link>
-        </section>
-      )}
-
-      {canAnswer && inProgress && (
+      {resuming && (
         <section className="card">
           <p>{inProgress.display_name} 이름으로 답하던 중이에요.</p>
-          <Link className="btn-text" to={`/r/${encodeURIComponent(code)}/answer`}>
-            이어서 답하기
-          </Link>
+          <button type="button" className="btn-text" onClick={() => setConfirmRestart(true)}>
+            처음부터 다시 답하기
+          </button>
         </section>
       )}
 
-      {canAnswer && (
+      {showNames && (
         <section className="stack-md">
           <h2 className="t-headline-md" id="names-title">
             내 이름을 골라 주세요
@@ -160,16 +206,23 @@ export function RoomEntry() {
         </section>
       )}
 
-      <section className="notice-privacy" aria-label="등록 정보 안내">
-        <Lock {...ICON} />
-        <p>
-          방장이 이 여행을 위해 동행의 이름을 등록했어요. 방장이 입력한 경우 성별·나이대·MBTI도 함께 등록돼요. 이 정보는 각자에게
-          맞는 문항을 보여 주는 데만 쓰고, 다른 동행에게 보여 주지 않아요. 등록 정보를 지우고 싶으면{" "}
-          <Link to={`/privacy${CONTACT ? `#${CONTACT}` : ""}`}>처리방침의 요청 방법</Link>을 확인해 주세요.
-        </p>
-      </section>
+      {token && (
+        <HostPanel code={code} token={token} room={room} onChanged={reload} ownPrimary={showNames || resuming} />
+      )}
 
-      {canAnswer && (
+      {(showNames || room.scenario_status === "preparing") && (
+        <section className="notice-privacy" aria-label="등록 정보 안내">
+          <Lock {...ICON} />
+          <p>
+            방장이 이 여행을 위해 동행의 이름을 등록했어요. 방장이 입력한 경우 성별·나이대·MBTI도 함께 등록돼요. 이 정보는
+            각자에게 맞는 문항을 보여 주는 데만 쓰고, 다른 동행에게 보여 주지 않아요. 등록 정보를 지우고 싶으면{" "}
+            <Link to={`/privacy${CONTACT ? `#${CONTACT}` : ""}`}>처리방침의 요청 방법</Link>을 확인해 주세요.
+          </p>
+        </section>
+      )}
+
+      {resuming && <BottomBar>{resumeButton}</BottomBar>}
+      {showNames && (
         <BottomBar>
           {sessionError !== null && <ErrorMessage error={sessionError} />}
           {!profile && <p className="disabled-reason">이름을 고르면 시작할 수 있어요.</p>}
@@ -177,6 +230,23 @@ export function RoomEntry() {
             {profile ? `${profile.display_name} 이름으로 답하기` : "답하기"}
           </button>
         </BottomBar>
+      )}
+      {!token && (showProgress || closedForAnswers) && <BottomBar>{progressButton}</BottomBar>}
+
+      {confirmRestart && (
+        <ConfirmSheet
+          title="처음부터 다시 답할까요?"
+          confirmLabel="지우고 다시 답하기"
+          cancelLabel="이어서 답하기"
+          onConfirm={() => {
+            clearSession(code);
+            setInProgress(null);
+            setConfirmRestart(false);
+          }}
+          onCancel={() => setConfirmRestart(false)}
+        >
+          <p>지금까지 고른 답과 메모가 사라져요.</p>
+        </ConfirmSheet>
       )}
     </main>
   );

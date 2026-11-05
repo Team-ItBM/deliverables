@@ -1,9 +1,17 @@
-import { ArrowLeft, CircleAlert, Lock } from "lucide-react";
+import { CircleAlert, Lock } from "lucide-react";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { Navigate, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import type { ScenarioOption, SessionScenario } from "../api/types";
 import { BottomBar, ErrorMessage, ICON } from "../components/ui";
-import { clearSession, loadSession, saveSession, submitSession, type AnswerSession } from "../lib/answerSession";
+import { useHeaderBack } from "../lib/back";
+import {
+  clearSession,
+  loadSession,
+  loadSubmitted,
+  saveSession,
+  submitSession,
+  type AnswerSession,
+} from "../lib/answerSession";
 import { clampMemo, memoLength, MEMO_MAX, splitScene } from "../lib/scene";
 
 const MEMO_NOTICE = "메모에는 건강 상태처럼 일정 조율과 상관없는 개인 사정은 적지 말아 주세요.";
@@ -126,9 +134,34 @@ function ScenarioStep({
   );
 }
 
+/** 문항 단계의 브라우저 기록에 함께 두는 값. depth는 이 답변을 시작한 기록에서 몇 칸 왔는지다. */
+interface StepState {
+  depth?: number;
+  fromRoom?: boolean;
+  fromReview?: boolean;
+}
+
+/** 주소의 단계(1부터, 또는 review)를 문항 번호로 읽는다. 안 고른 문항을 건너뛰지 못하게 막는다. */
+function readStep(raw: string | null, s: AnswerSession): number {
+  const total = s.scenarios.length;
+  const parsed = raw === "review" ? total : Number(raw) - 1;
+  const wanted = raw !== null && Number.isInteger(parsed) && parsed >= 0 ? parsed : s.step;
+  const firstOpen = s.scenarios.findIndex((sc) => !s.answers[sc.scenario_id]?.option_id);
+  return Math.min(wanted, firstOpen < 0 ? total : firstOpen, total);
+}
+
+function stepSearch(step: number, total: number): string {
+  return `?step=${step >= total ? "review" : step + 1}`;
+}
+
 export function Answer() {
   const { code = "" } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [params] = useSearchParams();
+  const roomPath = `/r/${encodeURIComponent(code)}`;
+  const nav = (location.state ?? {}) as StepState;
+  const depth = nav.depth ?? 0;
   const [s, setS] = useState<AnswerSession | null>(() => loadSession(code));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
@@ -136,22 +169,42 @@ export function Answer() {
   const submittedRef = useRef(false);
   const failureRef = useRef<HTMLDivElement>(null);
 
+  const urlStep = s ? readStep(params.get("step"), s) : 0;
+
   useEffect(() => {
     if (s && !submittedRef.current) saveSession(code, s);
   }, [code, s]);
+  // 다시 들어왔을 때 이어 갈 자리를 기억한다.
+  useEffect(() => {
+    setS((prev) => (prev && prev.step !== urlStep ? { ...prev, step: urlStep } : prev));
+  }, [urlStep]);
   useEffect(() => {
     window.scrollTo(0, 0);
     topRef.current?.focus();
-  }, [s?.step]);
+  }, [urlStep]);
   // 답 확인 화면의 오류는 본문 끝에 있어서, 제출에 실패하면 그 자리를 화면에 올린다.
   useEffect(() => {
     if (error !== null) failureRef.current?.scrollIntoView?.({ block: "center" });
   }, [error]);
 
-  if (!s) return <Navigate to={`/r/${encodeURIComponent(code)}`} replace />;
+  useHeaderBack(() => {
+    if (depth > 0) navigate(-1);
+    else if (urlStep > 0) navigate({ search: stepSearch(urlStep - 1, s?.scenarios.length ?? 0) }, { replace: true, state: nav });
+    else if (nav.fromRoom) navigate(-1);
+    else navigate(roomPath, { replace: true });
+  });
+
+  if (!s) {
+    // 제출 뒤 쌓인 문항 기록을 되돌리는 중이다. 시작 기록에 닿으면 아래에서 대기 화면으로 바꾼다.
+    if (depth > 0 && submittedRef.current) return null;
+    return <Navigate to={loadSubmitted(code) ? `${roomPath}/wait` : roomPath} replace />;
+  }
 
   const total = s.scenarios.length;
-  const step = Math.min(s.step, total);
+  if (params.get("step") === null) {
+    return <Navigate to={{ search: stepSearch(urlStep, total) }} replace state={location.state} />;
+  }
+  const step = urlStep;
   const isReview = step === total;
   const scenario = s.scenarios[step];
   const answer = scenario ? s.answers[scenario.scenario_id] : undefined;
@@ -161,7 +214,8 @@ export function Answer() {
     setS((prev) =>
       prev ? { ...prev, answers: { ...prev.answers, [id]: { memo: "", ...prev.answers[id], ...p } } } : prev
     );
-  const go = (n: number) => setS((prev) => (prev ? { ...prev, step: n } : prev));
+  const go = (n: number, fromReview = false) =>
+    navigate({ search: stepSearch(n, total) }, { state: { depth: depth + 1, fromReview } satisfies StepState });
 
   const submit = async () => {
     setBusy(true);
@@ -170,7 +224,10 @@ export function Answer() {
       await submitSession(code, s, (next) => setS(next));
       submittedRef.current = true;
       clearSession(code);
-      navigate(`/r/${encodeURIComponent(code)}/wait`, { replace: true });
+      setS(null);
+      // 문항 기록을 걷어 내서, 대기 화면에서 뒤로 가도 제출한 답변이 나오지 않게 한다.
+      if (depth > 0) navigate(-depth);
+      else navigate(`${roomPath}/wait`, { replace: true });
     } catch (err) {
       setError(err);
       // submitSession이 키를 유지하거나 버린 상태를 setS로 반영했다.
@@ -199,12 +256,6 @@ export function Answer() {
             </span>
           </span>
         </div>
-        {step > 0 && (
-          <button type="button" className="btn-text" onClick={() => go(step - 1)}>
-            <ArrowLeft {...ICON} />
-            이전 문항
-          </button>
-        )}
         {s.duplicate_name_notice && step === 0 && (
           <p className="notice-duplicate-name">
             <CircleAlert {...ICON} />
@@ -236,7 +287,7 @@ export function Answer() {
                   <p className="t-body-sm secondary">{sc.question}</p>
                   <p>{label ?? "아직 고르지 않았어요"}</p>
                   {a?.memo.trim() && <p className="t-body-sm secondary">메모 {memoLength(a.memo)}자</p>}
-                  <button type="button" className="btn-text" onClick={() => go(i)}>
+                  <button type="button" className="btn-text" onClick={() => go(i, true)}>
                     {i + 1}번 고치기
                   </button>
                 </li>
@@ -265,8 +316,13 @@ export function Answer() {
         {!isReview && (
           <>
             {!answer?.option_id && <p className="disabled-reason">선택지를 하나 골라 주세요.</p>}
-            <button type="button" className="btn btn-primary" disabled={!answer?.option_id} onClick={() => go(step + 1)}>
-              {step + 1 === total ? "답 확인하기" : "다음"}
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={!answer?.option_id}
+              onClick={() => (nav.fromReview ? navigate(-1) : go(step + 1))}
+            >
+              {nav.fromReview ? "확인으로 돌아가기" : step + 1 === total ? "답 확인하기" : "다음"}
             </button>
           </>
         )}
