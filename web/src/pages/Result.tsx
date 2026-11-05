@@ -1,4 +1,4 @@
-import { Download } from "lucide-react";
+import { Download, Share2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
@@ -8,13 +8,16 @@ import { EditForm } from "../components/EditForm";
 import { HostPanel } from "../components/HostPanel";
 import { PetalDrift } from "../components/PactBranch";
 import { hasPaper, issueItemCount, ResultSheet } from "../components/PactSheet";
-import { BottomBar, ErrorMessage, ICON, RoomNotFound } from "../components/ui";
+import { BottomBar, ErrorMessage, ICON, RoomNotFound, ShareButton } from "../components/ui";
 import { useHeaderBack } from "../lib/back";
 import { displaySegments, setAtPointer } from "../lib/editable";
 import { useHostToken, usePolling, usePrefersReducedMotion } from "../lib/hooks";
 import { savePaperImage } from "../lib/saveImage";
+import { resultShare, serviceShare } from "../lib/shareText";
 import { issueSeen, markIssueSeen, useIssueSequence } from "../lib/issue";
 import { issueSoundFor, SILENT } from "../lib/issueSound";
+
+const NAMES_NOTICE = "이미지에 동행 이름이 보여요";
 
 /**
  * 화면용 종이와, 저장 이미지용으로 화면 밖에 360px 폭으로 그린 같은 종이.
@@ -49,12 +52,12 @@ function SheetWithSave({
     markIssueSeen(code);
   }, [code]);
 
-  const save = async () => {
+  const makeImage = async (share?: ShareData) => {
     if (!captureRef.current) return;
     setState("busy");
     try {
       await document.fonts?.ready;
-      const r = await savePaperImage(captureRef.current, "dowon-pact.png");
+      const r = await savePaperImage(captureRef.current, "dowon-pact.png", share);
       setState(r === "cancelled" ? "idle" : "done");
     } catch {
       setState("error");
@@ -65,7 +68,7 @@ function SheetWithSave({
     <button
       type="button"
       className={`btn ${saveIsPrimary ? "btn-primary" : "btn-secondary"}`}
-      onClick={save}
+      onClick={() => void makeImage()}
       disabled={state === "busy"}
     >
       <Download {...ICON} />
@@ -82,7 +85,30 @@ function SheetWithSave({
       {belowPaper}
       {state === "error" && <ErrorMessage text="이미지를 저장하지 못했어요. 화면의 협약서는 그대로 있어요." />}
       {state === "done" && <p className="secondary" role="status">이미지를 저장했어요.</p>}
-      {saveIsPrimary ? <BottomBar>{saveButton}</BottomBar> : saveButton}
+      {saveIsPrimary ? (
+        <BottomBar>
+          <p className="t-body-sm secondary">{NAMES_NOTICE}</p>
+          {saveButton}
+        </BottomBar>
+      ) : (
+        saveButton
+      )}
+      <section className="stack-sm" aria-label="공유">
+        <p className="t-body-sm secondary">{NAMES_NOTICE}</p>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          disabled={state === "busy"}
+          onClick={() => void makeImage(resultShare)}
+        >
+          <Share2 {...ICON} />
+          결과 이미지 공유
+        </button>
+        <ShareButton data={serviceShare} shareLabel="도원결의 알려 주기" copyLabel="도원결의 링크 복사" secondary />
+        <Link className="btn-text" to="/new">
+          우리 여행도 만들어 보기
+        </Link>
+      </section>
     </div>
   );
 }
@@ -289,6 +315,7 @@ function HostResults({
                     </button>
                   )
                 )}
+                {menu}
               </>
             }
           />
@@ -306,7 +333,7 @@ function HostResults({
           )}
         </>
       )}
-      {menu}
+      {!overlay && menu}
     </div>
   );
 }

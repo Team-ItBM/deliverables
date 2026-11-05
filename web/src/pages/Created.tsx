@@ -4,6 +4,7 @@ import { BottomBar, CopyButton, ICON, ShareButton } from "../components/ui";
 import { useHeaderBack } from "../lib/back";
 import { hostUrl, inviteUrl } from "../lib/hostToken";
 import { useHostToken } from "../lib/hooks";
+import { inviteShare } from "../lib/shareText";
 
 /** 방을 만든 직후의 안내. 주소가 있어서 새로고침해도 초대 링크를 다시 볼 수 있다. */
 export function Created() {
@@ -41,7 +42,7 @@ export function Created() {
         <button type="button" className="btn btn-secondary" onClick={() => navigate(roomPath)}>
           방 화면으로 가기
         </button>
-        <ShareButton url={inviteUrl(code)} />
+        <ShareButton data={inviteShare(inviteUrl(code))} shareLabel="초대 링크 보내기" copyLabel="초대 링크 복사" />
       </BottomBar>
     </main>
   );

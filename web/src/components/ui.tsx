@@ -134,14 +134,25 @@ export function CopyButton({ text, label, primary }: { text: string; label: stri
   );
 }
 
-/** 기기의 공유 시트로 초대 링크를 보낸다. 공유를 못 하는 기기에서는 복사한다. */
-export function ShareButton({ url }: { url: string }) {
+/** 기기의 공유 시트로 링크를 보낸다. 공유를 못 하는 기기에서는 복사한다. */
+export function ShareButton({
+  data,
+  shareLabel,
+  copyLabel,
+  secondary,
+}: {
+  data: ShareData;
+  shareLabel: string;
+  copyLabel: string;
+  secondary?: boolean;
+}) {
+  const url = data.url ?? "";
   const [state, setState] = useState<"idle" | "copied" | "fail">("idle");
   const canShare = typeof navigator.share === "function";
   const onClick = async () => {
     if (canShare) {
       try {
-        await navigator.share({ title: "도원결의", text: "여행 전에 같은 상황에 각자 답해 주세요.", url });
+        await navigator.share(data);
         return;
       } catch (err) {
         if ((err as { name?: string }).name === "AbortError") return;
@@ -151,13 +162,18 @@ export function ShareButton({ url }: { url: string }) {
   };
   return (
     <>
-      {state === "fail" && <ErrorMessage text="복사하지 못했어요. 위 주소를 길게 눌러 직접 복사해 주세요." />}
-      <button type="button" className="btn btn-primary" onClick={onClick}>
+      {state === "fail" && (
+        <>
+          <ErrorMessage text="복사하지 못했어요. 아래 주소를 길게 눌러 직접 복사해 주세요." />
+          <p className="link-box">{url}</p>
+        </>
+      )}
+      <button type="button" className={`btn ${secondary ? "btn-secondary" : "btn-primary"}`} onClick={onClick}>
         {state === "copied" ? <Check {...ICON} /> : canShare ? <Share2 {...ICON} /> : <Copy {...ICON} />}
-        {state === "copied" ? "복사했어요" : canShare ? "초대 링크 보내기" : "초대 링크 복사"}
+        {state === "copied" ? "복사했어요" : canShare ? shareLabel : copyLabel}
       </button>
       <p className="sr-only" aria-live="polite">
-        {state === "copied" ? "초대 링크를 복사했어요" : ""}
+        {state === "copied" ? `${copyLabel}: 복사했어요` : ""}
       </p>
     </>
   );

@@ -100,3 +100,13 @@ describe("없는 방", () => {
     expect(screen.getByRole("link", { name: "새 방 만들기" }).getAttribute("href")).toBe("/new");
   });
 });
+
+describe("공유 문구", () => {
+  it("초대·결과·서비스 문구가 서로 다르고 비공개 항목 표현이 없다", async () => {
+    const { inviteShare, resultShare, serviceShare } = await import("../lib/shareText");
+    const texts = [inviteShare("https://x").text, resultShare.text, serviceShare.text];
+    expect(new Set(texts).size).toBe(3);
+    expect(texts.join(" ")).not.toMatch(/메모|선택|MBTI|성별|나이대|합의|동의/);
+    expect(resultShare.text).toContain("동행 모두가 정한 약속은 아니에요");
+  });
+});

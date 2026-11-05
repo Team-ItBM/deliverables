@@ -79,6 +79,11 @@ describe("결과 렌더러", () => {
     expect(screen.getByText("방장 수정")).toBeTruthy();
   });
 
+  it("화면과 저장용 종이 바닥글에 서비스 주소가 있다", () => {
+    const { container } = render(<ResultSheet result={base()} capture />);
+    expect(container.querySelector(".pact-footer")?.textContent).toContain("dowonpact.com");
+  });
+
   it("초안도 수정본도 아니면 두 표시가 없다", () => {
     const { container } = render(<ResultSheet result={base()} />);
     expect(container.textContent).not.toContain("초안");
