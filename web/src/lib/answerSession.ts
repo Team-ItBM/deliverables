@@ -30,6 +30,21 @@ export interface PendingSubmission {
 
 const PENDING_TTL_MS = 24 * 60 * 60 * 1000;
 
+/** 다른 작성 세션의 제출 결과를 아직 모른다. 현재 답은 보내지 않았고 초안도 그대로다. */
+export class OtherSubmissionPending extends Error {}
+
+/** 결과를 모르는 제출이 이 세션의 것인지 본다. 다른 세션의 것이면 그 제출을 먼저 확인해야 한다. */
+export function isOwnPending(pending: PendingSubmission | null, sessionId: string | undefined): boolean {
+  return pending !== null && pending.body.session_id === sessionId;
+}
+
+/** 보낸 본문의 답을 작성 상태로 옮긴다. 결과를 모르는 동안 확인 화면이 실제로 보낸 답을 보여 주게 한다. */
+export function withSentAnswers(s: AnswerSession, pending: PendingSubmission): AnswerSession {
+  const answers: AnswerSession["answers"] = {};
+  for (const a of pending.body.answers) answers[a.scenario_id] = { option_id: a.option_id, memo: a.memo ?? "" };
+  return { ...s, answers };
+}
+
 export function loadPending(code: string): PendingSubmission | null {
   const pending = readJSON<PendingSubmission>("local", keys.pending(code));
   if (pending && pending.expires_at <= Date.now()) {
@@ -72,7 +87,8 @@ export function ensureIdempotencyKey(s: AnswerSession): AnswerSession {
 
 function markSubmitted(code: string, sessionId: string, participantId: string): void {
   writeJSON("local", keys.submitted(code), { session_id: sessionId, participant_id: participantId } satisfies SubmittedInfo);
-  clearSession(code);
+  // 이 탭의 초안이 다른 세션이면 남긴다. 그 답은 아직 제출되지 않았다.
+  if (loadSession(code)?.session_id === sessionId) clearSession(code);
   clearPending(code);
 }
 
@@ -96,14 +112,15 @@ async function sendPending(code: string, pending: PendingSubmission): Promise<Su
   }
 }
 
-/** 작성 세션이 없는 화면(새 탭)에서 결과를 확인한다. */
+/** 작성 세션이 없거나 다른 세션인 화면에서 보존한 제출의 결과를 확인한다. */
 export async function resendPending(code: string): Promise<SubmissionResponse | null> {
   const pending = loadPending(code);
   return pending ? sendPending(code, pending) : null;
 }
 
 /**
- * 제출한다. 결과를 알 수 없는 제출이 있으면 지금 초안이 아니라 그 요청을 다시 보낸다.
+ * 제출한다. 이 세션의 결과를 알 수 없는 제출이 있으면 지금 초안이 아니라 그 요청을 다시 보낸다.
+ * 다른 세션의 것이면 아무것도 보내지 않고 OtherSubmissionPending을 낸다. 그 요청의 성공을 현재 제출의 성공으로 처리하면 현재 답이 사라진다.
  * 서버가 확정적으로 거절한 경우(4xx, 429 제외)에만 키를 버린다.
  */
 export async function submitSession(
@@ -112,6 +129,7 @@ export async function submitSession(
   persist: (next: AnswerSession) => void = (n) => saveSession(code, n)
 ): Promise<SubmissionResponse | null> {
   const kept = loadPending(code);
+  if (kept && !isOwnPending(kept, s.session_id)) throw new OtherSubmissionPending();
   const withKey = kept ? { ...s, idempotency_key: kept.idempotency_key } : ensureIdempotencyKey(s);
   persist(withKey);
   const pending: PendingSubmission = kept ?? {

@@ -9,9 +9,9 @@ import { contactSectionId } from "../components/Markdown";
 import { HostPanel } from "../components/HostPanel";
 import { OpenPact } from "../components/OpenPact";
 import { BottomBar, ConfirmSheet, CopyButton, ErrorMessage, ICON, RoomNotFound, StatusLine } from "../components/ui";
-import { clearSession, loadPending, loadSession, loadSubmitted, resendPending, saveSession } from "../lib/answerSession";
+import { clearSession, loadSession, loadSubmitted, resendPending, saveSession } from "../lib/answerSession";
 import { useHeaderBack } from "../lib/back";
-import { useHostToken, usePolling, useResultCheck } from "../lib/hooks";
+import { useHostToken, usePendingSubmission, usePolling, useResultCheck } from "../lib/hooks";
 import { inviteUrl } from "../lib/hostToken";
 import { FAILURE_TEXT, SCENARIO_STATUS_TEXT } from "../lib/status";
 import { tripMetaText } from "../lib/trip";
@@ -52,7 +52,8 @@ export function RoomEntry() {
   const [confirmRestart, setConfirmRestart] = useState(false);
   const [answerAgain, setAnswerAgain] = useState(false);
   // 결과를 모르는 제출이 있으면 새 키로 다시 답하지 못하게 다른 흐름을 막고 그 요청부터 확인한다.
-  const [pending, setPending] = useState(() => loadPending(code) !== null);
+  const pendingSubmission = usePendingSubmission(code);
+  const pending = pendingSubmission.pending !== null;
   const [pendingError, setPendingError] = useState<unknown>(null);
   const submitted = loadSubmitted(code);
   const roomPath = `/r/${encodeURIComponent(code)}`;
@@ -102,11 +103,14 @@ export function RoomEntry() {
     setPendingError(null);
     try {
       await resendPending(code);
-      setPending(false);
-      navigate(`${roomPath}/wait`);
+      pendingSubmission.refresh();
+      // 다른 세션의 초안이 남아 있으면 그 답을 이어서 따로 제출한다.
+      const draft = loadSession(code);
+      if (draft) setInProgress(draft);
+      else navigate(`${roomPath}/wait`);
     } catch (err) {
       setPendingError(err);
-      setPending(loadPending(code) !== null);
+      pendingSubmission.refresh();
       setInProgress(loadSession(code));
     } finally {
       setBusy(false);

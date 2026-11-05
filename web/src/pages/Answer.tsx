@@ -1,18 +1,22 @@
 import { CircleAlert, Lock } from "lucide-react";
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Navigate, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import type { ScenarioOption, SessionScenario } from "../api/types";
 import { BottomBar, ErrorMessage, ICON } from "../components/ui";
 import { useHeaderBack } from "../lib/back";
 import {
   clearSession,
-  loadPending,
+  isOwnPending,
   loadSession,
   loadSubmitted,
+  OtherSubmissionPending,
+  resendPending,
   saveSession,
   submitSession,
+  withSentAnswers,
   type AnswerSession,
 } from "../lib/answerSession";
+import { usePendingSubmission } from "../lib/hooks";
 import { clampMemo, memoLength, MEMO_MAX, splitScene } from "../lib/scene";
 
 const MEMO_NOTICE = "메모에는 건강 상태처럼 일정 조율과 상관없는 개인 사정은 적지 말아 주세요.";
@@ -163,15 +167,22 @@ export function Answer() {
   const roomPath = `/r/${encodeURIComponent(code)}`;
   const nav = (location.state ?? {}) as StepState;
   const depth = nav.depth ?? 0;
-  const [s, setS] = useState<AnswerSession | null>(() => loadSession(code));
+  const [draft, setS] = useState<AnswerSession | null>(() => loadSession(code));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
+  const [otherError, setOtherError] = useState<unknown>(null);
   const topRef = useRef<HTMLDivElement>(null);
   const submittedRef = useRef(false);
   const failureRef = useRef<HTMLDivElement>(null);
 
-  // 보낸 답의 결과를 모르는 동안은 답을 고칠 수 없다. 처음 보낸 요청을 그대로 다시 보내 결과를 확인한다.
-  const [locked, setLocked] = useState(() => loadPending(code) !== null);
+  const { pending, refresh: refreshPending } = usePendingSubmission(code);
+  const ownPending = isOwnPending(pending, draft?.session_id);
+  // 다른 세션의 제출 결과를 모르면 그 제출을 먼저 확인한다. 이 초안은 그대로 두고 고칠 수도 있다.
+  const otherPending = pending !== null && !ownPending;
+  // 제출을 시작하면 잠근다. 결과를 모르는 동안은 잠금을 유지하고, 명확한 거절로 보존이 지워지면 풀린다.
+  const locked = busy || ownPending;
+  // 결과를 모르는 동안 화면의 답은 보존한 본문이다. 다시 보내는 요청과 어긋나지 않는다.
+  const s = useMemo(() => (draft && pending && ownPending ? withSentAnswers(draft, pending) : draft), [draft, pending, ownPending]);
 
   const urlStep = s ? (locked ? s.scenarios.length : readStep(params.get("step"), s)) : 0;
 
@@ -233,10 +244,24 @@ export function Answer() {
       if (depth > 0) navigate(-depth);
       else navigate(`${roomPath}/wait`, { replace: true });
     } catch (err) {
-      setError(err);
+      // 그사이 다른 세션의 제출이 생긴 경우는 아래 안내로 보여 준다.
+      setError(err instanceof OtherSubmissionPending ? null : err);
       // submitSession이 키를 유지하거나 버린 상태를 setS로 반영했다. 결과를 모르면 보존이 남아 있어 답을 잠근다.
-      setLocked(loadPending(code) !== null);
+      refreshPending();
     } finally {
+      setBusy(false);
+    }
+  };
+
+  const confirmOther = async () => {
+    setBusy(true);
+    setOtherError(null);
+    try {
+      await resendPending(code);
+    } catch (err) {
+      setOtherError(err);
+    } finally {
+      refreshPending();
       setBusy(false);
     }
   };
@@ -309,6 +334,13 @@ export function Answer() {
             <Lock {...ICON} />
             <p>{s.privacy_notice}</p>
           </div>
+          {otherPending && (
+            <p className="secondary" role="status">
+              이 기기에서 먼저 보낸 답변의 제출 결과를 확인하지 못했어요. 그 답변을 먼저 확인하면 지금 답을 따로 제출할 수 있어요. 지금 답은
+              그대로 남아 있어요.
+            </p>
+          )}
+          {otherError !== null && <ErrorMessage error={otherError} />}
           {!allAnswered && <p className="disabled-reason">모든 문항에 답해야 제출할 수 있어요.</p>}
           {error !== null && (
             <div ref={failureRef}>
@@ -319,7 +351,12 @@ export function Answer() {
       )}
 
       <BottomBar>
-        {isReview && (
+        {isReview && otherPending && (
+          <button type="button" className="btn btn-primary" disabled={busy} onClick={confirmOther}>
+            {busy ? "확인하는 중이에요" : "이전 제출 확인하기"}
+          </button>
+        )}
+        {isReview && !otherPending && (
           <button type="button" className="btn btn-primary" disabled={!allAnswered || busy} onClick={submit}>
             {busy ? "보내는 중이에요" : locked ? "같은 답으로 다시 보내기" : error !== null ? "다시 제출하기" : "제출하기"}
           </button>

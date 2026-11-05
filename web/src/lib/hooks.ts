@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import { ApiError } from "../api/errors";
 import type { RoomStatus } from "../api/types";
+import { loadPending, type PendingSubmission } from "./answerSession";
 import { getHostToken } from "./hostToken";
+import { keys } from "./storage";
 
 /**
  * 같은 요청을 주기적으로 다시 부른다. 성공하면 3초에서 5초까지 천천히 늘리고,
@@ -131,6 +133,20 @@ export function useResultCheck(code: string, status: RoomStatus | undefined): Re
     setTick((t) => t + 1);
   }, []);
   return { has, failed, retry };
+}
+
+/** 결과를 모르는 제출. 다른 탭이 확인을 끝내면 storage 이벤트로 알 수 있다. 이 탭의 변경은 refresh로 다시 읽는다. */
+export function usePendingSubmission(code: string): { pending: PendingSubmission | null; refresh: () => void } {
+  const [pending, setPending] = useState(() => loadPending(code));
+  const refresh = useCallback(() => setPending(loadPending(code)), [code]);
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === null || e.key === keys.pending(code)) refresh();
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [code, refresh]);
+  return { pending, refresh };
 }
 
 export function useHostToken(code: string): string | null {

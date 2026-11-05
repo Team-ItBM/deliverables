@@ -3,12 +3,13 @@
 
 Usage: prune_spa.py <bucket> <dist dir>
 A file is removed only when it is not in the current build and its last upload
-is more than RETENTION_DAYS old. The grace period keeps lazy-loaded files
-available to tabs opened before a deploy.
+is more than RETENTION_DAYS old.
 
 RETENTION_DAYS is a team decision (2026-11-05), not a measured value. The clock
-is the S3 upload time, not the time the file left the build, so a file that was
-uploaded long ago can go in the first deploy that drops it.
+is the S3 upload time, not the time the file left the build. This is not a
+promise to keep old assets for seven days after a deploy: a file uploaded long
+ago goes in the first deploy that drops it, and a tab opened before that deploy
+can then fail to load it. Only files uploaded in the last seven days survive.
 """
 
 import json
