@@ -97,6 +97,6 @@ describe("없는 방", () => {
       </MemoryRouter>
     );
     await screen.findByRole("heading", { name: "방을 찾지 못했어요" });
-    expect(screen.getByRole("link", { name: "새 방 만들기" }).getAttribute("href")).toBe("/");
+    expect(screen.getByRole("link", { name: "새 방 만들기" }).getAttribute("href")).toBe("/new");
   });
 });

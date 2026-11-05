@@ -391,6 +391,57 @@ select.input {
   gap: var(--s-sm);
 }
 
+.field-error {
+  color: var(--c-error);
+  font-size: 14px;
+  line-height: 1.6;
+  display: flex;
+  gap: var(--s-sm);
+  align-items: flex-start;
+}
+.field-error svg {
+  flex: none;
+  margin-top: 1px;
+}
+.input[aria-invalid="true"] {
+  border-color: var(--c-error);
+}
+
+/* ---------- 랜딩 ---------- */
+.how-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-md);
+}
+.how-steps li {
+  display: flex;
+  gap: var(--s-md);
+  align-items: flex-start;
+}
+.how-step-number {
+  flex: none;
+  width: 20px;
+  line-height: 1.65;
+  color: var(--c-tertiary);
+}
+.sample {
+  margin: 0;
+}
+.room-link {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-xs);
+  min-height: 56px;
+  padding: var(--s-md) var(--s-lg);
+  background: var(--c-surface);
+  color: var(--c-primary);
+  border-radius: var(--r-lg);
+  text-decoration: none;
+}
+.room-link:active {
+  background: var(--c-surface-pressed);
+}
+
 /* ---------- 선택지 ---------- */
 .options {
   display: flex;

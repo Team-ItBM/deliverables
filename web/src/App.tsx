@@ -4,6 +4,8 @@ import { BackProvider, useHeaderBack } from "./lib/back";
 import { MockBar } from "./mock/MockBar";
 import { Answer } from "./pages/Answer";
 import { CreateRoom } from "./pages/CreateRoom";
+import { Created } from "./pages/Created";
+import { Landing } from "./pages/Landing";
 import { Privacy } from "./pages/Privacy";
 import { Result } from "./pages/Result";
 import { RoomEntry } from "./pages/RoomEntry";
@@ -30,9 +32,11 @@ export function App() {
       {MOCK && <MockBar />}
       <Header />
       <Routes>
-        <Route path="/" element={<CreateRoom />} />
+        <Route path="/" element={<Landing />} />
+        <Route path="/new" element={<CreateRoom />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/r/:code" element={<RoomEntry />} />
+        <Route path="/r/:code/created" element={<Created />} />
         <Route path="/r/:code/answer" element={<Answer />} />
         <Route path="/r/:code/wait" element={<Wait />} />
         <Route path="/r/:code/result" element={<Result />} />

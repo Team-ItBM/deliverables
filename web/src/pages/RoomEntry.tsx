@@ -132,6 +132,9 @@ export function RoomEntry() {
             </ul>
           )}
           <p className="t-body-sm secondary">여행 정보를 고쳐 새 방을 만들어 주세요.</p>
+          <Link className="btn-text" to="/new">
+            새 방 만들기
+          </Link>
         </section>
       )}
 

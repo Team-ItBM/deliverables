@@ -9,6 +9,18 @@ export function getHostToken(code: string): string | null {
   return readJSON<string>("local", keys.host(code));
 }
 
+/** 이 기기에 방장 토큰이 남아 있는 방 코드. */
+export function hostRoomCodes(): string[] {
+  const prefix = keys.host("");
+  try {
+    return Object.keys(window.localStorage)
+      .filter((k) => k.startsWith(prefix))
+      .map((k) => k.slice(prefix.length));
+  } catch {
+    return [];
+  }
+}
+
 export function saveHostToken(code: string, token: string): void {
   writeJSON("local", keys.host(code), token);
 }

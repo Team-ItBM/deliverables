@@ -1,4 +1,4 @@
-import { ArrowLeft, CircleAlert, Copy, Check } from "lucide-react";
+import { ArrowLeft, CircleAlert, Copy, Check, Share2 } from "lucide-react";
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { errorText } from "../api/errors";
@@ -41,7 +41,7 @@ export function RoomNotFound() {
         <p className="secondary">링크가 맞는지 방장에게 확인해 주세요. 새 여행이라면 방을 새로 만들 수 있어요.</p>
       </div>
       <BottomBar>
-        <Link className="btn btn-primary" to="/">
+        <Link className="btn btn-primary" to="/new">
           새 방 만들기
         </Link>
       </BottomBar>
@@ -131,6 +131,35 @@ export function CopyButton({ text, label, primary }: { text: string; label: stri
         </>
       )}
     </div>
+  );
+}
+
+/** 기기의 공유 시트로 초대 링크를 보낸다. 공유를 못 하는 기기에서는 복사한다. */
+export function ShareButton({ url }: { url: string }) {
+  const [state, setState] = useState<"idle" | "copied" | "fail">("idle");
+  const canShare = typeof navigator.share === "function";
+  const onClick = async () => {
+    if (canShare) {
+      try {
+        await navigator.share({ title: "도원결의", text: "여행 전에 같은 상황에 각자 답해 주세요.", url });
+        return;
+      } catch (err) {
+        if ((err as { name?: string }).name === "AbortError") return;
+      }
+    }
+    setState((await copyText(url)) ? "copied" : "fail");
+  };
+  return (
+    <>
+      {state === "fail" && <ErrorMessage text="복사하지 못했어요. 위 주소를 길게 눌러 직접 복사해 주세요." />}
+      <button type="button" className="btn btn-primary" onClick={onClick}>
+        {state === "copied" ? <Check {...ICON} /> : canShare ? <Share2 {...ICON} /> : <Copy {...ICON} />}
+        {state === "copied" ? "복사했어요" : canShare ? "초대 링크 보내기" : "초대 링크 복사"}
+      </button>
+      <p className="sr-only" aria-live="polite">
+        {state === "copied" ? "초대 링크를 복사했어요" : ""}
+      </p>
+    </>
   );
 }
 
