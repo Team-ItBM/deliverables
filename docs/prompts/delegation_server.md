@@ -132,7 +132,7 @@ editable: [{path, segments: [{text} | {participant_id, display, pair}]}]
 
 | ID | 입력·조작 | 기대 결과 | 근거 |
 |---|---|---|---|
-| INP-P01 | 기본 방 생성 | 201, `expires_at = created_at + 30일`. 문항 호출 1회, 모델 입력의 `participant_profiles`가 요청과 같다. 완료 뒤 `scenario_status: ready` | SPEC 5절 방 생성, F1 |
+| INP-P01 | 기본 방 생성 | 201, `expires_at = created_at + 30일`. 문항 호출 1회, 모델 입력의 `participant_profiles`는 `profile_id`와 선택 정보가 요청과 같고 `display_name`은 `친구1`~`친구3`이다. 완료 뒤 `scenario_status: ready` | SPEC 5절 방 생성, F1, 결정 36 |
 | INP-P02 | 세 프로필 모두 `profile_id`·`display_name`만 보냄 | 201. 모델 입력 프로필에 `gender`·`age_band`·`mbti` 키가 없다(null로 채우지 않는다) | AC2 "선택 정보 생략", 처리 정책 "프로필·개인화" |
 | INP-P03 | `party_size` 2(프로필 2개)와 8(프로필 8개) | 둘 다 201 | ARCHITECTURE 5절 입력 한도 경계 |
 | INP-P04 | 문항 재생 출력을 `s2`(`needs_information`), `s5`(`unsupported`), `s4`(`invalid_input`) 출력으로 바꿈 | `scenario_status`가 출력 상태와 같다. 방장 조회의 `scenario_notice`에 `message`가 있고, `needs_information`이면 `clarification_questions`도 있다. 방장 토큰이 없는 조회에는 `scenario_notice`가 없다 | SPEC 상태별 처리 `ScenarioSet` 행, 문항 프롬프트 "필드와 함수 인자"의 `route_scenario_result` |
@@ -360,6 +360,12 @@ editable: [{path, segments: [{text} | {participant_id, display, pair}]}]
 2026-11-05 결정(2회차 결과 확인, 전민규):
 
 35. 재생성이 실패한 방에서 `retry`와 `regenerate`는 같은 일(두 번째 정상 결과 하나 만들기)이다. 동시에 오면 생성 시도 ID로 하나만 받는다(REG-N04). 근거는 AC17(실패 재시도는 재생성 횟수를 쓰지 않는다)과 결정 30이다.
+
+2026-11-05 결정(개인정보 처리방침 검토 반영, 전민규):
+
+36. 문항 모델 호출 직전에 서버가 `participant_profiles[].display_name`을 배열 순서대로 `친구1`, `친구2`…로 바꿔 `llm_client.generate("scenarios", model_input)`에 넘긴다. `profile_id`와 `gender`·`age_band`·`mbti`는 그대로 보낸다. 입력 검증(INP-N02~N06)은 치환 전 원본으로 하고, DB·`GET /api/rooms/{room_code}`·세션 응답·결과 렌더링은 등록한 이름을 쓴다. 입력 규칙·스키마·문항 프롬프트(v8)·문항 검증기·fixture는 바꾸지 않는다(SPEC 처리 정책 "프로필·개인화", ARCHITECTURE 5절 "모델 입력의 이름 치환", [처리방침](../PRIVACY.md) 제6조).
+    INP-P01(§0-1 표, `tests/harness/server_cases.yaml`, `tests/test_server_scenario_input.py`)의 기대값은 "`profile_id`와 선택 정보는 요청과 같고 `display_name`은 `친구1`~`친구3`"으로 바꿨다(2026-11-05 전민규 승인). 하니스 기본 이름 `민준`·`지수`·`하늘`이 치환되는지 본다. 다른 케이스·fixture·기대값은 바꾸지 않았다.
+37. 화면 요구(서버 API는 바꾸지 않는다): 방 생성 화면은 선택 정보를 입력할 때 ‘동행에게 알렸어요’ 확인을 받는다. 이름 선택 화면은 방장이 이름·선택 정보를 등록한 사실, 사용 목적, 삭제 요청 방법(처리방침 제12조 연락처)을 쉬운 문구로 보여주고 처리방침을 링크한다. 응답 화면은 `privacy_notice`(PRV-P01, 글자 고정)와 별개의 문구로 건강 상태 등 조율에 필요하지 않은 개인 사정을 메모에 쓰지 않도록 안내한다. 문구는 `web/`에 둔다.
 
 ## §1. 프롬프트 원본
 
