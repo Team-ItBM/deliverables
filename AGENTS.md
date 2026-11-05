@@ -65,6 +65,7 @@
 - `references/course/`: 강의 작성지침 원본. `.local-work/`: 내부 분석·임시 검증 자료.
 - `tests/`: 골든 테스트(추천·문항), 도구 계약 테스트, pool 계약 테스트, 서버 계약 테스트. 골든 케이스와 fixture는 `tests/harness/`에 둔다.
 - 개발 위임 기록은 `docs/prompts/`, 평가 프롬프트는 `evals/`에 필요할 때 둔다.
+- AWS 작업 규칙은 [AWS_RULES](docs/AWS_RULES.md)를 따른다. AWS Agent Toolkit 원문이며, 이 문서와 충돌하면 프로젝트 규칙이 우선한다.
 
 용어집 확인(2026-09-30): 별도 세션에서 `memo`, `ParticipantPosition.reason`, `PactClause.proposed_conditions`, `Decision.reported_result`를 맞게 선택하고, 메모를 `expressed_content`로 바로 저장하지 않음을 확인했다. 용어집을 발췌로 정리한 뒤에도 같은 결과를 얻었다. 확인 범위는 해당 질의의 필드 선택이다.
 
