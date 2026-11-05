@@ -2,7 +2,7 @@
 
 ARCHITECTURE 2절 `infra/`·`.github/workflows/` 행과 5절 진입 경로·과부하 방지·운영 기준안·접속 로그, PRIVACY 제3조·제5조·제7조·제10조·제11조를 구현한다. 계정 ID는 `infra/terraform.tfvars`(gitignore)에, 프로필 `itbm`, 리전 ap-northeast-2. CloudFront용 인증서와 WAF만 us-east-1에 만든다.
 
-> 상태(2026-11-05): 코드 작성과 `terraform fmt`·`init -backend=false`·`validate`, state 없는 `plan`까지 했다. `apply`는 실행하지 않았다. 실제 AWS에서 동작하는지는 확인하지 않았다(아래 "확인하지 못한 것").
+> 상태(2026-11-05): `https://dowonpact.com`이 이 구성으로 운영 중이다. 장애 알람은 `-target`으로 적용했다. CSP와 `/r/*` 응답 헤더는 코드만 있고 적용 전이다. 남은 확인은 아래 "확인하지 못한 것"에 있다.
 
 ## 구성
 
@@ -224,8 +224,6 @@ ARCHITECTURE 5절 운영 기준안의 추정(월 약 $99, 2026-11-09~2027-01-12 
 
 ## 확인하지 못한 것
 
-- 2026-11-05에 첫 apply를 했다(70개 생성, 서비스 위임 기록 §2-6). 그 전 읽기 전용 plan은 "68 to add, 0 to change, 0 to destroy"였다. 읽기 데이터 소스(호스팅 영역, CloudFront 접두사 목록, 관리형 캐시·원본 요청·응답 헤더 정책)는 이때 조회됐다. 비밀 값 조회는 apply 시점으로 미뤄졌으므로 부트스트랩 2~3단계 없이 전체 apply하면 실패한다. IAM 정책, WAF 규칙 본문, CloudFront Function 코드가 AWS API에서 받아들여지는지는 apply 전까지 모른다.
-- SCP: 기억 기록상 SCP는 서울만 허용한다. 2026-11-05에 us-east-1에서 `acm list-certificates`, `wafv2 list-web-acls --scope CLOUDFRONT` 읽기는 성공했지만, 생성 작업이 허용되는지는 확인하지 않았다. 막히면 SCP 예외(ACM·WAFv2의 us-east-1)가 필요하다. 우회하지 않는다.
-- 서버 쪽 계약: `/api/health`, `python -m travel.server.db --init`, 환경 변수 이름은 아직 서버 코드에 없다. `requirements.txt`에 `uvicorn`이 아직 없어 현재 이미지의 CMD는 실행되지 않는다.
+- 2026-11-05에 첫 apply를 했다(70개 생성, 서비스 위임 기록 §2-6). 비밀 값 조회는 apply 시점으로 미뤄지므로, 새 계정에서 부트스트랩 2~3단계 없이 전체 apply하면 실패한다.
 - ARM64 이미지를 GitHub의 x86 러너에서 QEMU로 빌드하는 시간, 배포 워크플로 전체, OIDC 신뢰 조건은 실행해 보지 않았다.
 - CloudFront가 국외 엣지를 거치는 문제는 PRIVACY 제6조에 이미 안내되어 있다. 이 구성이 바꾸지 않는다.
