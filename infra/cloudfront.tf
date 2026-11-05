@@ -144,7 +144,8 @@ locals {
     "connect-src 'self' data:",
     "manifest-src 'self'",
     "worker-src 'self'",
-    "base-uri 'none'",
+    # 'self', not 'none': the image save library sets a base URL to read the stylesheet.
+    "base-uri 'self'",
     "form-action 'none'",
     "frame-ancestors 'none'",
     "object-src 'none'",

@@ -167,7 +167,16 @@ CSP 값은 `cloudfront.tf`의 `local.content_security_policy` 한 곳에만 있�
 ### 메일 받기
 
 1. `infra/terraform.tfvars`에 `alert_email = "주소"`를 넣는다. 저장소에는 넣지 않는다. 값은 Terraform state에도 남는다.
-2. CSP 절차 2단계와 같은 plan, apply 명령을 실행한다. `alert_email`이 `null`이면 토픽과 알람만 생기고 구독은 없다.
+2. 알람만 먼저 적용한다. 일반 `apply`는 CSP까지 함께 켠다. CSP는 새 폰트가 배포된 뒤에 켜야 한다. 지금 배포본은 Google Fonts를 불러서 CSP가 막기 때문이다. `alert_email`이 `null`이면 토픽과 알람만 생기고 구독은 없다.
+
+   ```sh
+   terraform apply -var aws_profile=itbm-tf -var app_desired_count=2 -var image_tag=<지금 태그> \
+     -target=aws_sns_topic.alerts -target=aws_sns_topic_policy.alerts -target=aws_sns_topic_subscription.alert_email \
+     -target=aws_cloudwatch_metric_alarm.service_down -target=aws_cloudwatch_metric_alarm.tasks_below_desired \
+     -target=aws_cloudwatch_metric_alarm.unhealthy_targets -target=aws_cloudwatch_metric_alarm.target_5xx \
+     -target=aws_cloudwatch_metric_alarm.elb_5xx -target=aws_cloudwatch_metric_alarm.no_running_tasks \
+     -target=aws_cloudwatch_metric_alarm.rds_free_storage -target=aws_cloudwatch_metric_alarm.rds_cpu
+   ```
 3. 사람이 메일함에서 "AWS Notification - Subscription Confirmation" 메일을 열고 "Confirm subscription"을 누른다. 누르기 전에는 알람 메일이 오지 않는다. 링크 유효 기간은 AWS 문서에 2일과 3일이 섞여 있으니 이틀 안에 누른다. 기간이 지나면 SNS 콘솔 Subscriptions에서 해당 구독을 고르고 "Request confirmation"을 누른다.
 4. 상태를 확인한다. `SubscriptionArn`이 `PendingConfirmation`이 아니어야 한다.
    ```
