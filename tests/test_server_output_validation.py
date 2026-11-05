@@ -4,10 +4,16 @@
 붙잡은 호출이 시작될 때의 시계 값이다. OUT-N06은 같은 DB에 앱 두 개를 연다. 앱 A가 호출을 붙잡아 방을
 generating에 두고, 앱 B(작업이 없는 새 인스턴스, 재시작한 컨테이너 흉내)가 멈춤 점검과 재시도를 한다(2026-11-05 사람 결정).
 OUT-N07도 같은 구성이다. 다만 앱 A의 작업은 살아 있다가 B의 재시도 뒤에 늦게 끝난다(결정 30, 생성 시도 ID).
+
+OUT-N05·N07은 시도 조건을 상태 단언으로 판정한다(2026-11-05 사람 승인, AC10·AC4). 유일 색인 results_one_ai_per_attempt는
+조건이 빠져도 쓰기를 DB 예외로 막아 상태가 그대로 남는다. 그래서 색인이 있는지 확인한 뒤 이 두 케이스의 DB에서만 지운다.
 """
+
+import asyncio
 
 import pytest
 
+from harness.server import db as testdb
 from harness.server import pact_outputs as po
 from harness.server import scenario_outputs as so
 from harness.server.api import assert_calls, assert_error, assert_status, error_codes_of
@@ -157,29 +163,68 @@ def test_out_n04_scenario_output_invalid_twice(srv, expect):
     assert_error(app.session(room, "p1"), expect["http_status"], expect["error_code"])
 
 
+def _isolate_attempt_conditions(srv):
+    """시도 조건만 남긴다. 색인을 지우기 전에 색인이 있는지 확인해 둘째 보호층이 사라지지 않게 한다."""
+    rows = srv.sql("SELECT 1 FROM pg_indexes WHERE indexname = 'results_one_ai_per_attempt'")
+    assert rows, "유일 색인 results_one_ai_per_attempt가 없다"
+    testdb.execute(srv.database_url, "DROP INDEX results_one_ai_per_attempt")
+
+
+def _release_hold_inside_deadline_write(app, hold, monkeypatch):
+    """작업 한도가 failed를 쓰는 트랜잭션 안에서 붙잡은 호출을 풀고, 늦은 출력이 시도 종료 쓰기에 닿을 때까지 기다린다.
+
+    작업 한도는 쓰기 뒤에 작업을 멈춘다. 이 틈이 없으면 늦은 출력은 쓰기까지 오지 못해 시도 조건을 시험하지 못한다.
+    """
+    from travel.server import db as server_db
+
+    notifier = app.app.state.notifier
+    real_enqueue, real_finish = notifier.enqueue, server_db.finish_attempt
+    state = {"calls": 0, "late": asyncio.Event()}
+
+    async def finish(*args, **kwargs):
+        state["calls"] += 1
+        if state["calls"] == 2:
+            state["late"].set()
+        return await real_finish(*args, **kwargs)
+
+    async def enqueue(*args, **kwargs):
+        hold.release()
+        await asyncio.wait_for(state["late"].wait(), 5)
+        return await real_enqueue(*args, **kwargs)
+
+    monkeypatch.setattr(server_db, "finish_attempt", finish)
+    monkeypatch.setattr(notifier, "enqueue", enqueue)
+    return state
+
+
 @case("OUT-N05")
-def test_out_n05_job_time_limit(srv, expect):
+def test_out_n05_job_time_limit(srv, expect, monkeypatch):
     app = srv.app
     _, room = app.create_room()
+    _isolate_attempt_conditions(srv)
     hold = app.replay.hold("pact", po.pact_item())
     _submit_all(app, room)
     hold.wait_started()
     switched = srv.clock()
-    for at, seconds in (("4m59s", 299), ("5m", 300)):
-        srv.clock.set_after(switched, seconds)
-        app.enforce_deadlines()
-        checkpoint = expect.at(at)
-        if at == "5m":
-            app.join()
-        status, reason = _status(app, room)
-        assert status == checkpoint["room_status"], f"{at}: {status}"
-        if "failure_reason" in checkpoint:
-            assert reason == checkpoint["failure_reason"]
-        if "normal_results" in checkpoint:
-            assert _normal(app, room) == checkpoint["normal_results"]
+    late = _release_hold_inside_deadline_write(app, hold, monkeypatch)
+    try:
+        for at, seconds in (("4m59s", 299), ("5m", 300)):
+            srv.clock.set_after(switched, seconds)
+            app.enforce_deadlines()
+            checkpoint = expect.at(at)
+            # 상태를 먼저 단언한다. join()을 앞에 두면 한도를 안 지키는 구현이 상태가 아니라 timeout으로 보고된다.
+            status, reason = _status(app, room)
+            assert status == checkpoint["room_status"], f"{at}: {status}"
+            if "failure_reason" in checkpoint:
+                assert reason == checkpoint["failure_reason"]
+            if "normal_results" in checkpoint:
+                assert _normal(app, room) == checkpoint["normal_results"]
+    finally:
+        hold.release()
     # note: "뒤늦게 끝난 호출의 출력은 정상 결과로 저장하지 않는다"
-    hold.release()
     app.join()
+    assert late["calls"] == 2, "늦은 출력이 시도 종료 쓰기에 닿지 않았다"
+    assert _status(app, room)[0] == expect.at("5m")["room_status"], "늦은 출력이 failed를 덮었다"
     assert _normal(app, room) == expect.at("after_late_output")["normal_results"]
     first_input = app.replay.calls_for("pact")[0].model_input
     _assert_retry_with_same_input(app, room, expect.at("retry")["http_status"], first_input=first_input)
@@ -212,6 +257,7 @@ def test_out_n06_stalled_generation_recovered(srv, expect):
 def test_out_n07_late_old_attempt_discarded(srv, expect):
     old_app = srv.app
     _, room = old_app.create_room()
+    _isolate_attempt_conditions(srv)
     host_endpoint = f"https://push.test/{room.code}/host"
     assert old_app.subscribe(room, "host", endpoint=host_endpoint).status_code == 201
     old_hold = old_app.replay.hold("pact", po.pact_item())
