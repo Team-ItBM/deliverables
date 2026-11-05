@@ -1,6 +1,7 @@
 import { Link, Route, Routes, useNavigate } from "react-router-dom";
 import { Header } from "./components/ui";
 import { BackProvider, useHeaderBack } from "./lib/back";
+import { usePageMeta } from "./lib/pageMeta";
 import { MockBar } from "./mock/MockBar";
 import { Answer } from "./pages/Answer";
 import { CreateRoom } from "./pages/CreateRoom";
@@ -27,6 +28,7 @@ function NotFound() {
 }
 
 export function App() {
+  usePageMeta();
   return (
     <BackProvider>
       {MOCK && <MockBar />}
