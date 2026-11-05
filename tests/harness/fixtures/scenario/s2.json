@@ -1,0 +1,359 @@
+{
+  "source": {
+    "input": "docs/research/structured_output_inputs.json cases.S2 (base_inputs.S 복사 → remove 최상위 키 삭제 → replace 최상위 키 교체)",
+    "output": "src/travel/prompts/prepare_scenarios.md 'v6 여행 조건 회귀 점검 (2026-10-01)' 최초 출력 S2",
+    "model": "gpt-6.1-sol",
+    "reasoning": "low",
+    "prompt_version": 6,
+    "schema_version": 2,
+    "note": "최초 출력 1회. 입력 pool은 v6 시점 자기 pool이며 현재 pool v3와 다를 수 있다."
+  },
+  "input": {
+    "trip": {
+      "duration_days": 3,
+      "party_size": 3,
+      "relationship": "친구"
+    },
+    "participant_profiles": [
+      {
+        "profile_id": "p1",
+        "display_name": "친구1",
+        "gender": "여성",
+        "age_band": "20대",
+        "mbti": "ENFP"
+      },
+      {
+        "profile_id": "p2",
+        "display_name": "친구2",
+        "age_band": "20대"
+      },
+      {
+        "profile_id": "p3",
+        "display_name": "친구3"
+      }
+    ],
+    "requested_count": 6,
+    "scenario_pool": [
+      {
+        "template_id": "free_time",
+        "decision_key": "unexpected_free_time_use",
+        "topic": "일정 변경",
+        "title": "갑자기 비어버린 세 시간",
+        "purpose": "이 상황의 희망 행동과 이유·조정 조건을 확인한다.",
+        "scene": "가려던 곳이 문을 닫았어요. 저녁 약속까지 세 시간이 남았고, 가까운 곳에 카페와 숙소가 있어요.",
+        "question": "이 시간을 어떻게 보내고 싶어요?",
+        "options": [
+          {
+            "option_id": "free_time_1",
+            "label": "구경하고 싶어요"
+          },
+          {
+            "option_id": "free_time_2",
+            "label": "카페에서 보내고 싶어요"
+          },
+          {
+            "option_id": "free_time_3",
+            "label": "숙소에서 쉬고 싶어요"
+          },
+          {
+            "option_id": "free_time_any",
+            "label": "어느 쪽이든 괜찮아요"
+          },
+          {
+            "option_id": "free_time_other",
+            "label": "다른 의견이 있어요"
+          },
+          {
+            "option_id": "free_time_info",
+            "label": "정보가 더 필요해요"
+          }
+        ],
+        "core_constraints": [
+          "저녁 약속까지 세 시간",
+          "저녁 약속은 유지"
+        ]
+      },
+      {
+        "template_id": "rest",
+        "decision_key": "continue_rest_or_return",
+        "topic": "활동과 휴식",
+        "title": "점심 뒤 남은 일정",
+        "purpose": "이 상황의 희망 행동과 이유·조정 조건을 확인한다.",
+        "scene": "점심을 먹고 나니 관광과 저녁 일정이 남아 있어요. 지금은 일정을 바꿀 수 있어요.",
+        "question": "이후 어떻게 하고 싶어요?",
+        "options": [
+          {
+            "option_id": "rest_1",
+            "label": "관광을 계속하고 싶어요"
+          },
+          {
+            "option_id": "rest_2",
+            "label": "잠시 쉬고 싶어요"
+          },
+          {
+            "option_id": "rest_3",
+            "label": "오늘은 귀가하고 싶어요"
+          },
+          {
+            "option_id": "rest_any",
+            "label": "어느 쪽이든 괜찮아요"
+          },
+          {
+            "option_id": "rest_other",
+            "label": "다른 의견이 있어요"
+          },
+          {
+            "option_id": "rest_info",
+            "label": "정보가 더 필요해요"
+          }
+        ],
+        "core_constraints": [
+          "관광과 저녁 일정이 남아 있음"
+        ]
+      },
+      {
+        "template_id": "sunset",
+        "decision_key": "limited_time_activity_order",
+        "topic": "활동과 휴식",
+        "title": "쇼핑과 노을",
+        "purpose": "이 상황의 희망 행동과 이유·조정 조건을 확인한다.",
+        "scene": "노을까지 40분 남았어요. 쇼핑과 노을 구경을 둘 다 생각하고 있어요.",
+        "question": "남은 시간을 어떻게 쓰고 싶어요?",
+        "options": [
+          {
+            "option_id": "sunset_1",
+            "label": "쇼핑을 먼저 하고 싶어요"
+          },
+          {
+            "option_id": "sunset_2",
+            "label": "노을을 먼저 보고 싶어요"
+          },
+          {
+            "option_id": "sunset_3",
+            "label": "둘을 짧게 나누고 싶어요"
+          },
+          {
+            "option_id": "sunset_any",
+            "label": "어느 쪽이든 괜찮아요"
+          },
+          {
+            "option_id": "sunset_other",
+            "label": "다른 의견이 있어요"
+          },
+          {
+            "option_id": "sunset_info",
+            "label": "정보가 더 필요해요"
+          }
+        ],
+        "core_constraints": [
+          "노을까지 40분",
+          "이동 시간은 미확인"
+        ]
+      },
+      {
+        "template_id": "meal",
+        "decision_key": "meal_together_or_separate",
+        "topic": "함께·따로",
+        "title": "다른 메뉴",
+        "purpose": "이 상황의 희망 행동과 이유·조정 조건을 확인한다.",
+        "scene": "일행과 식사 메뉴를 고르고 있어요. 근처에는 서로 다른 메뉴를 파는 식당들이 있어요.",
+        "question": "어떻게 식사하고 싶어요?",
+        "options": [
+          {
+            "option_id": "meal_1",
+            "label": "한 식당에서 같이 먹고 싶어요"
+          },
+          {
+            "option_id": "meal_2",
+            "label": "각자 원하는 메뉴를 먹고 싶어요"
+          },
+          {
+            "option_id": "meal_3",
+            "label": "메뉴를 더 찾아보고 싶어요"
+          },
+          {
+            "option_id": "meal_any",
+            "label": "어느 쪽이든 괜찮아요"
+          },
+          {
+            "option_id": "meal_other",
+            "label": "다른 의견이 있어요"
+          },
+          {
+            "option_id": "meal_info",
+            "label": "정보가 더 필요해요"
+          }
+        ],
+        "core_constraints": [
+          "식사 후 일정은 함께 이어갈 예정",
+          "재합류 장소와 시각은 미정"
+        ]
+      },
+      {
+        "template_id": "photo",
+        "decision_key": "queue_waiting_participation",
+        "topic": "함께·따로",
+        "title": "사진 대기",
+        "purpose": "이 상황의 희망 행동과 이유·조정 조건을 확인한다.",
+        "scene": "사진을 찍으려면 30분을 기다려야 해요. 주변에서 쉬거나 구경할 수도 있어요.",
+        "question": "어떻게 보내고 싶어요?",
+        "options": [
+          {
+            "option_id": "photo_1",
+            "label": "줄을 서서 사진을 찍고 싶어요"
+          },
+          {
+            "option_id": "photo_2",
+            "label": "주변을 구경하고 싶어요"
+          },
+          {
+            "option_id": "photo_3",
+            "label": "쉬면서 기다리고 싶어요"
+          },
+          {
+            "option_id": "photo_any",
+            "label": "어느 쪽이든 괜찮아요"
+          },
+          {
+            "option_id": "photo_other",
+            "label": "다른 의견이 있어요"
+          },
+          {
+            "option_id": "photo_info",
+            "label": "정보가 더 필요해요"
+          }
+        ],
+        "core_constraints": [
+          "대기 30분",
+          "주변에서 휴식·구경 가능"
+        ]
+      },
+      {
+        "template_id": "budget",
+        "decision_key": "shared_meal_budget_change",
+        "topic": "추가 지출",
+        "title": "공동 식사 변경",
+        "purpose": "이 상황의 희망 행동과 이유·조정 조건을 확인한다.",
+        "scene": "함께 먹을 식사의 예산은 1인 2만 원이에요. 4만 원짜리 식당도 후보로 나왔어요.",
+        "question": "어떻게 하고 싶어요?",
+        "options": [
+          {
+            "option_id": "budget_1",
+            "label": "기존 예산을 유지하고 싶어요"
+          },
+          {
+            "option_id": "budget_2",
+            "label": "추가 비용을 내고 바꾸고 싶어요"
+          },
+          {
+            "option_id": "budget_3",
+            "label": "각자 다른 식당을 골라도 괜찮아요"
+          },
+          {
+            "option_id": "budget_any",
+            "label": "어느 쪽이든 괜찮아요"
+          },
+          {
+            "option_id": "budget_other",
+            "label": "다른 의견이 있어요"
+          },
+          {
+            "option_id": "budget_info",
+            "label": "정보가 더 필요해요"
+          }
+        ],
+        "core_constraints": [
+          "기존 예산 1인 2만 원",
+          "변경 후보 1인 4만 원"
+        ]
+      },
+      {
+        "template_id": "spontaneous",
+        "decision_key": "add_unplanned_stop",
+        "topic": "일정 변경",
+        "title": "현장에서 발견한 곳",
+        "purpose": "이 상황의 희망 행동과 이유·조정 조건을 확인한다.",
+        "scene": "이동하는 길에 가보고 싶은 곳을 발견했어요. 이 뒤에도 일정이 있어요.",
+        "question": "어떻게 결정하고 싶어요?",
+        "options": [
+          {
+            "option_id": "spontaneous_1",
+            "label": "기존 동선을 지키고 싶어요"
+          },
+          {
+            "option_id": "spontaneous_2",
+            "label": "시간이 맞으면 추가하고 싶어요"
+          },
+          {
+            "option_id": "spontaneous_3",
+            "label": "이후 일정을 바꾸고 싶어요"
+          },
+          {
+            "option_id": "spontaneous_any",
+            "label": "어느 쪽이든 괜찮아요"
+          },
+          {
+            "option_id": "spontaneous_other",
+            "label": "다른 의견이 있어요"
+          },
+          {
+            "option_id": "spontaneous_info",
+            "label": "정보가 더 필요해요"
+          }
+        ],
+        "core_constraints": [
+          "이후 일정이 있음",
+          "추가 방문의 소요 시간은 미확인"
+        ]
+      },
+      {
+        "template_id": "swim",
+        "decision_key": "water_activity_location_or_rest",
+        "topic": "일정 변경",
+        "title": "수영 장소",
+        "purpose": "이 상황의 희망 행동과 이유·조정 조건을 확인한다.",
+        "scene": "숙소 수영장과 바다 중에서 수영할 곳을 고르고 있어요. 수영 뒤에는 저녁을 준비할 예정이에요.",
+        "question": "어디에서 시간을 보내고 싶어요?",
+        "options": [
+          {
+            "option_id": "swim_1",
+            "label": "숙소 수영장을 이용하고 싶어요"
+          },
+          {
+            "option_id": "swim_2",
+            "label": "바다에 가고 싶어요"
+          },
+          {
+            "option_id": "swim_3",
+            "label": "물놀이 대신 쉬고 싶어요"
+          },
+          {
+            "option_id": "swim_any",
+            "label": "어느 쪽이든 괜찮아요"
+          },
+          {
+            "option_id": "swim_other",
+            "label": "다른 의견이 있어요"
+          },
+          {
+            "option_id": "swim_info",
+            "label": "정보가 더 필요해요"
+          }
+        ],
+        "core_constraints": [
+          "수영 뒤 저녁 준비 예정",
+          "이동·준비 시간 미확인"
+        ]
+      }
+    ],
+    "request": "다른 사람의 성향을 정하지 말고 서로 다른 장면을 골라줘."
+  },
+  "output": {
+    "status": "needs_information",
+    "scenarios": null,
+    "clarification_questions": [
+      "어디로 여행을 가나요?"
+    ],
+    "message": "여행지가 없어 상황에 맞는 질문을 만들 수 없어요."
+  }
+}

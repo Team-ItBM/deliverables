@@ -44,19 +44,23 @@
 #                         한쪽 조사만 붙었다. (AC13)
 #   humor_text            모델 출력에 고정 유머 문구 "너네 조합 꽝이니 여행 가지 마세요!"가 있다.
 #                         유머는 표시 단계에서만 붙인다. (AC7)
+#   memo_quote            공유 문장에 어떤 응답 memo의 연속 15자 이상이 그대로 있다. 공백·문장부호도 한 글자로
+#                         센다. 같은 부분이 입력 문항의 scene·question·options.label에도 있으면 공개 문구라
+#                         제외한다. positions와 original_condition은 공유하지 않는 검증용 필드라 검사하지 않는다. (AC3)
 #
 # 공통 처리 규칙
 #   json_invalid 또는 schema_violation이 나오면 그 뒤 규칙은 검사하지 않는다.
 #   status가 invalid_input, unsupported이면 참조·positions·연결 규칙을 검사하지 않는다.
 #   다만 그 두 상태에서 positions가 비어 있지 않으면 status_combination이다(추천 프롬프트 B절 positions=[]).
 #   공유 문장 = action, proposed_conditions[], proposed_change, unresolved_conditions[].description, message.
+#   memo_quote는 상태와 관계없이 공유 문장 전체에 적용한다.
 #
 # fixture 기준
 #   실제 출력: docs/spikes/grounded_pact_v11_regression_outputs.jsonl 의 run_id v11-regression-20261007
 #             (gpt-6.1-sol, 추론 low, 추천 프롬프트 v11, 스키마 v4). 저장소 기준 커밋 f699469.
 #   수기 작성: single_submission.json 하나. 모델 출력이 아니며 source.note에 표시한다.
 
-error_codes: [json_invalid, schema_violation, status_combination, input_status_mismatch, unknown_reference, evidence_mismatch, positions_mismatch, quote_mismatch, unlinked_response, token_invalid, particle_pair, humor_text]
+error_codes: [json_invalid, schema_violation, status_combination, input_status_mismatch, unknown_reference, evidence_mismatch, positions_mismatch, quote_mismatch, unlinked_response, token_invalid, particle_pair, humor_text, memo_quote]
 
 cases:
   - name: p1_proposed_valid
@@ -284,3 +288,57 @@ cases:
     note: >-
       금지 행동. 모델이 유머 문구를 직접 썼다. 유머는 unresolved 화면에서 표시 로직이 설명과 함께만 붙인다.
       모델 출력에 들어가면 공유 이미지·다른 상태로 새어 나갈 수 있다. (AC7)
+
+  - name: memo_quote_15_chars_rejected
+    fixture: p1_proposed
+    patch:
+      - {op: replace, path: /output/clauses/0/action, value: "여유 시간에 하고 싶은 일이 다르면 잠깐 따로 시간을 보내는 걸 추천해요. {{participant:A}}은/는 한 시간 이상 구경하고 싶어 하니 구경할 시간을 충분히 가져요. 헤어지기 전에 저녁 약속에 맞춰 다시 만날 시간·장소를 함께 정해요."}
+    expect_valid: false
+    must_include_errors: [memo_quote]
+    must_not_include_errors: [token_invalid, particle_pair, quote_mismatch, evidence_mismatch]
+    note: >-
+      금지 행동. 조항 문장에 rA 메모의 "한 시간 이상 구경하고 싶어"(공백 포함 15자)가 그대로 들어갔다.
+      공백을 빼면 12자이므로, 공백을 세지 않는 구현은 이 케이스를 놓친다. (AC3)
+
+  - name: memo_quote_14_chars_valid
+    fixture: p1_proposed
+    patch:
+      - {op: replace, path: /output/clauses/0/action, value: "여유 시간에 하고 싶은 일이 다르면 잠깐 따로 시간을 보내는 걸 추천해요. {{participant:A}}은/는 한 시간 이상 구경하고 싶은 만큼 구경할 시간을 충분히 가져요. 헤어지기 전에 저녁 약속에 맞춰 다시 만날 시간·장소를 함께 정해요."}
+    expect_valid: true
+    must_not_include_errors: [memo_quote]
+    note: >-
+      경계. 메모와 같은 부분은 "한 시간 이상 구경하고 싶"(14자)까지라 기준에 못 미친다.
+      15자 기준이 14자에서 거부하지 않는지 확인한다. (AC3)
+
+  - name: memo_quote_with_punctuation_rejected
+    fixture: p1_proposed
+    patch:
+      - {op: add, path: /output/clauses/0/proposed_conditions/-, value: "{{participant:C}}이/가 말한 '괜찮아. 저녁에는 같이 가자'를 지켜 저녁에는 함께 이동해요."}
+    expect_valid: false
+    must_include_errors: [memo_quote]
+    must_not_include_errors: [token_invalid, particle_pair]
+    note: >-
+      금지 행동. proposed_conditions에 rC 메모의 "괜찮아. 저녁에는 같이 가자"(공백·마침표 포함 15자)를 인용했다.
+      글자만 세면 11자다. 문장부호도 세는지, action 밖의 공유 문장도 검사하는지 확인한다. (AC3)
+
+  - name: memo_quote_in_positions_valid
+    fixture: p1_proposed
+    patch:
+      - {op: add, path: /output/positions/0/position/reason, value: "한 시간 이상 구경하고 싶어."}
+    expect_valid: true
+    must_not_include_errors: [memo_quote]
+    note: >-
+      경계. positions는 공유하지 않는 서버 검증용 필드라 메모를 정확히 발췌해야 한다(quote_mismatch 기준).
+      16자 발췌가 있어도 memo_quote로 거부하지 않는다. original_condition의 제외는
+      r12_conditional_only_valid(38자 메모 발췌)가 함께 확인한다. (AC3, AC5)
+
+  - name: memo_quote_public_text_valid
+    fixture: p1_proposed
+    patch:
+      - {op: replace, path: /input/scenarios/0/options/0/label, value: "한 시간 이상 구경하고 싶어"}
+      - {op: replace, path: /output/clauses/0/action, value: "여유 시간에 하고 싶은 일이 다르면 잠깐 따로 시간을 보내는 걸 추천해요. {{participant:A}}은/는 한 시간 이상 구경하고 싶어 하니 구경할 시간을 충분히 가져요. 헤어지기 전에 저녁 약속에 맞춰 다시 만날 시간·장소를 함께 정해요."}
+    expect_valid: true
+    must_not_include_errors: [memo_quote]
+    note: >-
+      경계. memo_quote_15_chars_rejected와 같은 조항 문장이지만, 겹친 15자 "한 시간 이상 구경하고 싶어"가
+      rA가 고른 선택지 문구에도 있다. 선택지는 모두에게 보이는 공개 문구라 거부하지 않는다. (AC3)

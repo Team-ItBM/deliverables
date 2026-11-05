@@ -1,0 +1,375 @@
+{
+  "source": {
+    "input": "docs/research/structured_output_inputs.json cases.S6 (base_inputs.S 복사 → remove 최상위 키 삭제 → replace 최상위 키 교체)",
+    "output": "src/travel/prompts/prepare_scenarios.md 'v6 여행 조건 회귀 점검 (2026-10-01)' 최초 출력 S6",
+    "model": "gpt-6.1-sol",
+    "reasoning": "low",
+    "prompt_version": 6,
+    "schema_version": 2,
+    "note": "최초 출력 1회. 입력 pool은 v6 시점 자기 pool이며 현재 pool v3와 다를 수 있다."
+  },
+  "input": {
+    "trip": {
+      "destination": "제주",
+      "duration_days": 1,
+      "party_size": 3,
+      "relationship": "친구"
+    },
+    "participant_profiles": [
+      {
+        "profile_id": "p1",
+        "display_name": "친구1",
+        "gender": "여성",
+        "age_band": "20대",
+        "mbti": "ENFP"
+      },
+      {
+        "profile_id": "p2",
+        "display_name": "친구2",
+        "age_band": "20대"
+      },
+      {
+        "profile_id": "p3",
+        "display_name": "친구3"
+      }
+    ],
+    "requested_count": 6,
+    "scenario_pool": [
+      {
+        "template_id": "shared_bed",
+        "decision_key": "bed_sharing_vs_extra_cost",
+        "topic": "숙소",
+        "title": "같은 침대를 써도 될까",
+        "purpose": "침대 공유와 추가 숙박비 사이에서 원하는 선택을 확인한다.",
+        "scene": "숙소를 예약하려고 해요. 침대를 둘이 나눠 쓰면 1인당 4만 원이고, 모두 개인 침대를 쓰면 1인당 6만 원이에요. 위치와 객실 시설은 같고, 아직 결제하지 않았어요.",
+        "question": "어떤 잠자리를 선택하고 싶어요?",
+        "options": [
+          {
+            "option_id": "shared_bed_1",
+            "label": "침대를 나눠 쓰고 4만 원을 내고 싶어요"
+          },
+          {
+            "option_id": "shared_bed_2",
+            "label": "개인 침대를 쓰고 6만 원을 내고 싶어요"
+          },
+          {
+            "option_id": "shared_bed_3",
+            "label": "다른 숙소를 더 찾아본 뒤 고르고 싶어요"
+          },
+          {
+            "option_id": "shared_bed_any",
+            "label": "어느 쪽이든 괜찮아요"
+          },
+          {
+            "option_id": "shared_bed_other",
+            "label": "다른 의견이 있어요"
+          },
+          {
+            "option_id": "shared_bed_info",
+            "label": "정보가 더 필요해요"
+          }
+        ],
+        "core_constraints": [
+          "침대 공유 1인 4만 원·개인 침대 1인 6만 원",
+          "위치·시설 동일",
+          "예약·결제 전",
+          "같은 침대 공유 여부가 중심 판단"
+        ]
+      },
+      {
+        "template_id": "private_room",
+        "decision_key": "shared_room_vs_private_space",
+        "topic": "숙소",
+        "title": "각자 쉴 방이 필요할까",
+        "purpose": "개인 침대가 있어도 객실 자체를 분리하고 싶은지 확인한다.",
+        "scene": "모든 숙소 후보에는 개인 침대가 있어요. 한 객실을 함께 쓰면 1인 5만 원이고, 같은 건물의 별도 객실을 쓰면 1인 8만 원이에요. 함께 이야기할 공용 공간은 두 경우 모두 이용할 수 있어요.",
+        "question": "밤에 어디서 쉬고 싶어요?",
+        "options": [
+          {
+            "option_id": "private_room_1",
+            "label": "같은 객실에서 지내고 싶어요"
+          },
+          {
+            "option_id": "private_room_2",
+            "label": "비용을 더 내고 별도 객실에서 쉬고 싶어요"
+          },
+          {
+            "option_id": "private_room_3",
+            "label": "잠자는 방은 나누되 더 저렴한 숙소를 찾아보고 싶어요"
+          },
+          {
+            "option_id": "private_room_any",
+            "label": "어느 쪽이든 괜찮아요"
+          },
+          {
+            "option_id": "private_room_other",
+            "label": "다른 의견이 있어요"
+          },
+          {
+            "option_id": "private_room_info",
+            "label": "정보가 더 필요해요"
+          }
+        ],
+        "core_constraints": [
+          "모든 후보가 개인 침대를 제공",
+          "공동 객실 1인 5만 원·별도 객실 1인 8만 원",
+          "두 경우 모두 공용 공간 이용 가능"
+        ]
+      },
+      {
+        "template_id": "sleep_noise",
+        "decision_key": "respond_to_sleep_disruption",
+        "topic": "숙소",
+        "title": "잠을 설친 다음 날",
+        "purpose": "공동 객실의 수면 방해가 생긴 뒤 원하는 조정을 확인한다.",
+        "scene": "함께 쓰는 객실에서 소리가 들려 잠을 설친 상황이에요. 오늘 밤도 이 숙소에 머물러요. 침대를 옮기거나 귀마개를 써볼 수 있고, 1인 3만 원을 더 내면 별도 방을 이용할 수 있어요.",
+        "question": "이 상황이라면 오늘 밤 어떻게 하고 싶어요?",
+        "options": [
+          {
+            "option_id": "sleep_noise_1",
+            "label": "같은 방에서 침대 위치나 귀마개를 바꿔보고 싶어요"
+          },
+          {
+            "option_id": "sleep_noise_2",
+            "label": "3만 원을 더 내고 별도 방을 쓰고 싶어요"
+          },
+          {
+            "option_id": "sleep_noise_3",
+            "label": "방을 바꾸기 전에 어떤 소리였는지와 조정 방법을 함께 이야기하고 싶어요"
+          },
+          {
+            "option_id": "sleep_noise_any",
+            "label": "어느 쪽이든 괜찮아요"
+          },
+          {
+            "option_id": "sleep_noise_other",
+            "label": "다른 의견이 있어요"
+          },
+          {
+            "option_id": "sleep_noise_info",
+            "label": "정보가 더 필요해요"
+          }
+        ],
+        "core_constraints": [
+          "가상 상황에서 수면 방해가 있었음",
+          "오늘 밤 같은 숙소에 체류",
+          "침대 위치·귀마개 조정 가능",
+          "별도 방 추가금 1인 3만 원"
+        ]
+      },
+      {
+        "template_id": "quiet_evening",
+        "decision_key": "evening_activity_under_quiet_hours",
+        "topic": "숙소",
+        "title": "조용히 해야 하는 밤",
+        "purpose": "숙소의 소음 제한 안에서 저녁 시간을 보내는 방식을 확인한다.",
+        "scene": "숙소에서는 밤 10시부터 소리를 줄여야 해요. 지금은 밤 9시이고 공용실에도 같은 규칙이 적용돼요. 근처에는 늦게까지 이용할 수 있는 실내 모임 공간이 있고, 이용료는 1인 8천 원이에요.",
+        "question": "밤 10시 이후에는 어떻게 시간을 보내고 싶어요?",
+        "options": [
+          {
+            "option_id": "quiet_evening_1",
+            "label": "숙소에서 조용히 이야기하거나 책을 보며 쉬고 싶어요"
+          },
+          {
+            "option_id": "quiet_evening_2",
+            "label": "8천 원을 내고 외부 모임 공간으로 이동하고 싶어요"
+          },
+          {
+            "option_id": "quiet_evening_3",
+            "label": "각자 원하는 방식으로 쉬고 다음 날 만나고 싶어요"
+          },
+          {
+            "option_id": "quiet_evening_any",
+            "label": "어느 쪽이든 괜찮아요"
+          },
+          {
+            "option_id": "quiet_evening_other",
+            "label": "다른 의견이 있어요"
+          },
+          {
+            "option_id": "quiet_evening_info",
+            "label": "정보가 더 필요해요"
+          }
+        ],
+        "core_constraints": [
+          "숙소·공용실 모두 밤 10시부터 소음 제한",
+          "현재 밤 9시",
+          "외부 공간 1인 8천 원",
+          "조용히 지내는 규칙은 모든 선택에서 유지"
+        ]
+      },
+      {
+        "template_id": "checkout_buffer",
+        "decision_key": "packing_before_checkout",
+        "topic": "숙소·마감",
+        "title": "퇴실 전 남은 한 시간",
+        "purpose": "퇴실 마감 전 짐 정리와 외부 활동 순서를 확인한다.",
+        "scene": "숙소 퇴실은 오전 11시이고 지금은 10시예요. 짐 정리는 아직 끝나지 않았고 20분이면 마칠 수 있어요. 근처 카페에 다녀오는 데는 30분이 걸려요. 늦게 퇴실할 수는 없어요.",
+        "question": "무엇부터 하고 싶어요?",
+        "options": [
+          {
+            "option_id": "checkout_buffer_1",
+            "label": "짐을 먼저 정리하고 여유가 있으면 카페에 가고 싶어요"
+          },
+          {
+            "option_id": "checkout_buffer_2",
+            "label": "카페에 먼저 다녀온 뒤 짐을 정리하고 싶어요"
+          },
+          {
+            "option_id": "checkout_buffer_3",
+            "label": "카페는 건너뛰고 정리한 뒤 바로 다음 장소로 가고 싶어요"
+          },
+          {
+            "option_id": "checkout_buffer_any",
+            "label": "어느 쪽이든 괜찮아요"
+          },
+          {
+            "option_id": "checkout_buffer_other",
+            "label": "다른 의견이 있어요"
+          },
+          {
+            "option_id": "checkout_buffer_info",
+            "label": "정보가 더 필요해요"
+          }
+        ],
+        "core_constraints": [
+          "현재 10시·퇴실 11시",
+          "짐 정리 20분·카페 왕복과 이용 30분",
+          "늦은 퇴실 불가"
+        ]
+      },
+      {
+        "template_id": "night_planning",
+        "decision_key": "plan_tomorrow_tonight_or_morning",
+        "topic": "일정 준비",
+        "title": "내일 일정은 언제 정할까",
+        "purpose": "다음 날 계획을 확정하는 시점과 범위를 확인한다.",
+        "scene": "숙소에서 쉬는 중이고 내일 일정은 아직 비어 있어요. 당장 마감되는 예약은 없어요. 지금 20분 정도 이야기할 수 있고, 내일 아침에 정해도 가능한 후보가 있어요.",
+        "question": "내일 일정을 언제 정하고 싶어요?",
+        "options": [
+          {
+            "option_id": "night_planning_1",
+            "label": "오늘 밤에 내일의 주요 일정을 정하고 싶어요"
+          },
+          {
+            "option_id": "night_planning_2",
+            "label": "내일 첫 활동만 정하고 나머지는 현장에서 고르고 싶어요"
+          },
+          {
+            "option_id": "night_planning_3",
+            "label": "지금은 쉬고 내일 아침에 정하고 싶어요"
+          },
+          {
+            "option_id": "night_planning_any",
+            "label": "어느 쪽이든 괜찮아요"
+          },
+          {
+            "option_id": "night_planning_other",
+            "label": "다른 의견이 있어요"
+          },
+          {
+            "option_id": "night_planning_info",
+            "label": "정보가 더 필요해요"
+          }
+        ],
+        "core_constraints": [
+          "다음 날 일정 미정",
+          "즉시 마감 예약 없음",
+          "지금 대화에 20분 사용 가능",
+          "아침에 결정 가능한 후보 존재"
+        ]
+      },
+      {
+        "template_id": "unequal_beds",
+        "decision_key": "allocate_unequal_sleeping_spaces",
+        "topic": "숙소·배정",
+        "title": "잠자리의 조건이 다르다면",
+        "purpose": "품질이 다른 잠자리를 비용 조정·교대·추첨 중 어떻게 배정할지 확인한다.",
+        "scene": "두 밤을 지낼 숙소에 개인 잠자리는 모두 있지만 한 자리는 다른 자리보다 좁아요. 방 교체는 불가능하고 숙박비 분담은 아직 정하지 않았어요. 누가 어느 자리를 쓸지도 정하지 않았어요.",
+        "question": "잠자리를 어떻게 배정하고 싶어요?",
+        "options": [
+          {
+            "option_id": "unequal_beds_1",
+            "label": "추첨으로 정하고 숙박비는 똑같이 내고 싶어요"
+          },
+          {
+            "option_id": "unequal_beds_2",
+            "label": "좁은 자리를 원하는 사람이 비용을 덜 내는 방식으로 정하고 싶어요"
+          },
+          {
+            "option_id": "unequal_beds_3",
+            "label": "하루씩 잠자리를 바꾸고 숙박비는 똑같이 내고 싶어요"
+          },
+          {
+            "option_id": "unequal_beds_any",
+            "label": "어느 쪽이든 괜찮아요"
+          },
+          {
+            "option_id": "unequal_beds_other",
+            "label": "다른 의견이 있어요"
+          },
+          {
+            "option_id": "unequal_beds_info",
+            "label": "정보가 더 필요해요"
+          }
+        ],
+        "core_constraints": [
+          "2박·개인 잠자리 존재",
+          "한 자리만 더 좁음",
+          "방 교체 불가",
+          "자리·숙박비 분담 미정"
+        ]
+      },
+      {
+        "template_id": "bathroom_tidy",
+        "decision_key": "shared_bathroom_cleanup_timing",
+        "topic": "숙소·공용 공간",
+        "title": "다음 사람이 쓸 욕실",
+        "purpose": "공용 욕실을 사용한 뒤 정리 시점과 분담 방식을 확인한다.",
+        "scene": "숙소 욕실은 하나이고 일행이 차례로 사용해요. 사용 뒤 바닥 물기와 세면대 주변을 정리하는 데 약 3분이 걸려요. 숙소 직원이 중간에 청소해주지는 않아요.",
+        "question": "정리를 어떻게 하고 싶어요?",
+        "options": [
+          {
+            "option_id": "bathroom_tidy_1",
+            "label": "사용한 사람이 나올 때마다 정리했으면 좋겠어요"
+          },
+          {
+            "option_id": "bathroom_tidy_2",
+            "label": "모두 사용한 뒤 한 사람이 정리하고 다른 공용 일을 나눠 맡으면 좋겠어요"
+          },
+          {
+            "option_id": "bathroom_tidy_3",
+            "label": "두 사람이 함께 마지막에 정리했으면 좋겠어요"
+          },
+          {
+            "option_id": "bathroom_tidy_any",
+            "label": "어느 쪽이든 괜찮아요"
+          },
+          {
+            "option_id": "bathroom_tidy_other",
+            "label": "다른 의견이 있어요"
+          },
+          {
+            "option_id": "bathroom_tidy_info",
+            "label": "정보가 더 필요해요"
+          }
+        ],
+        "core_constraints": [
+          "공용 욕실1개·순서대로 사용",
+          "정리 약3분",
+          "사용 사이 직원 청소 없음",
+          "역할 분담 아직 미정"
+        ]
+      }
+    ],
+    "request": "다른 사람의 성향을 정하지 말고 서로 다른 장면을 골라줘."
+  },
+  "output": {
+    "status": "needs_information",
+    "scenarios": null,
+    "clarification_questions": [
+      "숙박이나 다음 날 일정이 없는 제주 당일 여행에 맞는 문항을 6개 이상 추가해 주실 수 있나요?"
+    ],
+    "message": "제주 1일 여행인데 문항들이 숙박이나 다음 날 일정, 숙소 공동 이용을 전제로 하고 있어요. 핵심 조건을 유지하면서 고를 수 있는 문항이 6개보다 적어 당일 여행에 맞는 문항이 더 필요해요."
+  }
+}
