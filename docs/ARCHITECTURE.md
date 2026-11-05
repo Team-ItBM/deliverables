@@ -26,16 +26,16 @@
 | `tests/harness/scenario_cases.yaml`, `tests/harness/fixtures/scenario/`, `tests/test_scenario_golden.py` | 문항 출력 검증기의 골든 케이스 46개, 기준 fixture 8개, 테스트 하니스(형식·상태 조합·요청 수·문항 ID와 판단 중복·선택지 ID 순서·인물 토큰·`scene` 줄 수) | 강의 5 | 수용됨(2026-11-04, `14b84ae`). 46/46 통과 |
 | `tests/test_tools.py` | 도구 계약 테스트 | 강의 6 | 수용됨(2026-11-04). 21/21 통과 |
 | `tests/test_pool.py` | pool 계약 테스트(목록 생성·`lookup_template`) | 강의 6 | 수용됨(2026-11-04, `d790d26`). 28/28 통과 |
-| `src/travel/server/app.py`, `db.py`, `routes/` | FastAPI 앱, PostgreSQL 모델(rooms·profiles·submissions·responses·results·push_subscriptions·notifications·llm_calls), SPEC 5절 작업별 JSON API | 강의 4 SPEC 5절, 강의 6 | **예정** |
-| `src/travel/server/llm.py` | 모델 호출 경계(`generate(stage, model_input, repair_errors) -> LLMResult`)와 저장 출력 재생 모드. 실제 클라이언트는 Sol Responses API(`text.format` json_schema `strict: false` 명시, `tools` function `strict: true`, `store: false`)를 부르고, 문항 단계의 도구 루프는 이 경계 안에서 돈다. 문항 경로는 v9 하나다 | 강의 3, 강의 6 | **예정** |
-| `src/travel/server/render.py` | profile·participant 토큰 치환과 조사 처리. 화면과 이미지가 같은 결과 텍스트를 쓴다 | 강의 4 SPEC 5절 | **예정** |
-| `src/travel/server/push.py` | Web Push(VAPID, pywebpush) 발송, 이벤트 단위 중복 방지 | 강의 4 SPEC 알림 정책 | **예정** |
-| `src/travel/server/admin.py` | 방 단위 삭제 명령(F7 전 수동 삭제, F7의 기반) | 강의 4 SPEC 만료 정책 | **예정** |
-| `web/` | Vite + React SPA(방 생성, 입장·이름 선택, 응답, 대기·상태, 결과·편집·저장), 서비스워커 `web/public/sw.js`, 결과 DOM 캡처(html-to-image)와 Web Share 저장 | 강의 4 SPEC F1~F6 | **예정** |
-| `config/llm.yaml` | 모델 ID, 프롬프트 버전·전송부 해시, 스키마·pool 버전, 도구 호출 상한, 재시도, 동시 생성 상한, 호출 타임아웃, 비용 한도 | 강의 6 | **예정** |
-| `infra/` | Terraform: CloudFront 단일 도메인(SPA는 S3, `/api/*`는 ALB), ECS Fargate(ALB 뒤 태스크 2개), RDS PostgreSQL, S3·CloudFront(SPA), ACM·Route 53, WAF, Secrets Manager, CloudWatch Logs. 서울 리전 | 강의 6 | **예정** |
-| `.github/workflows/` | PR 검사(ruff, pytest 전체, 서버 테스트용 Postgres 컨테이너, SPA 빌드·테스트), main 배포(ECR → 마이그레이션 → ECS). AWS 접근은 OIDC | 강의 5 검증 루프 | **예정** |
-| `tests/test_server_*.py`, `docs/prompts/delegation_server.md` | 서버 계약 테스트(SPEC 6절 케이스 ID: `response_privacy`, `response_closure`, `host_edit`, `result_export`, `duplicate_name`, `regeneration`, `push_events`, `output_validation`, `scenario_input`, `profile_rendering`)와 위임·결함 주입 기록 | 강의 5 | 구조 수용(2026-11-05, 1회차 `5174621`, 2회차 케이스 86개). 판정 수용(결함 주입)은 서버 구현 뒤 |
+| `src/travel/server/app.py`, `db.py`, `jobs.py` | FastAPI 앱(§0-B 경로 12개는 `app.py` 한 파일), PostgreSQL 스키마(rooms·profiles·sessions·submissions·responses·results·push_subscriptions·notifications·llm_calls), 생성 작업·재시도·한도·멈춤 판정·시도 ID | 강의 4 SPEC 5절, 강의 6 | 구현됨(2026-11-05, `13facd1`). 하니스 116개 통과(d0). 판정 수용은 결함 주입 뒤 |
+| `src/travel/server/llm.py`, `llm_openai.py`, `replay.py` | 모델 호출 경계(`generate(stage, model_input, repair_errors) -> LLMResult`), openai SDK 클라이언트(Sol Responses API, `text.format` json_schema `strict: false` 명시, `tools` function `strict: true`, `store: false`, 문항 단계 도구 루프·호출 상한 12회·전송부 해시 대조), 저장 출력 재생 모드(`replay.py`: 실제 Sol 문항 출력 1건 + 코드로 합성한 추천) | 강의 3, 강의 6 | 구현됨(2026-11-05). 도구 루프는 `tests/test_llm_loop.py` 8개(가짜 전송 계층) 통과. 실제 호출은 미측정 |
+| `src/travel/server/render.py` | profile·participant 토큰 치환과 조사 5쌍 처리, 공유 결과(§0-C)·`editable` 조각. 화면과 이미지가 같은 결과 텍스트를 쓴다 | 강의 4 SPEC 5절 | 구현됨(2026-11-05) |
+| `src/travel/server/push.py`, `main.py` | 이벤트 단위 중복 방지(`ready:N`·`failed:N`·`selected`), 발송기 경계. `main.py`가 pywebpush 발송기와 운영 설정(환경변수·`config/llm.yaml`)을 묶어 `uvicorn travel.server.main:app`으로 뜬다 | 강의 4 SPEC 알림 정책 | 구현됨(2026-11-05). 실제 푸시 발송은 미확인 |
+| `src/travel/server/admin.py` | 방 단위 삭제 명령 `python -m travel.server.admin delete-room <room_code>`(F7 전 수동 삭제, F7의 기반) | 강의 4 SPEC 만료 정책 | 구현됨(2026-11-05, cascade 삭제 로컬 확인) |
+| `web/` | Vite + React SPA(방 생성, 입장·이름 선택, 응답, 대기·상태, 결과·편집·저장, 처리방침), 서비스워커 `web/public/sw.js`, 결과 DOM 캡처(html-to-image)와 Web Share 저장, mock 모드 | 강의 4 SPEC F1~F6 | 구현됨(2026-11-05, 에이전트). typecheck·build·vitest 12개 통과. 실기기(AC14)·실제 서버 연결·실제 푸시는 미확인 |
+| `config/llm.yaml` | 모델 ID, 프롬프트 버전·전송부 해시, 스키마·pool 버전, 도구 호출 상한, 재시도, 동시 생성 상한, 호출 타임아웃, 비용 한도. `config/replay/`는 재생 모드 자료 | 강의 6 | 구현됨(2026-11-05) |
+| `infra/`, `Dockerfile` | Terraform: CloudFront 단일 도메인(SPA는 S3, `/api/*`는 ALB), ECS Fargate(ALB 뒤 태스크 2개), RDS PostgreSQL, ACM·Route 53, WAF, Secrets Manager, CloudWatch Logs, GitHub OIDC. 서울 리전. Budgets는 손으로 만든 것을 유지(provider가 CUSTOM 기간 미지원) | 강의 6 | 작성됨(2026-11-05, 에이전트). `fmt`·`validate` 통과, 읽기 전용 `plan` 68개 생성 예정. apply는 하지 않았다 |
+| `.github/workflows/` | PR 검사(ruff, pytest 전체, 서버 테스트용 Postgres 컨테이너, SPA typecheck·build·test, terraform validate), main 배포(ECR 푸시, 스키마 초기화, ECS 갱신, S3 동기화와 CloudFront 무효화 순서). AWS 접근은 OIDC | 강의 5 검증 루프 | 작성됨(2026-11-05). GitHub에서 미실행 |
+| `tests/test_server_*.py`, `tests/test_llm_loop.py`, `docs/prompts/delegation_server.md`, `docs/prompts/delegation_service.md` | 서버 계약 테스트(SPEC 6절 케이스 ID 10개, 86개)와 도구 루프 테스트 8개, 위임·결함 주입 기록 | 강의 5 | 구조 수용(2026-11-05, 케이스 86개). d0 통과(116개). 판정 수용(결함 주입 d1~d28, C2·C7)은 진행 중 |
 | `docs/PRIVACY.md`, `docs/PRIVACY_REVIEW.md` | 개인정보 처리방침 공개본(SPA 방 생성·이름 선택·응답 화면에서 링크)과 내부 검토 기록 | 강의 4 SPEC 운영 정책 | 공개본 작성(2026-11-05, AI 검토·전문가 미검토, 시행일 미기입) |
 
 오케스트레이션은 별도 프레임워크 없이 함수 조합으로 둔다. 이유는 5절.

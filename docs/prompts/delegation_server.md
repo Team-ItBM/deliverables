@@ -375,6 +375,13 @@ editable: [{path, segments: [{text} | {participant_id, display, pair}]}]
 41. 모델이 도구로 열지 않은 문항을 선정한 경우(스파이크 C6)는 서버가 `llm_calls`·로그에 표시만 남기고 결과는 쓴다. 차단·재요청하지 않는다.
 42. 모델 호출은 `openai` SDK(`max_retries=0`)로 하고 재시도·백오프·`Retry-After`는 §0-E 1과 ARCHITECTURE 6절 규칙대로 코드가 센다.
 
+2026-11-05 결정(결함 주입 결과 §2-4의 계약 해석 항목에 대한 답, 전민규):
+
+43. 같은 `Idempotency-Key`·같은 본문의 재전송은 방이 마감된 뒤에도 200으로 같은 `participant_id`를 돌려준다. 제출 경로는 멱등 키 조회를 `room_closed` 검사보다 먼저 한다(§0-B 4, SPEC "전송 재시도는 같은 건").
+44. `role: participant` 구독은 `session_id`가 필수다. 없으면 422 `invalid_input`이다(결정 11 "참여자 구독은 세션과 묶는다"). §0-B 12의 `session_id?`는 `role: host`에만 해당한다.
+45. 실패 결과(`state: failed`)의 편집 요청은 409 `invalid_state`로 둔다(§0-D 포괄 코드).
+46. 작업 한도·멈춤 판정은 300초·600초 정각(`>=`)에 적용한다. 하니스 OUT-N05·N06의 기대값을 따르며 결정 12의 "넘으면"은 이렇게 읽는다.
+
 ## §1. 프롬프트 원본
 
 ### §1-1. 골든 케이스·테스트 하니스 위임 (작성 2026-11-04, 실행 전)
@@ -758,3 +765,80 @@ YAML 생성 스크립트와 실행 출력은 `.local-work/server_harness/`에 �
 - `python -m pytest tests/ -q -rs`: 166 passed, 87 skipped(서버 케이스 86, DB fixture 1), 실패 0.
 - `git diff --check`: 출력 없음. `src/`는 이 회차에 바꾸지 않았다(2회차의 `scenarios.py` 한 줄만 남아 있다).
 - 서버가 없어 REG-N04 본문은 실행되지 않았다. 판정 수용 때 확인한다.
+
+### §2-4. 판정 수용: 결함 주입 d0~d28, C2·C7 (2026-11-05, 검증 에이전트 Claude)
+
+강의 5 C절 절차를 서버 구현(`13facd1`)에 실행했다. 구현한 세션과 다른 에이전트가 새 컨텍스트의 격리 워크트리에서 했다. `tests/`는 건드리지 않았다. 결함은 하나씩 넣고, 실행 전에 실패해야 할 케이스와 단언을 적고, 실행 뒤 원복해 서버 파일 8개의 해시가 백업과 같은지 확인했다. 출력 원문은 `.local-work/fault_injection/server/`에 있다(`run_2026-11-05.md`, `d0_output.txt`~`d28_output.txt`, `c2_*`, `c7_*`, `final_output.txt`).
+
+| 회차 | 결과 | 무엇이 문제였나 | 무엇을 고쳤나 (프롬프트/케이스/테스트 코드) |
+|---|---|---|---|
+| 1 | d0 116 passed, skip 0. d1~d28 가운데 25개 검출, 3개는 다른 케이스가 검출하거나 계획표 오류(아래 표). C2·C7 전부 검출. 원복 뒤 116 passed 2회 | 서버 결함은 없었다. 하니스 약점 3건과 계약 해석 항목 3건이 나왔다(아래) | 없음 |
+
+**결함별 결과** (실행 명령 `python3 -m pytest tests/test_server_*.py -q -rs -rf --tb=short`, `TEST_DATABASE_URL`은 postgres:16 컨테이너)
+
+| # | 주입한 결함(파일·함수) | 실패해야 할 케이스 | 실제 결과 | 판정 |
+|---|---|---|---|---|
+| d0 | 없음 | 116 passed, skip 0 | 116 passed, 0 skipped, 0 xfailed | 통과 가능 확인 |
+| d1 | `app.py` `list_results`의 `require_host` 삭제 | EDT-N01 | `results: HTTP 200`, 기대 403 | 검출 |
+| d2 | `require_host`가 토큰 존재만 보고 해시 비교 생략 | EDT-N02 | HTTP 201, 기대 403 | 검출 |
+| d3 | `generate`의 `no_submissions` 검사 삭제 | CLS-N01 | HTTP 202, 기대 409 | 검출 |
+| d4 | 제출·조기 생성의 `FOR UPDATE`와 `close_and_freeze`의 status 조건 제거 | CLS-N03, CLS-N04 | CLS-N03은 3/3 실패(`join()`이 전달한 빈 대기열 오류). CLS-N04는 4/4 통과 | CLS-N03 검출(동등 단언), CLS-N04 미검출 |
+| d5 | `shared_result`에 `positions`·`required_changes` 포함 | PRV-N01, EXP-P04, EDT-P02 | 셋 모두 예정 단언(§0-C 밖의 키, 공개 금지 키, `original_condition` 값) | 검출 |
+| d6 | `edit_result`의 `check_memo_quotes` 삭제 | EDT-N07 | HTTP 201, 기대 422 | 검출 |
+| d7 | 수정본이 원본 행을 UPDATE | EDT-P01, EDT-P03 | 새 `result_id`가 아니다, 원본 행이 바뀌었다 | 검출 |
+| d8 | 수정 시작 판을 늘 원본으로 | EDT-P03 | `source_result_id` 불일치 | 검출 |
+| d9 | `regenerate`가 실패 행도 셈 | REG-P03, OUT-P01, OUT-P03 | REG-P03·OUT-P03 HTTP 409, 기대 202. OUT-P01은 통과(실패 행이 없는 흐름) | 검출(OUT-P01은 이 결함과 무관) |
+| d9b | `regenerate`가 추천 호출 수를 셈(변형) | 같음 | 셋 모두 예정 단언 | 검출 |
+| d10 | 형식 오류 재요청 2회(`range(3)`) | OUT-N01, OUT-N03, PRV-N03 | 셋 모두 빈 대기열 오류(호출 4번째) | 검출 |
+| d11 | 같은 키·다른 본문을 새 제출로 저장 | DUP-N01 | 오류 코드 `session_used`, 기대 `idempotency_conflict` | 검출 |
+| d12 | 알림 행 `ON CONFLICT`와 유일 제약 제거 | PSH-N01 | 전체 6건, 기대 0 | 검출 |
+| d13 | 푸시 본문에 등록 이름 추가 | PSH-N02 | 이름·별명 '민준'이 있다 | 검출 |
+| d14 | '당신' 뒤 조사를 받침 없는 쪽으로 단순 치환 | PRF-P02, PRF-P01 | PRF-P02 `'당신이'가 없다`. PRF-P01은 통과(두 조사 허용) | 검출(동등 단언) |
+| d14b | '당신' + 조사 쌍 원문(변형) | PRF-P01 | `'당신이/가'`, 기대 `당신이` | 검출 |
+| d15 | `enforce_deadlines`를 빈 함수로 | OUT-N05 | `5m`의 `join()`이 15초 TimeoutError | 검출(단언 다름) |
+| d16 | `finish_attempt`의 시도 ID·status 조건 제거 | OUT-N05 | OUT-N05 통과. OUT-N07이 유일 색인 위반(`UniqueViolation`)으로 실패 | OUT-N05 미검출, OUT-N07 검출(단언 다름) |
+| d16b | 위에 유일 색인 제거와 한도에서 작업 안 멈춤을 더함(변형) | OUT-N05, OUT-N07 | OUT-N07 `'ready' == 'generating'`. OUT-N05는 다시 `5m` TimeoutError | OUT-N07 검출 |
+| d17 | `GET /submissions/{participant_id}` 추가 | PRV-N02 | 제출·응답 GET 경로가 있다 | 검출 |
+| d18 | `recover_stalled`를 빈 함수로 | OUT-N06 | `10m: generating` | 검출 |
+| d19 | `editable` 조각에서 `pair` 제거 | EDT-P01 | 조각 형식 오류(editable을 쓰는 15 케이스) | 검출 |
+| d19b | `editable` 위치에 `original_condition` 추가(변형) | EDT-P01 | editable 위치 불일치, `original_condition` 값 | 검출 |
+| d20 | 결과 목록 `editable`을 항목 자신 문장으로 | EDT-P03 | 가장 최근 수정본이 아니다 | 검출 |
+| d21 | `draft`를 늘 false로 | EXP-P04, EXP-P06, REG-P04 | 셋과 REG-P05 `False is True` | 검출 |
+| d22 | 참여자 결과를 최신 정상 결과로 | REG-P04 | 재생성 뒤 참여자 결과가 바뀌었다 | 검출 |
+| d23 | 생성 성공 알림을 참여자에게도 | PSH-P01~P03, PSH-P05 | P01~P03 `p1 구독 1건`. PSH-P05는 통과 | 검출(PSH-P05 항목은 계획표 오류) |
+| d24 | 재선택·수정 때 참여자 푸시 | PSH-P05 | reselect에서 전체 2건 | 검출 |
+| d24b | 수정 때만 참여자 푸시(변형) | PSH-P05 | edit에서 전체 2건 | 검출 |
+| d25 | `finish_attempt`의 시도 ID 조건만 제거 | OUT-N07 | `UniqueViolation`(join 전달) | 검출(단언 다름) |
+| d26 | 재시도·재생성 잠금과 `start_attempt` status 조건 제거 | REG-N04 | `[202, 202]` 3/3 | 검출 |
+| d27 | 마감 뒤 새 세션을 201로 | PRV-N01, PRV-N04 | 둘 다 HTTP 201, 기대 409 | 검출 |
+| d28 | 재생성 실패 방의 결과 조회를 `invalid_state`로 | REG-P05 | HTTP 409, 기대 200 | 검출 |
+
+**C2·C7** (저장소 밖 복사본에서 실행. 워크트리 `tests/`는 불변)
+
+| 항목 | 조작 | 실패한 로더 검사 | 판정 |
+|---|---|---|---|
+| C2 | 유효한 임시 케이스 EDT-P04 추가 | `test_loader_case_counts`, `test_markers_match_yaml_ids` | 검출 |
+| C7-(i) | 판정 키 없이 note만 | `test_loader_case_values`, `test_loader_error_code_table` | 검출 |
+| C7-(ii) | 판정 키 오타 `http_staus` | `test_loader_case_keys` | 검출 |
+| C7-(iii) | 없는 오류 코드 `edit_forbidden` | `test_loader_case_values`, `test_loader_error_code_table` | 검출 |
+| C7-(iv) | id 중복 | `test_loader_ids_unique_and_formatted` 외 2개 | 검출 |
+| C7-(v) | 케이스 삭제 | `test_loader_case_counts` 외 2개 | 검출 |
+
+**하니스 약점** (테스트 수정은 사람 승인 대상이며 이번에는 고치지 않았다)
+
+1. OUT-N05는 `5m`에서 상태 단언보다 `join()`을 먼저 부른다. 한도를 적용하지 않는 구현은 15초 TimeoutError로 보고되고, checkpoint `after_late_output`은 어떤 구현에서도 판별력이 없다. 작업이 돌면 `join()`이 끝나지 않고, 끝났으면 늦은 출력이 없다.
+2. d16·d25는 예정 단언 대신 `join()`이 전달한 DB 예외(`UniqueViolation`)로 검출됐다. 서버가 작업 예외를 `jobs.errors`에 모아 `join()`에서 다시 내는 설계와 유일 색인 `results_one_ai_per_attempt`가 둘째 보호층이었다. 보호층을 모두 빼면(d16b) OUT-N07의 상태 단언이 잡는다.
+3. CLS-N04에는 반복이 없다. 잠금 없는 구현이 1회 경쟁에서 4/4 통과했다. CLS-N03의 20회 반복은 같은 결함을 3/3 검출했다.
+
+**테스트는 통과하지만 §0·§0-1과 대조해 사람이 정할 것**
+
+1. 제출 경로가 `room_closed` 검사를 멱등 키 조회보다 먼저 한다. 방을 마감시킨 마지막 제출의 전송 재시도(같은 키·같은 본문)는 200이 아니라 409 `room_closed`를 받는다. §0-B 4("같은 키·같은 본문 재전송은 200")와 SPEC("전송 재시도는 같은 건")에 맞추려면 순서를 바꿔야 한다. DUP-P03은 마감 전 재전송만 본다.
+2. 실패 결과(`state: failed`)의 편집 요청이 `invalid_state`를 낸다. §0-B 11 오류 목록에는 없다(§0-D의 포괄 코드다).
+3. 참여자 구독이 `session_id` 없이도 201이다. §0-B 12는 `session_id?`이고 결정 11은 "참여자 구독은 세션과 묶는다"다.
+4. OUT-N05·N06은 300초·600초 정각(`>=`)에 실패한다. 결정 12의 "넘으면"과 다르고, 기대값은 바꾸지 않았다.
+
+불안정성: d0, 결함 실행 31회, 최종 2회에서 기대 밖 통과·실패가 없었다. 경쟁 케이스(CLS-N03, REG-N04)는 주입 때 3/3 실패, 정상 때 전부 통과했다.
+
+**최종 원복 뒤**: `git status --short --untracked-files=all` 출력 없음. `python3 -m pytest tests/test_server_*.py -q -rs` 116 passed, 0 skipped, 0 xfailed(2회). 실행 뒤 `srvtest_` 데이터베이스 0개. 로컬 검증이며 제출·배포 완료가 아니다.
+
+**수용**(2026-11-05, 전민규): 판정 수용을 선언했다. 기준 커밋은 `13facd1`, 수용 커밋은 이 기록을 담은 커밋이다. 계약 해석 항목은 결정 43~46으로 정했고, 43·44는 수용 뒤 서버에 반영했다(`app.py` 제출 경로의 검사 순서, 참여자 구독의 `session_id` 필수). 테스트는 바꾸지 않았고 반영 뒤 `tests/` 261 passed(DB 있음)를 다시 확인했다. 하니스 약점 3건은 테스트 수정 승인이 필요해 별도 회차로 남긴다.

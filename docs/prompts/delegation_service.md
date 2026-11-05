@@ -111,4 +111,52 @@ F7과 7강 평가는 범위 밖이다.
 | `git diff -- tests/ src/travel/pact.py src/travel/scenarios.py src/travel/pool.py src/travel/tools/ src/travel/schemas/ src/travel/data/` | 출력 없음 |
 | 실행 뒤 `srvtest_` 데이터베이스 | 0개 |
 
-구현 중 고친 하니스 코드는 없다. 구현이 테스트를 따르느라 정한 것: OUT-N05·N06의 300초·600초 **정각** 판정(`>=`, 결정 12의 "넘으면"과 다름), 결과 목록의 실패 항목은 `result_id`·`kind`·`attempt`·`state`·`created_at`만, `clauses=null`인 출력의 공유 결과는 빈 배열, 방 상태에 `closed`를 따로 저장하지 않고 `closed_at`과 `generating`을 같은 문장에서 쓴다(관찰되는 상태는 ARCHITECTURE 5절과 같다). 이것은 d0(통과 가능 확인)이며 판정 수용(결함 주입 d1~d28, C2·C7)은 §2-3에서 한다.
+구현 중 고친 하니스 코드는 없다. 구현이 테스트를 따르느라 정한 것: OUT-N05·N06의 300초·600초 정각 판정(`>=`, 결정 12의 "넘으면"과 다름), 결과 목록의 실패 항목은 `result_id`·`kind`·`attempt`·`state`·`created_at`만, `clauses=null`인 출력의 공유 결과는 빈 배열, 방 상태에 `closed`를 따로 저장하지 않고 `closed_at`과 `generating`을 같은 문장에서 쓴다(관찰되는 상태는 ARCHITECTURE 5절과 같다). 이것은 d0(통과 가능 확인)이며 판정 수용(결함 주입 d1~d28, C2·C7)은 §2-3에서 한다.
+
+### §2-3. S3 모델 호출·도구 루프, S4 화면, S5 인프라·CI (2026-11-05)
+
+**S3 모델 호출** (메인 세션 직접)
+
+| 파일 | 내용 |
+|---|---|
+| `src/travel/server/llm_openai.py` | openai SDK(`AsyncOpenAI`, `max_retries=0`, 타임아웃 90초)로 Responses API를 부른다. 요청은 `text.format` `strict: false`, 도구 `type: function` + `TOOL_DEFINITION` + `strict: true`, `tool_choice: auto`, `parallel_tool_calls: false`, `store: false`, `include: ["reasoning.encrypted_content"]`, `reasoning: {effort: low}`다. 전송부 해시가 `config/llm.yaml`과 다르면 시작하지 않는다 |
+| 같은 파일의 도구 루프 | function_call마다 `get_scenario_template`을 실행해 `function_call_output`으로 되돌리고, 앞 차례의 출력 항목을 다시 넣는다. 호출 수는 코드가 센다. 12번째 요청은 실행하지 않고 도구를 끈 뒤 최종 출력을 1회 요청한다. `incomplete`와 refusal은 `response_status`로 돌려준다. SDK 예외는 `LLMCallError(timeout, rate_limited(Retry-After 포함), server_error)`로 바꾼다. 열어 본 `template_id`는 `LLMResult.opened_template_ids`로 돌려주고, 서버는 열지 않은 문항 선정을 로그 `unopened_selection`에만 남긴다(결정 41) |
+| `CostGuard` | `llm_calls`의 일일 비용 합이 한도($5)에 닿으면 `budget_exceeded`를 낸다. `jobs.py`는 이 오류만 재시도하지 않는다 |
+| `config/llm.yaml` | 모델, 추론 강도, 전송부 해시(문항 v9 `26219ab9…`, 추천 v12 `bf9f038f…`), 스키마, pool v3 해시, 도구 상한 12, 재시도, 동시 4, 타임아웃 90, 비용 단가와 한도 |
+| `src/travel/server/replay.py`, `config/replay/scenario_set_d01.json` | 재생 모드. 문항은 2026-11-05 A''(v8 경로 확인, pool v3, D01 입력)의 실제 Sol 출력 1건을 그대로 돌려준다. 추천은 입력 응답 전부를 조항과 미해결 사유에 묶은 `proposed`를 코드로 만든다. 여행 정보와 무관하게 같은 문항이 나오므로 시연 장애 대비와 로컬 실행에만 쓴다. README에 밝혔다 |
+| `src/travel/server/main.py` | 환경변수(2026-11-05 확정 이름)와 `config/llm.yaml`로 `Settings`를 만든다. `LLM_MODE`(live 또는 replay), pywebpush 발송기, `web/dist`가 있을 때의 SPA 정적 서빙을 묶는다 |
+| `src/travel/server/admin.py` | `delete-room` 명령. cascade로 지우고 관리자 접속기록을 표준 출력에 남긴다 |
+
+검증:
+
+| 명령 | 결과 |
+|---|---|
+| `python -m pytest tests/test_llm_loop.py -q` | 8 passed(2026-11-05 사람 승인 케이스 (a)~(h). httpx.MockTransport가 SDK 전송 계층을 대신한다) |
+| `python -m pytest tests/ -q`(DB 있음) | 261 passed |
+| `ruff check .` | 통과(`ruff.toml`: E·F·W, 줄 길이 150. 기존 하니스와 검증기가 통과하는 값) |
+| 로컬 흐름(`LLM_MODE=replay`, `uvicorn travel.server.main:app`) | 방 생성, 문항 ready, 제출 2건, 자동 생성, 결과(초안), 방장 수정, 선택, 재생성까지 HTTP로 확인. 결과와 로그에 메모·MBTI·이름 없음 |
+| `docker build --platform linux/arm64 --build-arg SKIP_WEB=1` | 성공 |
+
+실제 Sol 호출은 아직 하지 않았다. 사용자 승인 뒤 D01~D08 C1~C6 점검과 10회 측정을 한다.
+
+**S4 `web/`** (에이전트 A, Opus 5.5, worktree)
+
+Vite + React + TypeScript. 라우트는 `/`, `/r/:code`, `/r/:code/answer`, `/r/:code/wait`, `/r/:code/result`, `/privacy`다. 서비스워커와 mock 모드(`VITE_MOCK=1`)가 있다. `npm run typecheck`, `build`, `test`(vitest 12개)가 통과했다. 에이전트가 headless Chrome으로 mock 흐름 13단계를 눌러 확인했다.
+
+확인하지 않은 것: 실기기(AC14), 실제 서버 연결, 실제 푸시, Web Share.
+
+에이전트가 적은 계약 공백: API에 여행 정보가 없어 결과 종이의 여행 정보 줄은 방을 만든 기기에만 남는다. `label`이 결과 단위라 '방장 수정' 표시가 조항 번호 옆이 아니라 종이 머리에 있다. 실패 항목의 필드, VAPID 응답 형식, 선택 정보 허용값은 가정이다. 에이전트 워크트리가 PR #15 이전 커밋 기준이어서 처리방침 절 번호를 "N." 형식으로만 찾았다. 메인 세션이 "제N조"도 받도록 `Markdown.tsx`를 고쳤고 테스트 12개가 다시 통과했다.
+
+**S5 `infra/`·CI** (에이전트 B, Opus 5.5, worktree)
+
+Terraform 17개 파일(VPC, ALB, ECS Fargate ARM, RDS 16, S3와 CloudFront, CloudFront Function, ACM, 기존 Route 53 영역 참조, WAF 4규칙, Secrets Manager 4개, CloudWatch 30일, GitHub OIDC), `Dockerfile`(python 3.13-slim, non-root, SPA 스테이지는 `SKIP_WEB`로 건너뛸 수 있음), `.github/workflows/pr-check.yml`과 `deploy.yml`을 만들었다.
+
+`terraform fmt -check`와 `validate`가 통과했고, 읽기 전용 `plan`은 68개 생성 예정이었다. 프로필 `itbm`은 `aws login` 세션이라 `credential_process` 우회가 필요했으며 방법은 `infra/README.md`에 있다. 손으로 만든 예산 `dowon-total-20261109-20270112`($300, 80%와 100% 알림)이 이미 있어 Terraform으로 관리하지 않는다. CloudFront 표준 로그와 WAF 로그는 User-Agent를 담으므로 꺼 두었다(처리방침 제11조). 메인 세션이 Dockerfile CMD에 `--no-access-log --proxy-headers`를 더했다. apply는 하지 않았다.
+
+팀장 확인 항목(에이전트 보고):
+
+1. RDS destroy 때 최종 스냅샷을 남길지. 처리방침 제7조 3항은 7일 안에 백업까지 지운다고 한다.
+2. 관리자 접속기록 1년 보관 저장 방식. 아직 구성하지 않았다.
+3. `origin-verify` 비밀을 사람이 넣을지, Terraform `random_password`로 만들지.
+4. 월 $99 추정에 공인 IPv4, WAF 규칙, 비밀 4개 요금이 들어 있는지.
+5. us-east-1 생성이 SCP에 막히는지. 읽기는 성공했다.
