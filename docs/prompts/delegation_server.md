@@ -35,13 +35,13 @@
 | 3 | `POST /api/rooms/{room_code}/sessions` | 없음 | `{profile_id}` | 201 `{session_id, duplicate_name_notice, privacy_notice, scenarios}`. `scenarios`는 이 `profile_id` 기준으로 토큰을 치환한 문항이다. 이전 제출 내용은 넣지 않는다 | `not_found`, `room_closed`, `invalid_state` | SPEC 5절 "새 응답 작성 세션", AC15, AC16. `privacy_notice`를 서버가 주는 것은 [에이전트 안](결정 13) |
 | 4 | `POST /api/rooms/{room_code}/submissions` | 없음. `Idempotency-Key` 헤더 필수 | `{session_id, answers: [{scenario_id, option_id, memo?}]}` | 201 `{participant_id, submitted_count, party_size}`. `response_id`는 돌려주지 않는다(§0-A 6, 결정 24). 같은 키·같은 본문 재전송은 200으로 같은 본문을 돌려준다. 유효 제출 수가 `party_size`에 닿으면 같은 트랜잭션에서 마감하고 생성을 시작한다 | `invalid_input`, `room_closed`, `session_used`, `idempotency_conflict`, `not_found` | SPEC 5절 답변 제출, 처리 정책 "제출·자동 생성", 필드 연결("동일 제출 요청의 전송 재시도는 같은 건"), ARCHITECTURE 5절 멱등 키·`memo` 300자. 헤더 이름·필수 여부·`session_used`는 [에이전트 안](결정 14) |
 | 5 | `POST /api/rooms/{room_code}/generate` | 방장 | 없음 | 202 `{room_status: "generating", included_count}` | `host_forbidden`, `no_submissions`, `room_closed` | SPEC 처리 정책 "조기 생성·마감", AC4, ARCHITECTURE 5절 상태 기계 |
-| 6 | `POST /api/rooms/{room_code}/retry` | 방장 | 없음 | 202. 실패한 생성(최초·재생성 어느 쪽이든)을 같은 고정 입력으로 다시 실행한다. 새 생성 시도 ID를 발급한다 | `host_forbidden`, `invalid_state` | SPEC 처리 정책 "재생성·실패", 상태별 처리 마지막 문단, ARCHITECTURE 6절 "생성 중 중단". 경로와 방장 전용 여부는 [에이전트 안](결정 10). 시도 ID는 결정 30 |
+| 6 | `POST /api/rooms/{room_code}/retry` | 방장 | 없음 | 202. 실패한 생성(최초·재생성 어느 쪽이든)을 같은 고정 입력으로 다시 실행한다. 새 생성 시도 ID를 발급한다. 방이 `open`이고 `scenario_status: failed`면 문항 생성을 새 시도 ID로 다시 실행하고 `{room_status: "open", scenario_status: "preparing"}`을 돌려준다(결정 49) | `host_forbidden`, `invalid_state` | SPEC 처리 정책 "재생성·실패", 상태별 처리 마지막 문단, ARCHITECTURE 6절 "생성 중 중단". 경로와 방장 전용 여부는 [에이전트 안](결정 10). 시도 ID는 결정 30 |
 | 7 | `POST /api/rooms/{room_code}/regenerate` | 방장 | 없음 | 202. 새 생성 시도 ID를 발급한다. 재생성 결과는 방장이 고르기 전까지 결과 목록(9)에만 있다 | `host_forbidden`, `regeneration_limit`, `invalid_state` | SPEC 5절 재생성, AC17, ARCHITECTURE 5절(정상 결과 행 수로 계산, 생성 시도 ID), 결정 28·30 |
 | 8 | `GET /api/rooms/{room_code}/result` | 없음 | 없음 | 200 공유 결과(§0-C) 하나. 방장이 고른 결과, 고르기 전에는 최초 정상 결과다. 그 결과에 방장 수정본이 있으면 가장 최근 수정본을 보여준다. 고르기 전에는 `draft: true`, 고른 뒤에는 `draft: false`다. 고르지 않은 재생성 결과와 그 수정본은 보여주지 않는다. 방장 토큰을 붙여도 같은 결과다 | `invalid_state`(정상 결과 없음), `render_failed` | SPEC 5절 결과 선택, 처리 정책 "응답·결과 공개", F5, 결정 6·28·31·32 |
 | 9 | `GET /api/rooms/{room_code}/results` | 방장 | 없음 | 200 `{selected_result_id, results: [공유 결과 + {attempt, state: "normal" \| "failed", created_at, editable}]}`. 방장에게도 공유 결과 형태만 준다. 정상 결과 항목의 `editable`은 아래 "편집용 응답"이다 | `host_forbidden`, `render_failed` | AC3(방장도 다른 참여자의 원문을 받지 않는다), AC17 두 결과 보존, 결정 29·33·34 |
 | 10 | `POST /api/rooms/{room_code}/results/{result_id}/select` | 방장 | 없음 | 200 `{selected_result_id}` | `host_forbidden`, `not_found`, `invalid_state`(실패 결과) | SPEC 5절 재생성·결과 선택, AC17 |
 | 11 | `POST /api/rooms/{room_code}/results/{result_id}/edits` | 방장 | `{edits: [{path, text}]}`. `path`는 공유 결과의 문장 위치(JSON Pointer), `text`는 `{{participant:ID}}` 토큰을 유지한 문장 | 201 공유 결과(`kind: "host_edited"`, `source_result_id`). `result_id`는 AI 원본이다. 그 원본의 가장 최근 수정본이 있으면 거기서 시작하고, 없으면 원본에서 시작한다. `source_result_id`는 시작한 판이다. 새 수정본은 새 행이고 원본과 이전 수정본 행은 바꾸지 않는다 | `host_forbidden`, `not_found`, `edit_not_allowed`, `memo_quote` | SPEC 처리 정책 "방장 편집", AC12, AC3(방장 수정본에도 15자 기준), ARCHITECTURE 2절 규칙 2(편집본은 별도 행), 결정 4·5·6 |
-| 12 | `GET /api/push/vapid-public-key`, `POST /api/rooms/{room_code}/push-subscriptions` | 구독 `role`이 `host`면 방장 | `{role: "host" \| "participant", session_id?, subscription: {endpoint, keys: {p256dh, auth}}}` | 201 `{subscription_id}` | `invalid_input`, `host_forbidden`, `not_found` | SPEC 5절 푸시 등록·발송, F6, ARCHITECTURE 2절 `push.py`. 요청 형식은 [에이전트 안](결정 11) |
+| 12 | `GET /api/push/vapid-public-key`, `POST /api/rooms/{room_code}/push-subscriptions` | 구독 `role`이 `host`면 방장 | `{role: "host" \| "participant", session_id?, subscription: {endpoint, keys: {p256dh, auth}}}` | 201 `{subscription_id}`. 같은 방·역할·세션·endpoint를 다시 등록하면 200과 같은 `subscription_id`를 돌려주고 키만 새 값으로 바꾼다(결정 50) | `invalid_input`(허용하지 않는 endpoint 포함), `host_forbidden`, `not_found` | SPEC 5절 푸시 등록·발송, F6, ARCHITECTURE 2절 `push.py`. 요청 형식은 [에이전트 안](결정 11) |
 
 제출 내용을 조회하는 경로는 두지 않는다(ARCHITECTURE 2절 규칙 3 확인, AC16). 방 단위 삭제 명령(`admin.py`)과 만료는 이번 범위가 아니다.
 
@@ -384,6 +384,8 @@ editable: [{path, segments: [{text} | {participant_id, display, pair}]}]
 46. 작업 한도·멈춤 판정은 300초·600초 정각(`>=`)에 적용한다. 하니스 OUT-N05·N06의 기대값을 따르며 결정 12의 "넘으면"은 이렇게 읽는다.
 47. 방 조회(§0-B 2)와 공유 결과(§0-C)에 `trip`을 더한다. 키는 `destination`, `duration_days`, `party_size` 세 개다. `relationship`, 선택 프로필, 이름 자리표시자는 넣지 않는다. `trip`은 편집 위치가 아니다. 사람이 2026-11-05에 승인했고, 공유 결과 허용 키 변경과 `tests/test_room_trip.py` 추가도 같은 승인에 들어 있다. 서버 케이스 86개의 기대값은 바꾸지 않았다.
 48. 화면의 초안 표시를 ‘초안’과 그 아래 ‘방장이 고르기 전이에요’로 바꾼다. `draft` 필드와 공개 정책(결정 28)은 그대로다. 사람이 2026-11-05에 승인했다.
+49. `POST /retry`가 실패한 문항도 받는다. 방장 권한, 방당 상한, 시도 ID 규칙은 추천과 같다. `needs_information`·`unsupported`·`invalid_input`은 재시도로 풀리지 않아 409 `invalid_state`이고 새 방을 만든다. 2026-11-05 사람 결정(PR #16 리뷰 2번). 회귀는 `tests/test_scenario_recovery.py`다.
+50. 푸시 구독 주소는 HTTPS, 포트 443, userinfo 없음, 허용 호스트만 받는다. 기본값은 실제 푸시 서비스 3곳이고 하니스 설정에만 `push.test`를 더한다. 재등록은 멱등하다. 2026-11-05 사람 결정(PR #16 리뷰 1번). 회귀는 `tests/test_push_endpoint.py`다.
 
 ## §1. 프롬프트 원본
 
@@ -827,7 +829,7 @@ YAML 생성 스크립트와 실행 출력은 `.local-work/server_harness/`에 �
 | C7-(iv) | id 중복 | `test_loader_ids_unique_and_formatted` 외 2개 | 검출 |
 | C7-(v) | 케이스 삭제 | `test_loader_case_counts` 외 2개 | 검출 |
 
-**하니스 약점** (테스트 수정은 사람 승인 대상이며 이번에는 고치지 않았다)
+**하니스 약점** (테스트 수정은 사람 승인 대상이며 이번에는 고치지 않았다. 세 건 모두 §2-5에서 고쳤다)
 
 1. OUT-N05는 `5m`에서 상태 단언보다 `join()`을 먼저 부른다. 한도를 적용하지 않는 구현은 15초 TimeoutError로 보고되고, checkpoint `after_late_output`은 어떤 구현에서도 판별력이 없다. 작업이 돌면 `join()`이 끝나지 않고, 끝났으면 늦은 출력이 없다.
 2. d16·d25는 예정 단언 대신 `join()`이 전달한 DB 예외(`UniqueViolation`)로 검출됐다. 서버가 작업 예외를 `jobs.errors`에 모아 `join()`에서 다시 내는 설계와 유일 색인 `results_one_ai_per_attempt`가 둘째 보호층이었다. 보호층을 모두 빼면(d16b) OUT-N07의 상태 단언이 잡는다.
@@ -845,3 +847,27 @@ YAML 생성 스크립트와 실행 출력은 `.local-work/server_harness/`에 �
 **최종 원복 뒤**: `git status --short --untracked-files=all` 출력 없음. `python3 -m pytest tests/test_server_*.py -q -rs` 116 passed, 0 skipped, 0 xfailed(2회). 실행 뒤 `srvtest_` 데이터베이스 0개. 로컬 검증이며 제출·배포 완료가 아니다.
 
 **수용**(2026-11-05, 전민규): 판정 수용을 선언했다. 기준 커밋은 `13facd1`, 수용 커밋은 이 기록을 담은 커밋이다. 계약 해석 항목은 결정 43~46으로 정했고, 43·44는 수용 뒤 서버에 반영했다(`app.py` 제출 경로의 검사 순서, 참여자 구독의 `session_id` 필수). 테스트는 바꾸지 않았고 반영 뒤 `tests/` 261 passed(DB 있음)를 다시 확인했다. 하니스 약점 3건은 테스트 수정 승인이 필요해 별도 회차로 남긴다.
+
+### §2-5. 하니스 약점 수정과 결함 재주입 (2026-11-05, 에이전트 Claude. PR #16 리뷰 13번)
+
+사람이 수정을 승인했다. 구현과 같은 세션이 스크래치 복사본에서 결함을 넣었으므로 §2-4처럼 독립 검증은 아니다. YAML 기대값은 바꾸지 않았다.
+
+| 케이스 | 대응 AC | 약점 | 변경 |
+|---|---|---|---|
+| OUT-N05 | AC10, AC4 | `join()`이 상태 단언보다 먼저여서 한도를 어긴 구현이 15초 timeout으로 보고됐다. `after_late_output`은 어떤 구현에서도 판별력이 없었다 | 상태를 `join()` 앞에서 단언한다. 작업 한도가 failed를 쓰는 트랜잭션 안에서 붙잡은 호출을 풀어, 늦은 출력이 `finish_attempt`에 실제로 닿게 한다 |
+| OUT-N05, OUT-N07 | AC10, AC4 | d16·d25가 시도 조건 대신 유일 색인의 DB 예외로 검출됐다. 예외가 나면 트랜잭션이 되돌아가 상태는 정상으로 남는다 | 색인이 있는지 확인한 뒤 이 두 케이스의 DB에서만 지워 시도 조건을 상태로 판정한다 |
+| CLS-N04 | AC4 | 1회 경쟁이라 잠금 없는 구현이 4/4 통과했다 | 방 행을 먼저 잠그고, 두 요청이 `pg_stat_activity`에서 모두 잠금 대기인 것을 확인한 뒤 푼다. 응답 코드 단언을 `join()` 앞으로 옮겼다 |
+
+OUT-N05는 `notifier.enqueue`와 `db.finish_attempt`를 감싸므로 서버 내부 이름에 묶인다. 작업 한도가 쓰기 뒤에 작업을 멈춰서, 이 틈을 만들 다른 방법이 없었다.
+
+결함마다 3회 실행했다. 결함 없는 d0은 네 케이스(OUT-N05, OUT-N07, CLS-N03, CLS-N04) 모두 3/3 통과했다.
+
+| 결함 | 내용 | 케이스 | 결과(3회 동일) |
+|---|---|---|---|
+| d4 | 제출·조기 생성의 `FOR UPDATE`와 `close_and_freeze`의 status 조건 제거 | CLS-N04 | `[202, 202] == [202, 409]` 실패. 전에는 4/4 미검출 |
+| d4 | 같음 | CLS-N03 | 빈 대기열 오류로 실패(이번에 고치지 않은 기존 검출 방식) |
+| d15 | `enforce_deadlines`를 빈 함수로 | OUT-N05 | `5m: generating` 실패. 전에는 timeout |
+| d16 | `finish_attempt`의 시도 ID·status 조건 제거 | OUT-N05 | `normal_results` `1 == 0` 실패. 전에는 미검출 |
+| d16 | 같음 | OUT-N07 | "이전 시도의 늦은 결과가 상태를 바꿨다" 실패. 전에는 `UniqueViolation` |
+| d16b | d16에 한도에서 작업을 안 멈춤을 더함 | OUT-N05, OUT-N07 | 위 d16과 같은 단언으로 실패 |
+| d25 | `finish_attempt`의 시도 ID 조건만 제거 | OUT-N07 | "이전 시도의 늦은 결과가 상태를 바꿨다" 실패. 전에는 `UniqueViolation` |

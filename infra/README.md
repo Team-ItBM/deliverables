@@ -90,7 +90,7 @@ ALB (보안 그룹: CloudFront origin-facing 접두사 목록 443만, 리스너:
    | `ECS_CONTAINER_NAME` | `ecs_container_name` |
    | `SPA_BUCKET` | `spa_bucket` |
    | `CLOUDFRONT_DISTRIBUTION_ID` | `cloudfront_distribution_id` |
-6. main에 푸시하거나 Actions에서 `deploy`를 수동 실행한다. 이미지 푸시 → 새 리비전 등록 → 스키마 초기화 태스크(`python -m travel.server.db --init`) → 서비스 갱신 → SPA 동기화 → 무효화 순이다. 태스크 수가 0이어도 스키마 초기화는 돈다.
+6. main에 푸시하거나 Actions에서 `deploy`를 수동 실행한다. 이미지 푸시(같은 커밋을 다시 실행하면 기존 이미지 사용) → 새 리비전 등록 → 스키마 초기화 태스크(`python -m travel.server.db --init`) → 서비스 갱신 → 새 자산 업로드 → HTML 전환 → 무효화 → 사이트 확인 → 이전 자산 정리 순이다. 정리는 현재 빌드에 없고 7일이 지난 파일만 지운다. 태스크 수가 0이어도 스키마 초기화는 돈다.
 7. `terraform apply`(기본 `app_desired_count=2`). 서비스는 6단계에서 CI가 등록한 리비전을 계속 쓴다.
 8. 확인: `https://dowonpact.com/api/health`가 200이어야 한다. `https://origin.dowonpact.com/api/health`를 직접 호출하면 보안 그룹이 CloudFront 외 주소를 막으므로 연결 시간 초과가 정상이다(헤더 없이 CloudFront 주소에서 오면 403). ALB 헤더 조건 값은 128자 이하여야 하므로 `openssl rand -hex 32`(64자)를 권한다.
 
