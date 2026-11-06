@@ -178,10 +178,11 @@ function HostResults({
     [code, token]
   );
   const roomStatus = room.data?.room_status;
+  // 상태가 그대로여도 다시 읽는다. 재생성이 상태 확인보다 빨리 끝나면 ready만 보이기 때문이다.
   useEffect(() => {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code, token, roomStatus]);
+  }, [code, token, room.data]);
 
   const entries = useMemo(() => sortEntries(list?.results ?? []), [list]);
 
