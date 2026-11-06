@@ -217,9 +217,9 @@ variable "spa_bucket_force_destroy" {
 # ---- GitHub OIDC ----
 
 variable "github_repository" {
-  description = "owner/repo trusted by the deploy role."
+  description = "Repository part of the GitHub OIDC subject. This repository uses immutable subjects: owner@owner_id/repo@repo_id."
   type        = string
-  default     = "Team-ItBM/deliverables"
+  default     = "Team-ItBM@326874376/deliverables@1362404898"
 }
 
 variable "github_deploy_ref" {
