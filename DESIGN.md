@@ -149,6 +149,16 @@ components:
   button-secondary-pressed:
     backgroundColor: "{colors.surface-pressed}"
     textColor: "{colors.primary}"
+  button-outline:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.primary}"
+    typography: "{typography.label-lg}"
+    rounded: "{rounded.md}"
+    height: 52px
+    padding: 16px
+  button-outline-pressed:
+    backgroundColor: "{colors.surface-pressed}"
+    textColor: "{colors.primary}"
   button-text:
     textColor: "{colors.tertiary}"
     typography: "{typography.label-md}"
@@ -194,11 +204,8 @@ components:
     rounded: "{rounded.full}"
     height: 4px
   notice-privacy:
-    backgroundColor: "{colors.surface}"
     textColor: "{colors.secondary}"
     typography: "{typography.body-sm}"
-    rounded: "{rounded.lg}"
-    padding: 16px
   notice-duplicate-name:
     textColor: "{colors.error}"
     typography: "{typography.body-sm}"
@@ -296,12 +303,12 @@ components:
 - **먹** {colors.primary}: 본문·제목·주 버튼 배경. 순수한 검정을 쓰지 않는다.
 - **먹 눌림** {colors.primary-pressed}: 주 버튼을 누른 상태.
 - **종이 위 글자** {colors.on-primary}: 먹 배경 위 글자.
-- **보조 글자** {colors.secondary}: 설명문, 안내 카드 본문.
+- **보조 글자** {colors.secondary}: 설명문, 안내문.
 - **흐린 글자** {colors.muted}: 메타 정보, 개수, 날짜. 발표자료의 `#8C847C`는 작은 글자에서 대비가 3.38:1이라 이 색으로 바꿨다.
 - **놋쇠** {colors.tertiary}: 강조가 필요한 **글자**(조항 번호, 텍스트 버튼, ‘방장 수정’ 표시). 발표자료의 `#9A6F42`는 바탕 위 작은 글자에서 4.08:1이라 한 단계 어둡게 했다.
 - **놋쇠 표시** {colors.tertiary-mark}: 글자가 아닌 표시(선택한 라디오 점, 진행 막대, 제목 아래 짧은 밑줄, 포커스 링).
 - **바탕** {colors.neutral}: 모든 화면의 기본 배경.
-- **표면** {colors.surface}, **표면 눌림** {colors.surface-pressed}: 카드·선택지·보조 버튼. 결과 화면에서는 이 색을 배경으로 써서 종이가 한 단계 떠 보이게 한다.
+- **표면** {colors.surface}, **표면 눌림** {colors.surface-pressed}: 조작 대상의 카드·선택지·보조 버튼. 결과 화면에서는 이 색을 배경으로 써서 종이가 한 단계 떠 보이게 한다.
 - **종이** {colors.paper}: 협약서 종이, 입력란, 선택한 선택지.
 - **윤곽선** {colors.outline}: 입력란 테두리처럼 경계가 조작 단서인 곳. 바탕 대비 3.38:1로 WCAG의 비텍스트 대비 3:1을 넘는다.
 - **옅은 윤곽선** {colors.outline-variant}, **헤어라인** {colors.hairline}: 장식이 아닌 구분선. 조작 단서로 쓰지 않는다.
@@ -316,6 +323,8 @@ components:
 ## Typography
 
 본문과 조작은 **IBM Plex Sans KR**, 문서의 목소리는 **Noto Serif KR**이 맡는다. 두 서체 모두 발표자료에서 본문과 제목에 쓴 서체다.
+
+폰트는 직접 제공한다. 영문과 KS X 1001 한글 2,350자로 줄였고, 범위 밖 글자는 기기의 글꼴로 나온다. IBM Plex Sans KR은 라이선스의 예약 글꼴 이름 때문에 줄인 파일을 ‘Dowon Sans’라는 이름으로 쓴다. 코드의 글꼴 이름만 다르고 모양은 같다.
 
 - **Noto Serif KR**은 워드마크 {typography.wordmark}, 화면 제목 {typography.headline-lg}, 협약서 제목 {typography.display-pact}, 조항 번호 {typography.clause-number}, 도장 {typography.stamp}에만 쓴다. 버튼·라벨·입력란에는 쓰지 않는다.
 - **워드마크** ‘도원결의’는 앱 머리와 협약서 머리 모두 Noto Serif KR 600이다. 발표자료 표지와 같은 서체이고, 협약서 제목·도장과 한 목소리로 읽힌다. 배너의 굵은 산세리프 표기는 README 표지에만 쓴다.
@@ -334,11 +343,15 @@ components:
 - 모든 간격은 4px 격자다. 토큰은 {spacing.xs}부터 {spacing.4xl}까지이며, 토큰 사이 값이 필요하면 4의 배수를 쓴다.
 - 화면 좌우 여백은 {spacing.gutter}, 카드 안쪽은 {spacing.lg}~{spacing.xl}, 협약서 종이 안쪽은 {spacing.2xl}이다.
 - 묶음 안은 좁게, 묶음 사이는 넓게 둔다. 질문과 선택지 목록 사이 {spacing.xl}, 선택지끼리 {spacing.sm}, 선택지 목록과 메모 사이 {spacing.2xl}.
-- 화면당 주 동작은 하나이며 화면 아래에 고정한다. 고정 영역은 `env(safe-area-inset-bottom)`만큼 아래 여백을 더해 홈 표시줄과 겹치지 않게 한다. 보조 동작은 주 동작 위에 하나까지 둔다.
+- 화면당 주 동작은 하나이며 화면 아래에 고정한다. 고정 영역은 `env(safe-area-inset-bottom)`만큼 아래 여백을 더해 홈 표시줄과 겹치지 않게 한다. 보조 동작은 주 동작 위에 하나까지 둔다. 답 확인 화면은 예외로 고정 영역에 주 버튼만 둔다. 고정 영역이 커지면 마지막 문항을 가리기 때문이다.
 - 손가락으로 누르는 모든 대상은 {spacing.touch-min} 이상이다. 아이콘만 있는 버튼도 보이는 크기와 상관없이 누르는 영역을 이만큼 둔다.
 - 응답 화면은 문항 하나를 한 화면에 담는다. 위에서부터 진행 표시, 장면, 질문, 선택지, 메모, 아래 고정 버튼 순이다.
-- 필수 입력과 선택 입력이 섞인 폼은 선택 입력을 접힌 영역에 묶는다. 폼의 묶음 사이는 {spacing.3xl}이다.
+- 필수 입력과 선택 입력이 섞인 폼은 선택 입력을 접힌 영역에 묶는다. 폼의 묶음 사이는 {spacing.3xl}이다. 방 만들기는 단계별 입력이라 선택 입력을 마지막 단계에 따로 둔다.
 - 글자 크기를 200%로 키워도(Apple HIG 권고) 가로 스크롤 없이 세로로 늘어나야 한다. 높이를 고정한 카드는 `min-height`로 둔다.
+
+- 카드(표면색 면)는 조작 대상에만 쓴다. 선택지, 접는 영역, 답 확인 목록, 편집 폼이 해당한다. 상태와 안내는 면 없이 글로 두고, 묶음을 나눌 때는 {colors.hairline} 선을 쓴다.
+- 진행 상태는 제목 바로 아래 한 줄로 둔다. 제출 수 뒤에 가운데점으로 상태 문구를 잇는다. 대기 화면과 제출 뒤 방 화면이 같은 규칙을 쓴다.
+- 방장 방 화면은 제목 아래에 진행 상태와 초대 링크 복사를 두고, 방장 메뉴는 접지 않는다. 방장 메뉴는 헤어라인 아래에 둔다.
 
 ## Elevation &amp; Depth
 
@@ -350,7 +363,7 @@ components:
 
 조작 요소는 부드럽게, 문서는 반듯하게 다룬다.
 
-- 버튼·입력란 {rounded.md}, 선택지·안내 카드 {rounded.lg}, 아래에서 올라오는 시트 {rounded.xl}.
+- 버튼·입력란 {rounded.md}, 선택지·카드 {rounded.lg}, 아래에서 올라오는 시트 {rounded.xl}.
 - 협약서 종이는 {rounded.paper}로 거의 직각이다. 실제 종이처럼 보여야 하기 때문이다. 종이 안쪽 테두리는 8px 들어간 위치에 놋쇠 표시색 30% 불투명도의 1px 선을 둔다(9/23 목업의 서류 테두리).
 - 안쪽 모서리는 바깥 모서리에서 안쪽 여백을 뺀 값이며 4px보다 작게 하지 않는다.
 - 완전한 원 {rounded.full}은 도장, 라디오 점, 진행 막대에만 쓴다. 버튼을 알약 모양으로 만들지 않는다.
@@ -371,7 +384,7 @@ components:
 움직임은 짧고 기계적이다. 화면 전환과 피드백은 {motion.easing} 곡선 하나만 쓴다.
 
 - 누름·선택·토글: {motion.feedback}. 색과 면만 바뀌고 크기는 누를 때 98%로 줄었다 돌아오는 정도까지만.
-- 시트·안내 카드 등장: {motion.enter}, 아래에서 8px 떠오르며 나타난다.
+- 시트·공개 안내 등장: {motion.enter}, 아래에서 8px 떠오르며 나타난다.
 - **협약서 발급 연출**: 종이가 {motion.paper} 동안 위에서 펼쳐지고(높이가 아닌 `clip-path`·`transform`으로), 조항이 {motion.clause} 동안 {motion.stagger} 간격으로 이어 나타난 뒤 도장이 {motion.stamp} 동안 108%에서 100%로 줄며 불투명도가 0에서 올라와 종이에 찍힌다. 찍히는 동안에도 그림자는 없다. 도장 애니메이션이 시작하는 순간 복숭아나무 가지가 함께 뻗는다(`pact-branch`). 결과를 처음 열 때 한 번만 재생하고 다시 열면 바로 완성 상태를 보여 준다. 연출은 9/23 회의의 ‘종이가 펼쳐진 뒤 마지막에 도장’ 방향을 따른다.
 - 협약서 생성을 기다리는 동안에는 실제로 진행 중인 작업이므로 얇은 진행 막대가 천천히 흐르는 것을 허용한다. 결과 화면의 흩날리는 꽃잎(`petal-drift`)도 예외로 허용한다. 그 밖에 반복하는 움직임(깜빡임, 숨쉬기, 반짝임)은 쓰지 않는다.
 - `prefers-reduced-motion: reduce`이면 모든 시간을 0으로 두고 완성 상태를 바로 보여 준다. 흩날리는 꽃잎은 보여 주지 않는다.
@@ -391,8 +404,10 @@ components:
 
 ### 버튼
 
-- **주 버튼** `button-primary`: 화면당 하나. 너비는 본문 폭 전체, 높이 52px. 비활성 상태는 {colors.surface-pressed} 바탕에 {colors.muted} 글자다. 비활성 사유를 글로 둘 때는 버튼 바로 위에 {typography.body-sm}로 놓는다.
+- **주 버튼** `button-primary`: 화면당 하나. 너비는 본문 폭 전체, 높이 52px. 비활성 상태는 {colors.surface-pressed} 바탕에 {colors.muted} 글자다. 비활성 사유를 글로 둘 때는 버튼 바로 위에 {typography.body-sm}로 놓는다. 답 확인 화면에서는 비활성 사유와 오류를 본문 끝에 둔다.
 - **보조 버튼** `button-secondary`: 주 버튼과 같은 크기, 표면 바탕. 주 동작 위에 두는 선택 동작.
+- **윤곽선 버튼** `button-outline`: 본문 안의 보조 동작(초대 링크 복사, 알림 받기, 이미지 저장). 종이 바탕에 {colors.outline} 1px 테두리를 둔다. 표면 위에서도 쓴다.
+- 강조는 화면당 주 버튼 하나다. 주 버튼이 따로 있을 때 "지금까지 모인 응답으로 만들기"처럼 한 번 더 생각할 동작은 텍스트 버튼으로 낮춰, 비활성 주 버튼과 구분되게 한다.
 - **텍스트 버튼** `button-text`: 놋쇠 글자, 밑줄 없음. 본문 흐름 안의 가벼운 동작.
 - 모든 버튼에 키보드 포커스 링을 둔다: {colors.tertiary-mark} 2px, 2px 바깥 간격.
 
@@ -414,6 +429,7 @@ components:
 - 글자 크기는 16px 이상이다. iOS Safari는 이보다 작은 입력란에 포커스하면 화면을 확대한다.
 - 라벨은 입력란 위에 항상 보이게 둔다. 자리표시 글자를 라벨 대신 쓰지 않는다.
 - 입력란 아래 보조 글자는 {colors.muted} {typography.body-sm}이고, 글자 수를 보여 줄 때는 오른쪽에 {typography.numeral}로 둔다.
+- 입력 오류는 해당 입력란 바로 아래에 경고 아이콘과 {colors.error} {typography.body-sm} 글자로 둔다. 입력란 테두리도 {colors.error}로 바꾼다.
 
 ### 진행 표시 `progress-track`, `progress-fill`
 
@@ -421,7 +437,7 @@ components:
 
 ### 안내와 오류
 
-- **공개 안내** `notice-privacy`: 자물쇠 아이콘과 안내문을 담은 카드. 안내가 표시되는 화면에서 주 버튼 바로 위에 둔다(AC3).
+- **공개 안내** `notice-privacy`: 자물쇠 아이콘과 안내문. 면 없이 글로 둔다. 안내가 표시되는 화면에서 주 버튼 바로 위에 둔다(AC3). 답 확인 화면에서는 본문 끝, 마지막 문항 아래에 둔다.
 - **같은 이름 안내** `notice-duplicate-name`: 이름 선택 목록 바로 아래 {colors.error} 글자와 경고 아이콘(AC16).
 - **오류** `message-error`: 경고 아이콘 뒤에 글자를 두고, 재시도 버튼이 있으면 바로 아래 둔다. 색이나 아이콘만으로 오류를 표시하지 않는다(AC14).
 - **개수 표시** `count-label`: 흐린 글자와 고정폭 숫자.
@@ -434,17 +450,17 @@ components:
 
 결과 화면의 주인공이다. 화면과 저장 이미지가 같은 모양이 되도록 하나의 컴포넌트로 만든다(AC13). 저장 이미지는 종이 폭 360px를 3배로 그려 1080px 폭으로 만든다. 종이에 담을 항목은 SPEC이 정하고, 이 절은 각 자리의 모양만 정한다. 위에서부터:
 
-1. **머리**: 왼쪽에 워드마크 `wordmark`.
+1. **머리**: 왼쪽에 워드마크 `wordmark`, 오른쪽에 초안 표시와 방장 수정 표시. 초안 표시는 라벨 바로 아래에 뜻풀이를 {typography.caption} {colors.muted}로 둔다. 종이만 따로 보는 저장 이미지에서도 뜻이 통하게 하기 위해서다.
 2. **제목**: 가운데 `pact-title`, 아래 짧은 놋쇠 밑줄.
 3. **여행 정보**: 항목을 가운데점(·)으로 잇는 한 줄 `pact-meta`.
 4. **조항**: `제1조`부터 번호를 붙인다 `pact-clause-number`. 번호 아래 조항 문장, 그 아래 적용 대상 이름을 둔다. 제안 조건(`proposed_conditions`)은 한 단계 들여 쓰고 앞에 {colors.tertiary} {typography.label-sm} 라벨을 둬 조항 문장과 구분한다(AC7).
 5. **조건부 대안**: 조항 아래 헤어라인으로 구분한 묶음. 대안 문장 아래 필요한 변경을 한 단계 들여 쓴다. 표시하는 필드는 AC3·AC8을 따른다.
 6. **미해결 조건**: 조건부 대안과 같은 모양의 묶음.
-7. **바닥글**: 헤어라인 아래 {typography.caption} 글자 영역. 오른쪽 아래에 바닥글 글자와 테두리선에 걸쳐 찍힌 도장.
+7. **바닥글**: 헤어라인 아래 {typography.caption} 글자 영역. 첫 줄에 발급 표시를 {colors.tertiary} {typography.label-sm}로 둔다. 바로 아래에 추천안 안내 문장이 이어져야 하며, 이 표시만 따로 떼어 쓰지 않는다. 추천안 안내 문장만 {typography.body-sm}, {colors.secondary}로 둔다. 오른쪽 아래에 바닥글 글자와 테두리선에 걸쳐 찍힌 도장.
 
 ### 방장 수정 표시 `host-edit-label`
 
-- 수정한 조항의 번호 오른쪽에 두는 작은 라벨(AC12).
+- 종이 머리 오른쪽에 두는 작은 라벨(AC12). 수정 표시는 결과 단위이므로 조항마다 달지 않는다.
 - 편집 모드에서 수정할 수 있는 문구는 `input-memo`와 같은 모양의 입력란으로 바뀌고, 나머지는 종이 위 모양 그대로 둔다.
 
 ### 도장 `stamp` (시그니처)
@@ -456,6 +472,7 @@ components:
 - 위치는 종이 바닥글 오른쪽이다. 바닥글의 헤어라인, 종이 안쪽 테두리선, 바닥글 글자 끝에 걸쳐 찍는다. 조항 문장 위에는 찍지 않는다.
 - 저장 이미지에서도 혼합 모드와 질감이 화면과 같게 그려져야 한다(AC13).
 - 도장은 협약서 종이의 일부다. 종이가 표시되는 결과에는 `proposed`·`conditional_only` 구분 없이 찍고, 종이가 없는 화면에는 두지 않는다.
+- 예외: 랜딩의 예시 협약서는 실제 종이 컴포넌트에 도장까지 그대로 그린다. 머리에 ‘예시’ 라벨을 두고, 가지·꽃·꽃잎·발급 연출은 넣지 않는다.
 - 도장 애니메이션이 시작하는 순간 `pact-branch`도 함께 시작한다.
 
 ### 복숭아나무 가지 `pact-branch`
@@ -502,7 +519,7 @@ SPEC AC14가 요구하는 ‘읽고 조작할 수 있음’을 화면 단위로 
 - **Do** 인주는 도장에만 둔다. 다른 곳에 드물게라도 쓰면 도장이 특별하지 않게 된다.
 - **Do** 응답 화면에서는 장면의 모든 줄을 펼쳐 보여 준다. 접거나 일부 줄만 보여 주지 않는다.
 - **Don't** 시안·목업의 예시 데이터에 AC3의 비공개 항목을 넣지 않는다.
-- **Don't** 도장을 협약서 종이 밖(로딩, 빈 화면, 로고, 안내 카드)에 쓰지 않는다.
+- **Don't** 도장을 협약서 종이 밖(로딩, 빈 화면, 로고, 안내문)에 쓰지 않는다.
 - **Don't** 복숭아꽃과 가지를 협약서 화면 밖에 쓰지 않는다.
 - **Don't** 흩날리는 꽃잎이 화면 가운데 본문 영역을 지나게 하지 않는다.
 - **Don't** 가지가 조항 글자를 가려 읽기 어렵게 만들지 않는다.

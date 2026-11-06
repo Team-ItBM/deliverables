@@ -109,7 +109,7 @@ cases:
     expires_after_days: 30
     calls: {"scenarios": 1}
     scenario_status: "ready"
-    note: "201, `expires_at = created_at + 30일`. 문항 호출 1회, 모델 입력의 `participant_profiles`가 요청과 같다. 완료 뒤 `scenario_status: ready`"
+    note: "201, `expires_at = created_at + 30일`. 문항 호출 1회, 모델 입력의 `participant_profiles`는 `profile_id`와 선택 정보가 요청과 같고 `display_name`은 `친구1`~`친구3`이다. 완료 뒤 `scenario_status: ready`"
   - id: INP-P02
     case_id: scenario_input
     kind: pass

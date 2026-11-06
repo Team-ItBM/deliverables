@@ -1,0 +1,173 @@
+name: deploy
+
+# Required repository variables (Settings > Secrets and variables > Actions > Variables),
+# values from `terraform output` in infra/:
+#   AWS_DEPLOY_ROLE_ARN, ECR_REPOSITORY, ECS_CLUSTER, ECS_SERVICE, ECS_TASK_FAMILY,
+#   ECS_CONTAINER_NAME, SPA_BUCKET, CLOUDFRONT_DISTRIBUTION_ID
+# No AWS keys are stored in GitHub: credentials come from OIDC.
+# Do not add `environment:` to the job; the deploy role trusts only
+# repo:Team-ItBM/deliverables:ref:refs/heads/main.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-northeast-2
+  SITE_URL: https://dowonpact.com
+  # Creates or migrates the schema; idempotent (src/travel/server/db.py). The
+  # result, including removed duplicate rows, goes to CloudWatch Logs.
+  DB_INIT_COMMAND: '["python","-m","travel.server.db","--init"]'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: deploy-${{ github.run_id }}
+
+      - name: Login to ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image (linux/arm64), or reuse it on a rerun
+        id: image
+        env:
+          REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+          TAG: ${{ github.sha }}
+          IMAGE: ${{ steps.ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:${{ github.sha }}
+        run: .github/scripts/ensure_image.sh
+
+      - name: Register task definition revision
+        id: taskdef
+        env:
+          IMAGE: ${{ steps.image.outputs.image }}
+          FAMILY: ${{ vars.ECS_TASK_FAMILY }}
+          CONTAINER: ${{ vars.ECS_CONTAINER_NAME }}
+        run: |
+          aws ecs describe-task-definition --task-definition "$FAMILY" --query taskDefinition > current.json
+          jq --arg img "$IMAGE" --arg c "$CONTAINER" '
+            .containerDefinitions |= map(if .name == $c then .image = $img else . end)
+            | del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
+                  .compatibilities, .registeredAt, .registeredBy, .deregisteredAt)
+          ' current.json > next.json
+          ARN=$(aws ecs register-task-definition --cli-input-json file://next.json \
+                  --query taskDefinition.taskDefinitionArn --output text)
+          echo "arn=$ARN" >> "$GITHUB_OUTPUT"
+
+      - name: Run schema init (one-off task)
+        env:
+          TASKDEF: ${{ steps.taskdef.outputs.arn }}
+          CLUSTER: ${{ vars.ECS_CLUSTER }}
+          SERVICE: ${{ vars.ECS_SERVICE }}
+          CONTAINER: ${{ vars.ECS_CONTAINER_NAME }}
+        run: |
+          NETCFG=$(aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE" \
+                     --query 'services[0].networkConfiguration' --output json)
+          OVERRIDES=$(jq -n --arg c "$CONTAINER" --argjson cmd "$DB_INIT_COMMAND" \
+                        '{containerOverrides: [{name: $c, command: $cmd}]}')
+          TASK=$(aws ecs run-task --cluster "$CLUSTER" --task-definition "$TASKDEF" \
+                   --launch-type FARGATE --count 1 \
+                   --network-configuration "$NETCFG" \
+                   --overrides "$OVERRIDES" \
+                   --started-by "gha-${GITHUB_RUN_ID}" \
+                   --query 'tasks[0].taskArn' --output text)
+          echo "schema init task: $TASK"
+          aws ecs wait tasks-stopped --cluster "$CLUSTER" --tasks "$TASK"
+          CODE=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK" \
+                   --query "tasks[0].containers[?name=='$CONTAINER'].exitCode | [0]" --output text)
+          REASON=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK" \
+                   --query 'tasks[0].stoppedReason' --output text)
+          echo "exit code: $CODE, stopped reason: $REASON"
+          if [ "$CODE" != "0" ]; then
+            echo "::error::Schema init failed (exit $CODE). See CloudWatch Logs /ecs/dowonpact-app."
+            exit 1
+          fi
+
+      - name: Update ECS service and wait for stability
+        env:
+          TASKDEF: ${{ steps.taskdef.outputs.arn }}
+          CLUSTER: ${{ vars.ECS_CLUSTER }}
+          SERVICE: ${{ vars.ECS_SERVICE }}
+        run: |
+          aws ecs update-service --cluster "$CLUSTER" --service "$SERVICE" \
+            --task-definition "$TASKDEF" --query 'service.deployments[0].id' --output text
+          aws ecs wait services-stable --cluster "$CLUSTER" --services "$SERVICE"
+          STATE=$(aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE" \
+                    --query "services[0].deployments[?status=='PRIMARY'].rolloutState | [0]" --output text)
+          echo "rollout state: $STATE"
+          if [ "$STATE" != "COMPLETED" ]; then
+            echo "::error::Deployment did not complete (state $STATE); circuit breaker may have rolled back."
+            exit 1
+          fi
+
+      - name: Set up Node
+        if: ${{ hashFiles('web/package.json') != '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      # Order matters: open pages keep working only if new assets are in place
+      # before the HTML that references them, and old assets leave after the
+      # site is confirmed to serve the new build.
+      - name: Build SPA, upload new assets, then switch HTML
+        if: ${{ hashFiles('web/package.json') != '' }}
+        working-directory: web
+        env:
+          BUCKET: ${{ vars.SPA_BUCKET }}
+        run: |
+          npm ci
+          npm run build
+          # Hashed assets: long cache. Entry points and crawler files: revalidate.
+          aws s3 sync dist "s3://$BUCKET" \
+            --exclude index.html --exclude sw.js --exclude "*.webmanifest" \
+            --exclude robots.txt --exclude sitemap.xml --exclude favicon.ico \
+            --cache-control "public,max-age=31536000,immutable"
+          aws s3 sync dist "s3://$BUCKET" \
+            --exclude "*" --include index.html --include sw.js --include "*.webmanifest" \
+            --include robots.txt --include sitemap.xml --include favicon.ico \
+            --cache-control "no-cache"
+
+      - name: Invalidate CloudFront
+        if: ${{ hashFiles('web/package.json') != '' }}
+        env:
+          DIST: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+        run: |
+          ID=$(aws cloudfront create-invalidation --distribution-id "$DIST" --paths "/*" \
+                 --query Invalidation.Id --output text)
+          aws cloudfront wait invalidation-completed --distribution-id "$DIST" --id "$ID"
+
+      - name: Confirm the site serves this build
+        if: ${{ hashFiles('web/package.json') != '' }}
+        run: python3 .github/scripts/verify_spa.py "$SITE_URL" web/dist
+
+      - name: Remove old assets
+        if: ${{ hashFiles('web/package.json') != '' }}
+        env:
+          BUCKET: ${{ vars.SPA_BUCKET }}
+        run: python3 .github/scripts/prune_spa.py "$BUCKET" web/dist

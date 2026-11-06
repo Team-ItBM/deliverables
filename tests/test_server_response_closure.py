@@ -7,6 +7,7 @@
 
 import pytest
 
+from harness.server import db as testdb
 from harness.server import pact_outputs as po
 from harness.server.api import (assert_calls, assert_error, assert_status, default_profiles, run_concurrently)
 
@@ -171,12 +172,23 @@ def test_cls_n04_two_early_generations(srv, expect):
     _, room = first.create_room()
     assert first.submit_new(room, "p1").resp.status_code == 201
     srv.replay.push("pact", po.pact_item())
-    responses = run_concurrently(lambda: first.generate(room), lambda: second.generate(room))
-    first.join()
-    second.join()
+    # 충돌 시점을 통제한다(2026-11-05 사람 승인, AC4). 방 행을 먼저 잠가 두 요청이 모두 잠금 앞에 선 뒤에 푼다.
+    # 잠금 없이 상태를 읽는 구현은 둘 다 open을 본 채 UPDATE에서 기다리다가 함께 이긴다. 1회 경쟁의 운에 맡기지 않는다.
+    lock = testdb.RowLock(srv.database_url, "SELECT 1 FROM rooms WHERE room_code = %s FOR UPDATE", (room.code,))
+
+    def release_when_both_wait():
+        try:
+            testdb.wait_for_lock_waiters(srv.database_url, 2)
+        finally:
+            lock.release()
+
+    responses = run_concurrently(lambda: first.generate(room), lambda: second.generate(room), release_when_both_wait)[:2]
+    # 상태 단언을 join() 앞에 둔다. 둘 다 이긴 구현이 빈 대기열 오류가 아니라 응답 코드로 보고되게 한다.
     assert sorted(r.status_code for r in responses) == expect["concurrent_statuses"]
     loser = max(responses, key=lambda r: r.status_code)
     assert_error(loser, loser.status_code, expect["error_code"])
+    first.join()
+    second.join()
     assert_calls(srv.replay, expect["calls"])
 
 

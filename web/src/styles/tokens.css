@@ -1,0 +1,65 @@
+/* DESIGN.md 앞머리 YAML 토큰을 그대로 옮긴 값이다. 값을 바꾸면 DESIGN.md와 함께 바꾼다. */
+:root {
+  --c-primary: #3e3833;
+  --c-primary-pressed: #57504a;
+  --c-on-primary: #f7f5f1;
+  --c-secondary: #5e5750;
+  --c-tertiary: #8a5b33;
+  --c-tertiary-mark: #9a6f42;
+  --c-neutral: #f7f5f1;
+  --c-surface: #efece7;
+  --c-surface-pressed: #e4ded5;
+  --c-paper: #faf8f5;
+  --c-muted: #6e675f;
+  --c-outline: #8c847c;
+  --c-outline-variant: #d9cfc4;
+  --c-hairline: #3e38331a;
+  --c-stamp: #b3362c;
+  --c-error: #9e2f26;
+  --c-blossom: #ebb8b1;
+  --c-bark: #8a6a4a;
+
+  --f-serif: "Noto Serif KR", "Apple SD Gothic Neo", serif;
+  --f-sans: "Dowon Sans", -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+
+  --s-xs: 4px;
+  --s-sm: 8px;
+  --s-md: 12px;
+  --s-lg: 16px;
+  --s-xl: 20px;
+  --s-2xl: 24px;
+  --s-3xl: 32px;
+  --s-4xl: 48px;
+  --s-gutter: 20px;
+  --content-max: 480px;
+  --touch-min: 48px;
+
+  --r-paper: 4px;
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 20px;
+  --r-full: 9999px;
+
+  --m-easing: cubic-bezier(0.2, 0, 0, 1);
+  --m-feedback: 150ms;
+  --m-enter: 320ms;
+  --m-paper: 1100ms;
+  --m-clause: 640ms;
+  --m-stamp: 420ms;
+  --m-stagger: 220ms;
+  --m-branch: 500ms;
+  --m-petal-fall: 12s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --m-feedback: 0ms;
+    --m-enter: 0ms;
+    --m-paper: 0ms;
+    --m-clause: 0ms;
+    --m-stamp: 0ms;
+    --m-stagger: 0ms;
+    --m-branch: 0ms;
+  }
+}

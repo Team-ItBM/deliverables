@@ -25,7 +25,7 @@
 ```text
 프롬프트 3: pool 목록 생성 계약 테스트 확정
 
-도원결의 저장소(/Users/mingyu/orca/workspaces/deliverables/implementation, 브랜치 implementation)에서 pool 목록(ScenarioIndexEntry) 생성의 계약 테스트를 확정해줘. 강의 6 도구 코드 생성 절차 4단계와 같은 방식이야. 목표는 tests/test_pool.py를 확정해 사람이 수용할 수 있게 만드는 것이고, 목록 생성 함수 구현은 이번 범위가 아니야.
+도원결의 저장소(브랜치 implementation)에서 pool 목록(ScenarioIndexEntry) 생성의 계약 테스트를 확정해줘. 강의 6 도구 코드 생성 절차 4단계와 같은 방식이야. 목표는 tests/test_pool.py를 확정해 사람이 수용할 수 있게 만드는 것이고, 목록 생성 함수 구현은 이번 범위가 아니야.
 
 ## 먼저 읽을 것 (해당 절만)
 1. AGENTS.md 전체
@@ -87,7 +87,7 @@
 ```text
 프롬프트 4: build_scenario_index 목록 생성 코드 위임
 
-도원결의 저장소(/Users/mingyu/orca/workspaces/deliverables/implementation, 브랜치 implementation)에서 강의 6 도구 코드 생성 절차 5단계와 같은 방식으로 목록 생성 함수를 위임할게. 목표는 tests/test_pool.py(기준 커밋 d790d26)를 고치지 않고 통과하는 build_scenario_index()를 src/travel/pool.py에 추가하는 거야.
+도원결의 저장소(브랜치 implementation)에서 강의 6 도구 코드 생성 절차 5단계와 같은 방식으로 목록 생성 함수를 위임할게. 목표는 tests/test_pool.py(기준 커밋 d790d26)를 고치지 않고 통과하는 build_scenario_index()를 src/travel/pool.py에 추가하는 거야.
 
 ## 시작하기 전에
 1. git rev-parse HEAD와 git status --short --untracked-files=all을 실행해 위임 직전 상태로 기록해. 보고에 그대로 넣어.

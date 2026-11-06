@@ -7,6 +7,7 @@ psycopg는 이 모듈의 함수를 부를 때만 import한다.
 """
 
 import os
+import time
 import uuid
 from contextlib import contextmanager
 from urllib.parse import urlsplit, urlunsplit
@@ -74,3 +75,29 @@ def query(url, sql, params=()):
 def execute(url, sql, params=()):
     with connect(url) as conn:
         conn.execute(sql, params)
+
+
+class RowLock:
+    """다른 연결이 행을 잠근 상태를 만든다. 동시 요청이 충돌하는 시점을 테스트가 정할 때 쓴다."""
+
+    def __init__(self, url, sql, params=()):
+        self.conn = connect(url)
+        self.conn.autocommit = False
+        self.conn.execute(sql, params)
+
+    def release(self):
+        if not self.conn.closed:
+            self.conn.commit()
+            self.conn.close()
+
+
+def wait_for_lock_waiters(url, count, timeout=10):
+    """이 데이터베이스에서 잠금을 기다리는 연결이 count개가 될 때까지 기다린다."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        rows = query(url, "SELECT count(*) AS n FROM pg_stat_activity "
+                          "WHERE datname = current_database() AND wait_event_type = 'Lock'")
+        if rows[0]["n"] >= count:
+            return
+        time.sleep(0.01)
+    raise AssertionError(f"{timeout}초 안에 잠금 대기 연결이 {count}개가 되지 않았다")

@@ -1,6 +1,10 @@
-pytest
-pyyaml
-jsonschema
-fastapi
-httpx
-psycopg[binary]
+pytest==8.3.5
+pyyaml==6.0.2
+jsonschema==4.26.0
+fastapi==0.115.12
+httpx==0.28.1
+psycopg[binary]==3.3.8
+openai==3.46.0
+uvicorn[standard]==0.34.2
+pywebpush==2.5.0
+boto3==1.39.3

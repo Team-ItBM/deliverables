@@ -1,0 +1,4 @@
+# infra/terraform.tfvars 로 복사해 팀 값으로 채운다. terraform.tfvars 는 gitignore 된다.
+account_id     = "<AWS 계정 ID 12자리>"
+hosted_zone_id = "<Route 53 호스팅 영역 ID>"
+alert_email    = "<장애 알람을 받을 메일 주소>"

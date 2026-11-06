@@ -1,0 +1,18 @@
+# Allow-list: only what the image needs reaches the build context.
+*
+!requirements.txt
+!src/
+!config/
+!web/
+# The web build imports the privacy policy as text.
+!docs/PRIVACY.md
+
+# Never send these even inside allowed directories
+**/.env
+**/.env.*
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+web/node_modules/
+web/dist/
+web/coverage/

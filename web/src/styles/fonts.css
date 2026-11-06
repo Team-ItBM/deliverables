@@ -1,0 +1,29 @@
+/* 직접 제공하는 폰트. 출처와 라이선스는 assets/fonts/README.md에 있다. */
+@font-face {
+  font-family: "Dowon Sans";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../assets/fonts/dowon-sans-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Dowon Sans";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("../assets/fonts/dowon-sans-500.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Dowon Sans";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../assets/fonts/dowon-sans-600.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Noto Serif KR";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../assets/fonts/noto-serif-kr-600.woff2") format("woff2");
+}

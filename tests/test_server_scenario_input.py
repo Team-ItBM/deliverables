@@ -31,8 +31,10 @@ def test_inp_p01_default_room(srv, expect):
     body = resp.json()
     assert _parse(body["expires_at"]) - _parse(body["created_at"]) == timedelta(days=expect["expires_after_days"])
     assert_calls(app.replay, expect["calls"])
-    # note: "모델 입력의 participant_profiles가 요청과 같다"
-    assert app.replay.calls_for("scenarios")[0].model_input["participant_profiles"] == profiles
+    # note: "모델 입력의 participant_profiles는 profile_id와 선택 정보가 요청과 같고 display_name은 친구1~친구3이다" (결정 36, 2026-11-05 승인)
+    sent = app.replay.calls_for("scenarios")[0].model_input["participant_profiles"]
+    expected = [dict(p, display_name=f"친구{i + 1}") for i, p in enumerate(profiles)]
+    assert sent == expected
     assert app.room(room)["scenario_status"] == expect["scenario_status"]
 
 
