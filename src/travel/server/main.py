@@ -1,7 +1,7 @@
 """운영 진입점: `uvicorn travel.server.main:app`.
 
 환경변수(2026-11-05 확정): DATABASE_URL, OPENAI_API_KEY, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT,
-ORIGIN_VERIFY_SECRET(현재 서버는 검사하지 않고 ALB 규칙이 검사한다), PUBLIC_BASE_URL, LLM_MODE(live | replay), AWS_REGION.
+PUBLIC_BASE_URL, LLM_MODE(live | replay), AWS_REGION.
 선택: LLM_CONFIG(기본 config/llm.yaml), LLM_REPLAY_FILE(replay 모드의 문항 출력 JSON, 기본 config/replay/scenario_set_d01.json),
 POOL_PATH, WEB_DIST(SPA 정적 파일), TRUSTED_PROXY_HOPS(믿는 프록시 구간 수, 기본 0, 운영 이미지 2),
 DB_INIT_ON_START(1이면 시작 때 스키마를 만든다. 로컬 실행용).

@@ -32,12 +32,11 @@ locals {
 
   # env var name => valueFrom (secret ARN, or ARN:json-key:: for JSON secrets)
   app_env_secrets = {
-    OPENAI_API_KEY       = aws_secretsmanager_secret.openai.arn
-    VAPID_PUBLIC_KEY     = "${aws_secretsmanager_secret.vapid.arn}:public_key::"
-    VAPID_PRIVATE_KEY    = "${aws_secretsmanager_secret.vapid.arn}:private_key::"
-    VAPID_SUBJECT        = "${aws_secretsmanager_secret.vapid.arn}:subject::"
-    DATABASE_URL         = aws_secretsmanager_secret.db.arn
-    ORIGIN_VERIFY_SECRET = aws_secretsmanager_secret.origin_verify.arn
+    OPENAI_API_KEY    = aws_secretsmanager_secret.openai.arn
+    VAPID_PUBLIC_KEY  = "${aws_secretsmanager_secret.vapid.arn}:public_key::"
+    VAPID_PRIVATE_KEY = "${aws_secretsmanager_secret.vapid.arn}:private_key::"
+    VAPID_SUBJECT     = "${aws_secretsmanager_secret.vapid.arn}:subject::"
+    DATABASE_URL      = aws_secretsmanager_secret.db.arn
   }
 
   # Schema init command run as a one-off task by CI (assumed; the server implementer must match it).
