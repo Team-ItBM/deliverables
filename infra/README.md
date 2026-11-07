@@ -2,7 +2,7 @@
 
 ARCHITECTURE 2절 `infra/`·`.github/workflows/` 행과 5절 진입 경로·과부하 방지·운영 기준안·접속 로그, PRIVACY 제3조·제5조·제7조·제10조·제11조를 구현한다. 계정 ID는 `infra/terraform.tfvars`(gitignore)에, 프로필 `itbm`, 리전 ap-northeast-2. CloudFront용 인증서와 WAF만 us-east-1에 만든다.
 
-> 상태(2026-11-05): `https://dowonpact.com`이 이 구성으로 운영 중이다. 장애 알람은 `-target`으로 적용했다. CSP와 `/r/*` 응답 헤더는 코드만 있고 적용 전이다. 남은 확인은 아래 "확인하지 못한 것"에 있다.
+> 상태(2026-11-07): `https://dowonpact.com`이 이 구성으로 운영 중이다. 장애 알람, CSP, `/r/*` 응답 헤더를 적용했다. 남은 확인은 아래 "확인하지 못한 것"에 있다.
 
 ## 구성
 
@@ -40,10 +40,10 @@ ALB (보안 그룹: CloudFront origin-facing 접두사 목록 443만, 리스너:
 - **SPA 대체 경로**: 브리프의 "403/404 → /index.html, 200"은 CloudFront `custom_error_response`가 아닌 viewer-request 함수로 구현했다. `custom_error_response`는 배포 전체에 적용되어 `/api/*`의 실제 404·403 JSON까지 index.html 200으로 바꾸기 때문이다. 함수는 마지막 경로 조각에 `.`이 없으면 `/index.html`로 바꾼다. 존재하지 않는 정적 파일(`/x.js`)은 S3의 403이 그대로 간다.
 - **ALB 원본 도메인**: CloudFront는 원본 인증서가 원본 도메인과 맞아야 하므로 ALB에 `origin.dowonpact.com` 별칭과 서울 ACM 인증서를 둔다. 그래서 Host 헤더는 전달하지 않는다(관리형 `AllViewerExceptHostHeader`). 그 밖의 헤더·쿠키·쿼리는 모두 전달한다. 서버가 원래 Host가 필요하면 `CloudFront-Forwarded-Proto`나 `PUBLIC_BASE_URL`을 쓴다.
 - **DB 비밀번호**: RDS 관리형 비밀번호 대신 `random_password`를 골랐다. 앱은 `DATABASE_URL` 하나를 받는데, RDS 관리형 비밀은 `{username,password}` JSON이고 기본 7일마다 교체되어 URL 비밀이 낡는다. 대가로 비밀번호가 Terraform state에 평문으로 들어간다. state를 커밋하지 않고(`.gitignore`), S3 backend로 옮길 때는 암호화 버킷을 쓴다. `dowonpact/db` 값은 `postgresql://...?sslmode=require`이다(PostgreSQL 16 기본 파라미터 그룹은 SSL을 강제한다).
-- **비밀 헤더 순환 의존**: CloudFront 원본 헤더와 ALB 규칙이 `data "aws_secretsmanager_secret_version"`으로 `dowonpact/origin-verify` 값을 plan 시점에 읽는다. 비밀에 값이 없으면 plan이 실패하므로 처음에는 비밀만 `-target`으로 만들고 값을 넣은 뒤 전체 apply한다(부트스트랩 2~3단계). 값을 바꾸면 apply 한 번에 CloudFront와 ALB가 함께 바뀌지만, CloudFront 전파(수 분) 동안 `/api/*`가 403일 수 있다. 값은 state에도 남는다.
+- **비밀 헤더**: Terraform이 `random_password.origin_verify`로 값을 만들어 CloudFront 원본 헤더, ALB 규칙, `dowonpact/origin-verify`에 함께 쓴다. 값을 바꾸면 apply 한 번에 CloudFront와 ALB가 함께 바뀌지만, CloudFront 전파(수 분) 동안 `/api/*`가 403일 수 있다. 값은 state에도 남는다.
 - **태스크 정의 소유**: Terraform이 기본 리비전(크기·환경 변수·비밀)을 만들고, CI는 최신 리비전을 복사해 이미지만 바꾼 새 리비전을 등록한다. 서비스는 `ignore_changes = [task_definition]`이다. Terraform에서 환경 변수를 바꾸면 다음 배포 때 반영된다.
 - **접속 기록**: CloudFront 표준 로그, WAF 로그, WAF 샘플 요청은 끈다. 모두 User-Agent를 담는데 PRIVACY 제11조는 User-Agent를 저장하지 않는다고 밝힌다. 접속 기록(IP·시각·경로·상태)은 앱이 표준 출력으로 남기고 로그 그룹 `/ecs/dowonpact-app`이 30일 보관한다. WAF는 CloudWatch 지표만 남긴다.
-- **WAF**: 차단하면 429와 `{"error":"rate_limited",...}` JSON을 돌려준다(화면이 "잠시 뒤 다시 시도" 안내에 쓴다). 생성 경로는 정규식 `^/api/rooms/[^/]+/(generate|retry|regenerate)$`로 잡는다(SPEC 6절 경로 기준). "나머지 POST 5분 300회" 규칙은 방 생성·생성 요청도 함께 센다. 더 엄격한 규칙이 먼저 걸리므로 결과는 같다. `/api/*` 전체 규칙은 `waf_api_limit_block=false`(Count)로 시작한다.
+- **WAF**: 차단하면 429와 `{"error":"rate_limited",...}` JSON을 돌려준다(화면이 "잠시 뒤 다시 시도" 안내에 쓴다). 생성 경로는 정규식 `^/api/rooms/[^/]+/(generate|retry|regenerate)$`로 잡는다(서버 위임 기록 §0-B 경로 기준). "나머지 POST 5분 300회" 규칙은 방 생성·생성 요청도 함께 센다. 더 엄격한 규칙이 먼저 걸리므로 결과는 같다. `/api/*` 전체 규칙은 `waf_api_limit_block=false`(Count)로 시작한다.
 - **비밀 삭제 대기**: `recovery_window_in_days = 7`. 2027-01-05에 destroy하면 2027-01-12까지 삭제가 끝난다.
 - **예산**: 이미 계정에 `dowon-total-20261109-20270112`(COST, USD 300, CUSTOM 기간 2026-11-09 00:00 ~ 2027-01-12 23:59:59 KST, 실제 80%·100% 초과 시 teamitbm@gmail.com 메일)이 있다(2026-11-05 읽기 전용 조회). 고정한 AWS provider 5.x(최신 5.100.0)는 `time_unit = "CUSTOM"`을 받지 않아(`terraform validate`가 거부) Terraform으로 같은 모양을 표현할 수 없다. 그래서 기존 예산을 그대로 두고 Terraform으로 만들지 않는다.
 
@@ -92,7 +92,7 @@ ALB (보안 그룹: CloudFront origin-facing 접두사 목록 443만, 리스너:
    | `CLOUDFRONT_DISTRIBUTION_ID` | `cloudfront_distribution_id` |
 6. main에 푸시하거나 Actions에서 `deploy`를 수동 실행한다. 이미지 푸시(같은 커밋을 다시 실행하면 기존 이미지 사용) → 새 리비전 등록 → 스키마 초기화 태스크(`python -m travel.server.db --init`) → 서비스 갱신 → 새 자산 업로드 → HTML 전환 → 무효화 → 사이트 확인 → 이전 자산 정리 순이다. 정리는 현재 빌드에 없고 S3 업로드 시각에서 7일이 지난 파일을 지운다. 배포 뒤 7일 동안 이전 자산을 지원한다는 뜻은 아니다. 태스크 수가 0이어도 스키마 초기화는 돈다.
 7. `terraform apply`(기본 `app_desired_count=2`). 서비스는 6단계에서 CI가 등록한 리비전을 계속 쓴다.
-8. 확인: `https://dowonpact.com/api/health`가 200이어야 한다. `https://origin.dowonpact.com/api/health`를 직접 호출하면 보안 그룹이 CloudFront 외 주소를 막으므로 연결 시간 초과가 정상이다(헤더 없이 CloudFront 주소에서 오면 403). ALB 헤더 조건 값은 128자 이하여야 하므로 `openssl rand -hex 32`(64자)를 권한다.
+8. 확인: `https://dowonpact.com/api/health`가 200이어야 한다. `https://origin.dowonpact.com/api/health`를 직접 호출하면 보안 그룹이 CloudFront 외 주소를 막으므로 연결 시간 초과가 정상이다(헤더 없이 CloudFront 주소에서 오면 403). ALB 헤더 조건 값은 128자 이하여야 한다. Terraform이 만드는 값은 48자다.
 
 ### State backend (선택)
 
@@ -167,15 +167,10 @@ CSP 값은 `cloudfront.tf`의 `local.content_security_policy` 한 곳에만 있�
 ### 메일 받기
 
 1. `infra/terraform.tfvars`에 `alert_email = "주소"`를 넣는다. 저장소에는 넣지 않는다. 값은 Terraform state에도 남는다.
-2. 알람만 먼저 적용한다. 일반 `apply`는 CSP까지 함께 켠다. CSP는 새 폰트가 배포된 뒤에 켠다. 그 전의 화면은 Google Fonts를 불러서 CSP에 막힌다. `alert_email`이 `null`이면 토픽과 알람만 생기고 구독은 없다.
+2. 적용한다. `alert_email`이 `null`이면 토픽과 알람만 생기고 구독은 없다.
 
    ```sh
-   terraform apply -var aws_profile=itbm-tf -var app_desired_count=2 -var image_tag=<지금 태그> \
-     -target=aws_sns_topic.alerts -target=aws_sns_topic_policy.alerts -target=aws_sns_topic_subscription.alert_email \
-     -target=aws_cloudwatch_metric_alarm.service_down -target=aws_cloudwatch_metric_alarm.tasks_below_desired \
-     -target=aws_cloudwatch_metric_alarm.unhealthy_targets -target=aws_cloudwatch_metric_alarm.target_5xx \
-     -target=aws_cloudwatch_metric_alarm.elb_5xx -target=aws_cloudwatch_metric_alarm.no_running_tasks \
-     -target=aws_cloudwatch_metric_alarm.rds_free_storage -target=aws_cloudwatch_metric_alarm.rds_cpu
+   terraform apply -var aws_profile=itbm-tf -var app_desired_count=2 -var image_tag=<지금 태그>
    ```
 3. 사람이 메일함에서 "AWS Notification - Subscription Confirmation" 메일을 열고 "Confirm subscription"을 누른다. 누르기 전에는 알람 메일이 오지 않는다. 링크 유효 기간은 AWS 문서에 2일과 3일이 섞여 있으니 이틀 안에 누른다. 기간이 지나면 SNS 콘솔 Subscriptions에서 해당 구독을 고르고 "Request confirmation"을 누른다.
 4. 상태를 확인한다. `SubscriptionArn`이 `PendingConfirmation`이 아니어야 한다.
@@ -224,6 +219,7 @@ ARCHITECTURE 5절 운영 기준안의 추정(월 약 $99, 2026-11-09~2027-01-12 
 
 ## 확인하지 못한 것
 
-- 2026-11-05에 첫 apply를 했다(70개 생성, 서비스 위임 기록 §2-6). 비밀 값 조회는 apply 시점으로 미뤄지므로, 새 계정에서 부트스트랩 2~3단계 없이 전체 apply하면 실패한다.
-- ARM64 이미지를 GitHub의 x86 러너에서 QEMU로 빌드하는 시간, 배포 워크플로 전체, OIDC 신뢰 조건은 실행해 보지 않았다.
+- 2026-11-05에 첫 apply를 했다(70개 생성, 서비스 위임 기록 §2-6). 새 계정에서 부트스트랩 2~3단계를 건너뛴 전체 apply는 확인하지 않았다.
+- ARM64 이미지를 GitHub의 x86 러너에서 QEMU로 빌드하는 시간은 재지 않았다.
+- 배포 워크플로는 2026-11-06에 실제로 실행했다. 첫 실행은 OIDC 주체 불일치로 실패했고, 저장소의 불변 주체에 맞춰 역할을 고친 뒤 성공했다.
 - CloudFront가 국외 엣지를 거치는 문제는 PRIVACY 제6조에 이미 안내되어 있다. 이 구성이 바꾸지 않는다.

@@ -6,7 +6,7 @@ name: deploy
 #   ECS_CONTAINER_NAME, SPA_BUCKET, CLOUDFRONT_DISTRIBUTION_ID
 # No AWS keys are stored in GitHub: credentials come from OIDC.
 # Do not add `environment:` to the job; the deploy role trusts only
-# repo:Team-ItBM/deliverables:ref:refs/heads/main.
+# the immutable subject built from var.github_repository, on refs/heads/main.
 
 on:
   push:

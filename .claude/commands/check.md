@@ -4,8 +4,11 @@ disable-model-invocation: true
 ---
 파일을 수정하지 말고 다음 검사를 순서대로 실행해줘. 첫 검사가 실패해도 실행 가능한 다음 검사는 수행해.
 1. `git diff --check`
-2. `python -m pytest -q -rs` (python 명령이 없으면 python3)
-3. `git status --short`
+2. `TEST_DATABASE_URL=<DB URL> python -m pytest tests -q -rs` (python 명령이 없으면 python3. DB URL이 없으면 서버 테스트가 skip되므로 완료로 보고하지 말 것)
+3. `ruff check .`
+4. `cd web && npm run typecheck && npm run build && npm run test`
+5. `git status --short`
+Docker나 인프라를 바꿨으면 AGENTS.md 7절의 해당 명령도 실행해.
 명령별 종료 상태와 passed / failed / skipped / xfailed를 구분해 보고해.
 골든 케이스와 로더 검사 수를 구분하고, 필수 골든 케이스의 skip이나 xfail은 완료로 처리하지 말 것.
 tests/ 아래 파일(테스트 코드, golden_cases.yaml, fixture)에 변경이나 새 파일이 있으면 따로 표시해.
