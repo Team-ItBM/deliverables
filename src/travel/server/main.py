@@ -132,6 +132,7 @@ def _mount_spa(app, web_dist):
     from fastapi.responses import FileResponse
     from starlette.staticfiles import StaticFiles
 
+    base = web_dist.resolve()
     assets = web_dist / "assets"
     if assets.is_dir():
         app.mount("/assets", StaticFiles(directory=str(assets)), name="assets")
@@ -144,7 +145,9 @@ def _mount_spa(app, web_dist):
             return error_response("not_found")
         candidate = web_dist / full_path
         if full_path and candidate.is_file():
-            return FileResponse(str(candidate))
+            resolved = candidate.resolve()
+            if resolved.is_relative_to(base):
+                return FileResponse(str(resolved))
         return FileResponse(str(web_dist / "index.html"))
 
 
