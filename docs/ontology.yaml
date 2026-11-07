@@ -29,7 +29,7 @@ classes:
     evidence: [로그 1, 로그 2, 로그 6, 로그 9]
     attributes:
       trigger: {type: string, description: 조율이 필요해진 계기, examples: [피로로 귀가 요청, 비로 미뤄진 일정, 루지 취소 제안], evidence: [로그 1, 로그 2, 로그 9]}
-      constraints: {type: list, description: 해당 장면에서 선택 범위를 제한한다고 설명된 조건, examples: [노을까지 남은 시간, 렌터카 한 대, 다음 일정], note: '참여자가 어렵다고 판단한 조건과 객관적으로 불가능한 조건을 구분한다. 로그 6은 log-06.md 25·82행(참여자가 이후 일정을 설명).', evidence: [로그 2, 로그 6]}
+      constraints: {type: list, description: 해당 장면에서 선택 범위를 제한한다고 설명된 조건, examples: [노을까지 남은 시간, 렌터카 한 대, 다음 일정], note: '참여자가 어렵다고 판단한 조건과 객관적으로 불가능한 조건을 구분한다. 로그 6은 log-06.md 26·87행(참여자가 이후 일정을 설명).', evidence: [로그 2, 로그 6]}
     relations:
       - {originally_planned: Activity, evidence: [로그 1, 로그 2, 로그 9]}
       - {has_position: ParticipantPosition, evidence: [로그 1, 로그 2, 로그 6, 로그 9]}
@@ -76,7 +76,7 @@ classes:
     attributes:
       method: {type: string, description: 선택에 이른 조율 방식, examples: [변경 제안 수락, 시간 제한에 동의, 다수결], note: 다수결·수락 자체를 전원 만족이나 자발적 동의의 증거로 삼지 않는다., evidence: [로그 1, 로그 2, 로그 6, 로그 9]}
       reported_result: {type: string, description: 결정 후 실제로 했거나 하지 못했다고 전해진 행동, examples: [쇼핑 후 해변 방문, 루지 취소 후 카페 방문, 두 팀으로 나눠 식사], evidence: [로그 2, 로그 9, 로그 12]}
-      respondent_evaluation: {type: string, description: 이 결정을 전한 참여자 본인의 만족·아쉬움에 대한 회고, note: 'reported_by의 평가만 담는다. 선택 만족과 과정 만족을 구분하고, 동행 전원의 평가로 확대하지 않는다. 로그 12는 log-12.md 29·56행(트러블이 없었다는 회고)이며 선택 만족은 미확인이다.', evidence: [로그 1, 로그 2, 로그 6, 로그 9, 로그 12]}
+      respondent_evaluation: {type: string, description: 이 결정을 전한 참여자 본인의 만족·아쉬움에 대한 회고, note: 'reported_by의 평가만 담는다. 선택 만족과 과정 만족을 구분하고, 동행 전원의 평가로 확대하지 않는다. 로그 12는 log-12.md 30·59행(트러블이 없었다는 회고)이며 선택 만족은 미확인이다.', evidence: [로그 1, 로그 2, 로그 6, 로그 9, 로그 12]}
     relations:
       - {for_situation: TravelSituation, evidence: [로그 1, 로그 2, 로그 6, 로그 9]}
       - {selects: AdjustmentOption, evidence: [로그 1, 로그 2, 로그 6, 로그 9]}

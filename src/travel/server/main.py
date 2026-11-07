@@ -1,7 +1,7 @@
 """운영 진입점: `uvicorn travel.server.main:app`.
 
 환경변수(2026-11-05 확정): DATABASE_URL, OPENAI_API_KEY, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT,
-ORIGIN_VERIFY_SECRET(현재 서버는 검사하지 않고 ALB 규칙이 검사한다), PUBLIC_BASE_URL, LLM_MODE(live | replay), AWS_REGION.
+PUBLIC_BASE_URL, LLM_MODE(live | replay), AWS_REGION.
 선택: LLM_CONFIG(기본 config/llm.yaml), LLM_REPLAY_FILE(replay 모드의 문항 출력 JSON, 기본 config/replay/scenario_set_d01.json),
 POOL_PATH, WEB_DIST(SPA 정적 파일), TRUSTED_PROXY_HOPS(믿는 프록시 구간 수, 기본 0, 운영 이미지 2),
 DB_INIT_ON_START(1이면 시작 때 스키마를 만든다. 로컬 실행용).
@@ -132,6 +132,7 @@ def _mount_spa(app, web_dist):
     from fastapi.responses import FileResponse
     from starlette.staticfiles import StaticFiles
 
+    base = web_dist.resolve()
     assets = web_dist / "assets"
     if assets.is_dir():
         app.mount("/assets", StaticFiles(directory=str(assets)), name="assets")
@@ -144,7 +145,9 @@ def _mount_spa(app, web_dist):
             return error_response("not_found")
         candidate = web_dist / full_path
         if full_path and candidate.is_file():
-            return FileResponse(str(candidate))
+            resolved = candidate.resolve()
+            if resolved.is_relative_to(base):
+                return FileResponse(str(resolved))
         return FileResponse(str(web_dist / "index.html"))
 
 

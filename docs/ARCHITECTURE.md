@@ -1,6 +1,6 @@
 # 도원결의 아키텍처 설계서
 
-> 상태: 2026-10-28 팀 확정, 2026-11-04 구현 현황 반영, 2026-11-05 모델 호출 계약·운영 기준안 반영, 2026-11-05 문항 경로 v9 확정(교수 지시로 도구 사용 필수, v8 복귀 경로 없음, 품질 미달 시 v10). 2절에서 구현된 것은 `src/travel/pact.py`·`src/travel/scenarios.py`의 후처리(강의 5)와 `src/travel/pool.py`의 pool 로드·목록 생성·`lookup_template`(강의 6), `src/travel/tools/scenario_tools.py`의 `get_scenario_template` 도구(강의 6)이며, 나머지 구현 대상 파일명은 예정 경로다. 서버·화면·인프라 구성은 2026-11-04 팀 결정이다. 모델 호출·도구·후처리·서버는 Python, 화면은 TypeScript(React), 인프라는 Terraform으로 쓴다.
+> 상태: 2026-10-28 팀 확정, 2026-11-04 구현 현황 반영, 2026-11-05 모델 호출 계약·운영 기준안 반영, 2026-11-05 문항 경로 v9 확정(교수 지시로 도구 사용 필수, v8 복귀 경로 없음, 품질 미달 시 v10), 2026-11-07 구현·배포 상태 반영. 파일별 상태는 2절 표에 있다. 서버·화면·인프라 구성은 2026-11-04 팀 결정이다. 모델 호출·도구·후처리·서버는 Python, 화면은 TypeScript(React), 인프라는 Terraform으로 쓴다.
 > 근거 문서: [SPEC](SPEC.md) · [온톨로지](ontology.yaml) · [AGENTS](../AGENTS.md) · [문항 프롬프트](../src/travel/prompts/prepare_scenarios.md) · [추천 프롬프트](../src/travel/prompts/generate_pact.md)
 
 ## 1. 한눈에 보는 데이터 흐름
@@ -18,10 +18,10 @@
 | `src/travel/schemas/pact_recommendation.schema.json` | 추천 출력 계약 v4 | 강의 3 | |
 | `src/travel/prompts/prepare_scenarios.md` | 문항 선정·각색 프롬프트 v9(목록 + 도구, 조사 쌍 표기) | 강의 3 | 반영됨(2026-11-05, v9-candidate 적용 + 조사 쌍 규칙) |
 | `src/travel/prompts/generate_pact.md` | 입장 추출·추천 생성 프롬프트 v12 | 강의 3 | |
-| `src/travel/scenarios.py` | 문항 단계 오케스트레이션, 후처리(진입점 `validate_scenario_output(scenario_input, raw_output)`이 `route_scenario_result` 등을 호출한다) | 강의 3 함수 인터페이스, 강의 5 | 후처리: 구현됨(2026-11-04 수용, `b10a351`) / 오케스트레이션: 이후 |
+| `src/travel/scenarios.py` | 문항 단계 오케스트레이션, 후처리(진입점 `validate_scenario_output(scenario_input, raw_output)`이 `route_scenario_result` 등을 호출한다) | 강의 3 함수 인터페이스, 강의 5 | 후처리: 구현됨(2026-11-04 수용, `b10a351`) / 오케스트레이션: `src/travel/server/jobs.py`에 구현됨(2026-11-05) |
 | `src/travel/pool.py` | pool 로드·목록 생성·`lookup_template` | 강의 3 함수 인터페이스 | 구현됨(목록 생성 2026-11-04 수용, `4b71a88`) |
-| `src/travel/tools/scenario_tools.py` | `get_scenario_template` 도구(모델 호출 → `lookup_template` 연결) | 강의 6 | 구현됨(2026-11-04 수용, `01da8ef`). 제품 연결은 스파이크 2회차 판정 뒤 |
-| `src/travel/pact.py` | 추천 단계 호출·후처리. 후처리 진입점 `validate_pact_output(pact_input, raw_output)`이 `validate_positions`, `route_pact_result` 등을 호출한다 | 강의 3 함수 인터페이스, 강의 5 | 후처리: 구현됨(강의 5) / 호출: 이후 |
+| `src/travel/tools/scenario_tools.py` | `get_scenario_template` 도구(모델 호출 → `lookup_template` 연결) | 강의 6 | 구현됨(2026-11-04 수용, `01da8ef`). 제품 경로에서는 `src/travel/server/llm_openai.py`가 호출한다 |
+| `src/travel/pact.py` | 추천 단계 호출·후처리. 후처리 진입점 `validate_pact_output(pact_input, raw_output)`이 `validate_positions`, `route_pact_result` 등을 호출한다 | 강의 3 함수 인터페이스, 강의 5 | 후처리: 구현됨(강의 5) / 호출: `src/travel/server/jobs.py`에 구현됨(2026-11-05) |
 | `tests/harness/golden_cases.yaml`, `tests/test_pact_golden.py` | 추천 출력 검증기의 골든 케이스 30개와 테스트 하니스(형식·상태 조합·근거·인용·응답 연결·참여자 토큰과 조사·메모 인용) | 강의 5 | 반영됨, 30/30 통과 |
 | `tests/harness/scenario_cases.yaml`, `tests/harness/fixtures/scenario/`, `tests/test_scenario_golden.py` | 문항 출력 검증기의 골든 케이스 46개, 기준 fixture 8개, 테스트 하니스(형식·상태 조합·요청 수·문항 ID와 판단 중복·선택지 ID 순서·인물 토큰·`scene` 줄 수) | 강의 5 | 수용됨(2026-11-04, `14b84ae`). 46/46 통과 |
 | `tests/test_tools.py` | 도구 계약 테스트 | 강의 6 | 수용됨(2026-11-04). 21/21 통과 |
@@ -31,12 +31,12 @@
 | `src/travel/server/render.py` | profile·participant 토큰 치환과 조사 5쌍 처리, 공유 결과(§0-C)·`editable` 조각. 화면과 이미지가 같은 결과 텍스트를 쓴다 | 강의 4 SPEC 5절 | 구현됨(2026-11-05) |
 | `src/travel/server/push.py`, `main.py` | 이벤트 단위 중복 방지(`ready:N`·`failed:N`·`selected`), 발송기 경계. `main.py`가 pywebpush 발송기와 운영 설정(환경변수·`config/llm.yaml`)을 묶어 `uvicorn travel.server.main:app`으로 뜬다 | 강의 4 SPEC 알림 정책 | 구현됨(2026-11-05). 구독 주소 제한과 등록 멱등성은 2026-11-05 추가. 실제 푸시 발송은 미확인 |
 | `src/travel/server/admin.py` | 방 단위 삭제 명령 `python -m travel.server.admin delete-room <room_code>`(F7 전 수동 삭제, F7의 기반) | 강의 4 SPEC 만료 정책 | 구현됨(2026-11-05, cascade 삭제 로컬 확인) |
-| `web/` | Vite + React SPA(방 생성, 입장·이름 선택, 응답, 대기·상태, 결과·편집·저장, 처리방침), 서비스워커 `web/public/sw.js`, 결과 DOM 캡처(html-to-image)와 Web Share 저장, mock 모드 | 강의 4 SPEC F1~F6 | 구현됨(2026-11-05, 에이전트). typecheck·build·vitest 76개 통과. 실기기(AC14)·실제 푸시는 미확인 |
+| `web/` | Vite + React SPA(방 생성, 입장·이름 선택, 응답, 대기·상태, 결과·편집·저장, 처리방침), 서비스워커 `web/public/sw.js`, 결과 DOM 캡처(html-to-image)와 Web Share 저장, mock 모드 | 강의 4 SPEC F1~F6 | 구현됨(2026-11-05, 에이전트). typecheck·build·vitest 77개 통과. 실기기(AC14)는 푸시를 빼고 확인했다. 실제 푸시는 미확인 |
 | `config/llm.yaml` | 모델 ID, 프롬프트 버전·전송부 해시, 스키마·pool 버전, 도구 호출 상한, 재시도, 동시 생성 상한, 호출 타임아웃, 비용 한도. `config/replay/`는 재생 모드 자료 | 강의 6 | 구현됨(2026-11-05) |
 | `infra/`, `Dockerfile` | Terraform: CloudFront 단일 도메인(SPA는 S3, `/api/*`는 ALB), ECS Fargate(ALB 뒤 태스크 2개), RDS PostgreSQL, ACM·Route 53, WAF, Secrets Manager, CloudWatch Logs, GitHub OIDC. 서울 리전. Budgets는 손으로 만든 것을 유지(provider가 CUSTOM 기간 미지원) | 강의 6 | 적용됨(2026-11-05 첫 배포, 70개 생성. [서비스 위임 기록 §2-6](prompts/delegation_service.md)) |
-| `.github/workflows/` | PR 검사(ruff, pytest 전체, 서버 테스트용 Postgres 컨테이너, SPA typecheck·build·test, 기본 Docker 빌드, terraform validate), main 배포(이미지 확인·푸시, 스키마 초기화, ECS 갱신, 새 자산 업로드, HTML 전환, CloudFront 무효화, 사이트 확인, 이전 자산 정리 순서). AWS 접근은 OIDC | 강의 5 검증 루프 | PR 검사는 GitHub에서 실행해 통과했다. `deploy.yml`은 main에서 아직 실행하지 않았다 |
+| `.github/workflows/` | PR 검사(ruff, pytest 전체, 서버 테스트용 Postgres 컨테이너, SPA typecheck·build·test, 기본 Docker 빌드, terraform validate), main 배포(이미지 확인·푸시, 스키마 초기화, ECS 갱신, 새 자산 업로드, HTML 전환, CloudFront 무효화, 사이트 확인, 이전 자산 정리 순서). AWS 접근은 OIDC | 강의 5 검증 루프 | PR 검사는 GitHub에서 실행해 통과했다. `deploy.yml`은 2026-11-06에 main에서 처음 실행했고, OIDC 주체를 고친 뒤 성공했다 |
 | `tests/test_server_*.py`, `tests/test_llm_loop.py`, `docs/prompts/delegation_server.md`, `docs/prompts/delegation_service.md` | 서버 계약 테스트(SPEC 6절 케이스 ID 10개, 86개)와 도구 루프 테스트 8개, 위임·결함 주입 기록 | 강의 5 | 구조 수용과 판정 수용(2026-11-05, 결함 주입 d0~d28, C2·C7). 하니스 약점 3건은 PR #16 리뷰 회차에서 고치고 해당 결함을 다시 주입했다 |
-| `docs/PRIVACY.md` | 개인정보 처리방침 공개본(SPA 방 생성·이름 선택·응답 화면에서 링크) | 강의 4 SPEC 운영 정책 | 공개본 작성(2026-11-05, AI 검토·전문가 미검토, 시행일 미기입) |
+| `docs/PRIVACY.md` | 개인정보 처리방침 공개본(SPA 첫 화면·방 생성·이름 선택 화면에서 링크) | 강의 4 SPEC 운영 정책 | 공개본 작성(2026-11-05, AI 검토·전문가 미검토, 시행일 2026-11-06) |
 
 오케스트레이션은 별도 프레임워크 없이 함수 조합으로 둔다. 이유는 5절.
 
@@ -94,7 +94,7 @@
 - **추천 단계**: 도구 없이 구조화 출력 1회. 입력은 마감 때 고정한 채택 제출·확정 문항이다.
 - **문항 경로 확정(2026-11-05 팀 결정)**: 교수 지시로 도구 사용이 필수라 문항 경로는 v9(목록 + 도구) 하나다. v8(pool 전체 입력) 대체 경로는 두지 않는다. Sol 서비스 API에서 `strict: false` 스키마와 도구를 한 요청에 쓸 수 있음은 2회차 사전 확인에서 확인했다([스파이크](spikes/scenario_tool_call.md)). 도구 결과를 반영한 각색 품질은 D01~D08 본 실행(C1~C6 자동 + H1~H3 2인 판정)으로 점검하며, 미달이면 프롬프트를 v10으로 고친다(목록 선필터가 첫 후보). 도구로 열지 않은 문항을 고른 경우(C6)는 서버가 로그에만 남기고 결과는 쓴다(2026-11-05 결정).
 - **서버 상태 기계**: `room.status`는 open → closed → generating → ready 또는 failed다. 전환은 `UPDATE ... WHERE status = 'open'` 한 문장으로 하여 마지막 제출과 조기 생성이 겹쳐도 입력 고정과 최초 생성을 한 번만 수행한다(AC4). 생성은 202 응답 뒤 프로세스 안 백그라운드 태스크로 실행하고 화면은 3~5초 간격으로 상태를 폴링한다. 재생성 가능 여부는 정상 결과 행 수로 계산하며 실패 행은 세지 않는다(AC10, AC17). 컨테이너가 여러 개여도 잠금은 DB에 있고, `generating`에 설정 시간 이상 머문 방은 failed로 돌린다. 생성 작업마다 시도 ID를 발급해 방에 현재 시도 ID를 두고, 결과 저장·상태 전환·알림은 `UPDATE ... WHERE attempt_id = 내 시도`가 성공한 작업만 한다. 재시도·재생성으로 새 시도가 시작되면 이전 시도의 늦은 결과는 버린다(2026-11-05 결정).
-- **동시 생성 상한과 타임아웃**: 프로세스당 동시 LLM 호출 4건, 호출 타임아웃 90초를 `config/llm.yaml`에 둔다. 초과 요청은 대기 상태로 두고 화면에 ‘대기 중’을 표시한다. 2026-11-05 실제 호출 10회 측정에서 호출 지연은 문항 최대 37.7초, 추천 최대 53.4초, 방당 비용은 최대 $0.123였다([서비스 위임 기록 §2-4](prompts/delegation_service.md)). 값은 그대로 둔다.
+- **동시 생성 상한과 타임아웃**: 프로세스당 동시 LLM 호출 4건, 호출 타임아웃 90초를 `config/llm.yaml`에 둔다. 초과 요청은 서버에서 차례를 기다린다. 화면에는 대기를 따로 표시하지 않는다. 2026-11-05 실제 호출 10회 측정에서 호출 지연은 문항 최대 37.7초, 추천 최대 53.4초, 방당 비용은 최대 $0.123였다([서비스 위임 기록 §2-4](prompts/delegation_service.md)). 값은 그대로 둔다.
 - **비용 장부**: 도구 왕복마다 사용량을 모아, 호출이 실패·타임아웃·중단으로 끝나도 응답받은 왕복의 토큰과 비용을 `llm_calls`에 쓴다. 방당·일일 한도는 이 표의 `cost_usd` 합을 본다. 남은 위험이 두 가지 있다. 사용량을 모르는 실패(`unknown`, `partial`의 실패한 요청)는 구분해 기록하지만 한도에 넣지 않으므로(2026-11-05 사람 결정), 타임아웃이 반복되면 실제 과금이 장부보다 많을 수 있다. 사용량은 호출이 끝날 때 쓰므로 프로세스가 도중에 죽으면 그 호출의 기록이 사라진다.
 - **푸시 주소 제한**: 구독 주소는 사용자가 보내는 값이라 서버가 그대로 요청하면 내부망 접근 통로가 된다. HTTPS, 포트 443, userinfo 없음, 허용 호스트(`fcm.googleapis.com`, `*.push.services.mozilla.com`, `*.push.apple.com`)만 받는다. 호스트는 정확한 일치와 점 경계의 하위 도메인만 맞는다. 발송 timeout은 10초(제안값, 측정값 아님)이고 리다이렉트는 따라가지 않으며 구독마다 동시에 보낸다. 호스트 이름은 실제 기기에서 확인해야 한다.
 - **자산 배포 순서**: 새 자산 업로드, HTML 전환, 무효화, 사이트 확인, 이전 자산 정리 순서다. 정리는 현재 빌드에 없고 S3 업로드 시각에서 7일이 지난 파일을 지운다. 7일은 측정값이 아니라 팀 결정이다(2026-11-05). 배포 뒤 이전 자산을 7일 동안 지원한다는 뜻은 아니다. 기준이 빌드에서 빠진 시각이 아니라 업로드 시각이므로, 7일 전에 올린 파일은 빌드에서 빠진 첫 배포에서 바로 지워지고 그 배포 전에 연 탭은 그 파일을 불러오지 못할 수 있다. 같은 커밋을 다시 배포하면 ECR의 기존 이미지를 쓴다.
@@ -131,7 +131,7 @@
 | DB 연결 끊김 | 사용 중·유휴 연결 끊김, 연결 생성 실패 | 슬롯이 비면 대기 요청을 깨워 새 연결을 만든다. 연결을 내줄 때 상태를 확인한다 |
 | 제출 결과 불명 | 연결 끊김·429·5xx로 응답을 잃음 | 화면이 키와 본문을 보존해 같은 요청만 다시 보낸다. 제출을 시작한 순간부터 답 수정을 잠그고 명확한 거절에서만 푼다. 확인 화면은 보존한 본문을 보여 주고 새 이름 선택을 막는다. `idempotency_conflict`는 처음 보낸 답이 저장됐다는 뜻이므로 제출 완료로 끝낸다. 다른 세션의 제출이 불명확하면 현재 답은 보내지 않고 초안을 남긴 채 이전 제출부터 확인한다 |
 | 결과 확인 실패 | 결과 조회의 연결 끊김·429·5xx | 결과 없음과 구분해 안내하고 자동으로 3번 다시 본다. 그 뒤에는 "다시 확인" 버튼을 쓴다 |
-| 과부하 | 짧은 시간의 반복 요청, 예산 한도 도달 | WAF가 차단하고, 앱은 대기 상태 표시 또는 실행 오류로 중단한다(5절) |
+| 과부하 | 짧은 시간의 반복 요청, 예산 한도 도달 | WAF가 차단하고, 앱은 동시 상한을 넘는 호출을 기다리게 하거나 실행 오류로 중단한다(5절) |
 
 모든 실패는 실패로 표시한다. 재시도 결과를 받을 때도 입력은 바꾸지 않는다.
 
@@ -151,7 +151,7 @@
 - 도구 호출마다: `tool_call_id`, 도구 이름, `template_id`, 결과 코드, 지연 시간.
 - 후처리: 위반 유형과 차단 여부.
 - 사용량 상태: `reported`는 모든 요청의 사용량을 안다. `partial`은 일부만 안다. `unknown`은 모른다. `not_called`는 호출 전 한도로 막혔다.
-- 마스킹: 메모 원문, 선택 프로필(성별·나이대·MBTI), 이름·별명은 로그에 남기지 않고 ID로 기록한다. 호출·도구 로그도 방 자료와 함께 생성 후 30일에 삭제한다(AC19).
+- 마스킹: 메모 원문, 선택 프로필(성별·나이대·MBTI), 이름·별명은 로그에 남기지 않고 ID로 기록한다. F7을 구현하면 호출·도구 로그도 방 자료와 함께 생성 후 30일에 삭제한다(AC19). 그 전에는 방 단위 삭제 명령으로 함께 지운다.
 - 접속 로그: 요청마다 IP 주소, 시각, 요청 경로, 응답 상태만 남기고 User-Agent는 남기지 않는다. 방 단위가 아니라 수집일부터 30일 보관한다(CloudWatch Logs 보관 기간, 5절 운영 기준안). 통신비밀보호법상 3개월 보관 의무가 적용되는지는 미확인이다. 접속 IP는 믿는 프록시 구간 수(`TRUSTED_PROXY_HOPS`, 운영 이미지 2)로 정한다. CloudFront가 사용자 주소를, ALB가 엣지 주소를 `X-Forwarded-For` 끝에 붙이므로 오른쪽에서 두 번째 값을 쓴다. 앞쪽 값은 사용자가 위조할 수 있어 쓰지 않는다. 항목이 모자라거나 IP가 아니면 연결 주소를 쓴다.
 - 관리자 접속기록(2026-11-05 결정, `infra/audit.tf`): 개인정보처리시스템에 접속한 관리자의 기록(누가, 언제, 무엇을)을 앱 로그와 분리한 전용 S3 버킷에 1년 이상 보관한다(개인정보의 안전성 확보조치 기준 제8조). 기록은 두 가지다. CloudTrail 관리 이벤트(모든 리전, 읽기·쓰기, 로그 파일 검증)로 AWS 콘솔·API 조작과 일회성 태스크 실행을 남기고, `delete-room` 명령은 실행자·시각·방 코드·삭제 건수를 같은 버킷의 `admin-audit/`에 한 건씩 쓴다(이름·메모 없음). 버킷은 공개 차단, SSE-S3, 버전 관리, HTTPS 전용이며 현재·이전 버전을 400일 뒤 지운다. 관리자는 DB에 직접 접속하지 않는다는 전제이며 필요해지면 별도 기록 방안을 정한다. 서비스 종료 정리(2027-01-12)에서 trail은 지우고 버킷은 남긴다(절차는 `infra/README.md`). 비용은 월 $1 미만으로 본다.
 - 저장 위치: 구조화 JSON lines를 표준 출력으로 내보내 CloudWatch Logs에 모으고, `llm_calls` 테이블에 요청 ID·단계·모델·버전·토큰·지연·상태·비용 추정을 둔다. 방 삭제 시 함께 지운다.
@@ -168,4 +168,4 @@ RAG·벡터 검색, 모델 쓰기 도구, 전체 에이전트 루프·멀티 에
 - `prepare_scenarios.md`: 입력을 pool 전체에서 목록 + 도구로 바꾸고 `prompt_version`을 9로 올렸다(2026-11-05).
 - SPEC F2·5절 인터페이스: 문항 선정·각색 입력과 도구 사용을 반영했다(2026-11-05).
 - 3절 도구 계약 테스트를 코드 위임 전에 확정한다. 2026-11-04에 확정했다([위임 기록](prompts/delegation_scenario_tools.md)).
-- 2절의 예정 경로(서버·SPA·설정·인프라·CI·서버 테스트)를 만들고 README에 실행 방법을 쓴다. 서버 실행·테스트 명령은 실제로 확인한 뒤 AGENTS 7절에 적는다.
+- 2절의 서버·SPA·설정·인프라·CI·서버 테스트를 만들었다. 실행 방법은 README, 실제로 확인한 명령은 AGENTS 7절에 있다.
