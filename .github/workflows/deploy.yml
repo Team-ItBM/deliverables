@@ -108,21 +108,55 @@ jobs:
           fi
 
       - name: Update ECS service and wait for stability
+        timeout-minutes: 10
         env:
           TASKDEF: ${{ steps.taskdef.outputs.arn }}
           CLUSTER: ${{ vars.ECS_CLUSTER }}
           SERVICE: ${{ vars.ECS_SERVICE }}
         run: |
-          aws ecs update-service --cluster "$CLUSTER" --service "$SERVICE" \
-            --task-definition "$TASKDEF" --query 'service.deployments[0].id' --output text
-          aws ecs wait services-stable --cluster "$CLUSTER" --services "$SERVICE"
-          STATE=$(aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE" \
-                    --query "services[0].deployments[?status=='PRIMARY'].rolloutState | [0]" --output text)
-          echo "rollout state: $STATE"
-          if [ "$STATE" != "COMPLETED" ]; then
-            echo "::error::Deployment did not complete (state $STATE); circuit breaker may have rolled back."
-            exit 1
-          fi
+          set -euo pipefail
+          RESPONSE='{}'
+          diagnostics() {
+            if [ "$?" -ne 0 ]; then
+              echo '::error::ECS deployment did not complete; last observed state follows.'
+              jq '{failures, services: [.services[]? | {taskDefinition, desiredCount,
+                runningCount, pendingCount, deployments, events: .events[:5]}]}' <<< "$RESPONSE"
+            fi
+          }
+          trap diagnostics EXIT
+          UPDATED=$(aws ecs update-service --cluster "$CLUSTER" --service "$SERVICE" \
+            --task-definition "$TASKDEF" --output json)
+          DEPLOYMENT=$(jq -er --arg td "$TASKDEF" '
+            [.service.deployments[] | select(.status == "PRIMARY" and .taskDefinition == $td)]
+            | if length == 1 then .[0].id else error("Expected one target deployment") end' <<< "$UPDATED")
+          echo "Waiting for deployment $DEPLOYMENT ($TASKDEF)"
+          for ((attempt=1; attempt<=60; attempt++)); do
+            NEXT_RESPONSE=$(aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE" --output json)
+            RESPONSE=$NEXT_RESPONSE
+            jq -e '(.failures | length) == 0 and (.services | length) == 1' <<< "$RESPONSE" > /dev/null
+            TARGET=$(jq -ec --arg id "$DEPLOYMENT" --arg td "$TASKDEF" '
+              [.services[0].deployments[]
+                | select(.id == $id and .taskDefinition == $td and .status == "PRIMARY")]
+              | if length == 1 then .[0] else error("Target deployment replaced or rolled back") end' <<< "$RESPONSE") || exit 1
+            STATE=$(jq -er '.rolloutState' <<< "$TARGET")
+            echo "rollout state: $STATE (attempt $attempt/60)"
+            case "$STATE" in
+              COMPLETED)
+                if jq -e --arg td "$TASKDEF" '.services[0] |
+                  .taskDefinition == $td and (.deployments | length) == 1 and
+                  .runningCount == .desiredCount and .pendingCount == 0 and
+                  .deployments[0].runningCount == .desiredCount and
+                  .deployments[0].pendingCount == 0' <<< "$RESPONSE" > /dev/null; then
+                  exit 0
+                fi
+                ;;
+              IN_PROGRESS) ;;
+              *) echo "::error::Deployment $DEPLOYMENT entered state $STATE"; exit 1 ;;
+            esac
+            if [ "$attempt" -lt 60 ]; then sleep 10; fi
+          done
+          echo "::error::Timed out waiting for deployment $DEPLOYMENT"
+          exit 1
 
       - name: Set up Node
         if: ${{ hashFiles('web/package.json') != '' }}
