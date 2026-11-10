@@ -326,7 +326,7 @@ describe("방장 결과 화면(리뷰 6번)", () => {
         </Routes>
       </MemoryRouter>
     );
-    await screen.findByRole("button", { name: "이미지로 저장" });
+    await screen.findByRole("button", { name: "이미지 저장·공유" });
     fireEvent.click(await screen.findByRole("button", { name: "이 결과로 고르기" }));
     await waitFor(() => expect(seen.some((r) => r.path.endsWith("/select"))).toBe(true));
   });
