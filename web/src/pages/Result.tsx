@@ -1,4 +1,4 @@
-import { Download, Share2 } from "lucide-react";
+import { Download } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
@@ -18,6 +18,18 @@ import { issueSeen, markIssueSeen, useIssueSequence } from "../lib/issue";
 import { issueSoundFor, SILENT } from "../lib/issueSound";
 
 const NAMES_NOTICE = "이미지에 동행 이름이 보여요";
+const SHARE_SAVE_HINT = "공유 창이 열리면 '이미지 저장'을 눌러 사진에 저장할 수 있어요.";
+
+/** 이 브라우저가 이미지 파일을 공유 창으로 보낼 수 있는지. 아니면 바로 내려받는다(savePaperImage). */
+function canShareImageFile(): boolean {
+  const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
+  if (typeof nav.share !== "function" || typeof nav.canShare !== "function" || typeof File === "undefined") return false;
+  try {
+    return nav.canShare({ files: [new File([""], "dowon-pact.png", { type: "image/png" })] });
+  } catch {
+    return false;
+  }
+}
 
 /**
  * 화면용 종이와, 저장 이미지용으로 화면 밖에 360px 폭으로 그린 같은 종이.
@@ -46,19 +58,21 @@ function SheetWithSave({
   const [animate] = useState(() => paper && !reduced && !issueSeen(code));
   const [sound] = useState(() => (animate ? issueSoundFor(started) : SILENT));
   const phase = useIssueSequence(animate, paperRef, issueItemCount(result), sound);
-  const [state, setState] = useState<"idle" | "busy" | "error" | "done">("idle");
+  const [state, setState] = useState<"idle" | "busy" | "error" | "shared" | "downloaded">("idle");
+  const [shareSupported] = useState(canShareImageFile);
 
   useEffect(() => {
     markIssueSeen(code);
   }, [code]);
 
-  const makeImage = async (share?: ShareData) => {
+  // 저장과 공유는 한 버튼이다. 공유 창을 지원하면 공유 창(아이폰은 여기서 사진에 저장), 아니면 내려받는다.
+  const makeImage = async () => {
     if (!captureRef.current) return;
     setState("busy");
     try {
       await document.fonts?.ready;
-      const r = await savePaperImage(captureRef.current, "dowon-pact.png", share);
-      setState(r === "cancelled" ? "idle" : "done");
+      const r = await savePaperImage(captureRef.current, "dowon-pact.png", resultShare);
+      setState(r === "cancelled" ? "idle" : r);
     } catch {
       setState("error");
     }
@@ -72,8 +86,20 @@ function SheetWithSave({
       disabled={state === "busy"}
     >
       <Download {...ICON} />
-      {state === "busy" ? "이미지를 만드는 중이에요" : "이미지로 저장"}
+      {state === "busy" ? "이미지를 만드는 중이에요" : "이미지 저장·공유"}
     </button>
+  );
+
+  const saveNotice = (
+    <p className="t-body-sm secondary">
+      {NAMES_NOTICE}
+      {shareSupported && (
+        <>
+          <br />
+          {SHARE_SAVE_HINT}
+        </>
+      )}
+    </p>
   );
 
   return (
@@ -84,26 +110,20 @@ function SheetWithSave({
       </div>
       {belowPaper}
       {state === "error" && <ErrorMessage text="이미지를 저장하지 못했어요. 화면의 협약서는 그대로 있어요." />}
-      {state === "done" && <p className="secondary" role="status">이미지를 저장했어요.</p>}
+      {state === "downloaded" && <p className="secondary" role="status">이미지를 저장했어요.</p>}
+      {state === "shared" && <p className="secondary" role="status">공유 창에서 이미지를 저장하거나 보냈어요.</p>}
       {saveIsPrimary ? (
         <BottomBar>
-          <p className="t-body-sm secondary">{NAMES_NOTICE}</p>
+          {saveNotice}
           {saveButton}
         </BottomBar>
       ) : (
-        saveButton
+        <div className="stack-sm">
+          {saveNotice}
+          {saveButton}
+        </div>
       )}
       <section className="stack-sm" aria-label="공유">
-        <p className="t-body-sm secondary">{NAMES_NOTICE}</p>
-        <button
-          type="button"
-          className="btn btn-outline"
-          disabled={state === "busy"}
-          onClick={() => void makeImage(resultShare)}
-        >
-          <Share2 {...ICON} />
-          결과 이미지 공유
-        </button>
         <ShareButton data={serviceShare} shareLabel="도원결의 알려 주기" copyLabel="도원결의 링크 복사" secondary />
         <Link className="btn-text" to="/new">
           우리 여행도 만들어 보기
