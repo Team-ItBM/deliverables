@@ -423,8 +423,9 @@ def _register_routes(app, settings, jobs, notifier, clock, pool_source):
         async with pool().transaction() as conn:
             room = await load_room(conn, room_code, for_update=True)
             require_host(room, request)
-            if room["scenario_status"] == "preparing" or room["status"] in ("closed", "generating"):
+            if room["scenario_status"] == "preparing" or room["status"] == "generating":
                 raise ApiError("invalid_state")
+            await conn.execute("UPDATE llm_calls SET room_id = NULL WHERE room_id = %s", (room["room_id"],))
             await conn.execute("DELETE FROM rooms WHERE room_id = %s", (room["room_id"],))
         return Response(status_code=204)
 
@@ -727,7 +728,7 @@ def _register_routes(app, settings, jobs, notifier, clock, pool_source):
             cur = await conn.execute("SELECT * FROM results WHERE result_id = %s", (new_id,))
             new_row = await cur.fetchone()
         log("result_edited", room_code=room_code)
-        return shared(new_row, room, roster, draft=room["selected_result_id"] is None)
+        return shared(new_row, room, roster, draft=room["selected_result_id"] != origin["result_id"])
 
     # 12. 푸시
     @app.get("/api/push/vapid-public-key")

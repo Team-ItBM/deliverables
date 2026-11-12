@@ -254,7 +254,7 @@ function shared(room: Room, o: Original, version?: Original["edits"][number]): S
     kind: version ? "host_edited" : "ai_original",
     source_result_id: version?.source_result_id ?? null,
     label: version ? "방장 수정" : null,
-    draft: room.selected === null,
+    draft: room.selected !== o.result_id,
     trip: publicTrip(room.trip),
     pact_status: tpl.pact_status,
     included_count: o.included.length,
@@ -392,7 +392,7 @@ function handle(req: TransportRequest, db: DB): TransportResponse {
   if (req.method === "DELETE" && sub === "") {
     const f = needHost();
     if (f) return f;
-    if (room.scenarioStatus === "preparing" || room.status === "closed" || room.status === "generating")
+    if (room.scenarioStatus === "preparing" || room.status === "generating")
       return err(409, "invalid_state");
     delete db[room.code];
     return ok(204, null);

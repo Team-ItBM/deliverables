@@ -117,6 +117,10 @@ class Notifier:
                         (item["notification_id"], item["subscription_id"]))
                     if await cur.fetchone() is None:
                         return
+            except Exception as exc:
+                log("push_check_error", room_code=room_code, push_event=event, error=type(exc).__name__)
+                return
+            try:
                 status = await asyncio.to_thread(self.sender.send, subscription, payload)
             except Exception as exc:  # 발송기 오류는 기록만 한다
                 log("push_error", room_code=room_code, push_event=event, error=type(exc).__name__)

@@ -13,7 +13,7 @@ if str(ROOT / "src") not in sys.path:
 
 from travel.server import admin  # noqa: E402
 
-COUNTS = {"profiles": 2, "sessions": 2, "submissions": 2, "results": 1, "push_subscriptions": 0, "llm_calls": 2}
+COUNTS = {"profiles": 2, "sessions": 2, "submissions": 2, "results": 1, "push_subscriptions": 0, "llm_calls": 0}
 
 
 class FakeS3:
