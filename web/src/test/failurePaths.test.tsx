@@ -10,6 +10,8 @@ import { Result } from "../pages/Result";
 import { RoomEntry } from "../pages/RoomEntry";
 import { Wait } from "../pages/Wait";
 
+vi.mock("html-to-image", () => ({ toBlob: async () => null }));
+
 // PR #16 리뷰 4·5·6번과 문항 재시도. 2026-11-05 사람 승인. 기존 기대값은 바꾸지 않았다.
 
 afterEach(() => {
@@ -326,7 +328,7 @@ describe("방장 결과 화면(리뷰 6번)", () => {
         </Routes>
       </MemoryRouter>
     );
-    await screen.findByRole("button", { name: "이미지 저장·공유" });
+    await screen.findByRole("button", { name: "이미지 다운로드" });
     fireEvent.click(await screen.findByRole("button", { name: "이 결과로 고르기" }));
     await waitFor(() => expect(seen.some((r) => r.path.endsWith("/select"))).toBe(true));
   });

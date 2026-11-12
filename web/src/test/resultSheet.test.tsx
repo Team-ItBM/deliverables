@@ -75,7 +75,7 @@ describe("결과 렌더러", () => {
   it("초안이면 '초안'과 뜻풀이를, 수정본이면 label을 보여 준다", () => {
     render(<ResultSheet result={base({ draft: true, kind: "host_edited", label: "방장 수정" })} />);
     expect(screen.getByText("초안")).toBeTruthy();
-    expect(screen.getByText("방장이 고르기 전이에요")).toBeTruthy();
+    expect(screen.getByText("선택되지 않은 결과예요")).toBeTruthy();
     expect(screen.getByText("방장 수정")).toBeTruthy();
   });
 

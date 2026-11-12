@@ -2,8 +2,8 @@
 
     DATABASE_URL=... python -m travel.server.admin delete-room <room_code> [--yes]
 
-rooms 행을 지우면 profiles, sessions, submissions, responses, results, push_subscriptions, notifications, llm_calls가
-외래 키 cascade로 함께 지워진다.
+rooms 행을 지우면 profiles, sessions, submissions, responses, results, push_subscriptions, notifications가
+외래 키 cascade로 함께 지워진다. llm_calls는 일일 비용 한도를 유지하기 위해 방 연결만 끊고 보존한다.
 
 관리자 접속기록(ARCHITECTURE 8절): 실행 기록(누가·언제·무엇을·삭제 건수. 이름·메모는 없다)을 표준 출력에 남기고,
 환경변수 ADMIN_AUDIT_BUCKET이 있으면 같은 JSON을 그 S3 버킷의 ADMIN_AUDIT_PREFIX(기본 admin-audit/) 아래에도 한 건 쓴다.
@@ -28,12 +28,14 @@ EXIT_OK, EXIT_CANCELLED, EXIT_NOT_FOUND, EXIT_AUDIT_FAILED = 0, 1, 2, 3
 def delete_room(database_url, room_code):
     """방과 연결된 자료를 지우고 표별 삭제 건수를 돌려준다. 방이 없으면 None이다."""
     with psycopg.connect(normalize_url(database_url), autocommit=False) as conn:
-        row = conn.execute("SELECT room_id, created_at FROM rooms WHERE room_code = %s", (room_code,)).fetchone()
+        row = conn.execute("SELECT room_id, created_at FROM rooms WHERE room_code = %s FOR UPDATE", (room_code,)).fetchone()
         if row is None:
             return None
         counts = {}
-        for table in ("profiles", "sessions", "submissions", "results", "push_subscriptions", "llm_calls"):
+        for table in ("profiles", "sessions", "submissions", "results", "push_subscriptions"):
             counts[table] = conn.execute(f"SELECT count(*) FROM {table} WHERE room_id = %s", (row[0],)).fetchone()[0]
+        conn.execute("UPDATE llm_calls SET room_id = NULL WHERE room_id = %s", (row[0],))
+        counts["llm_calls"] = 0
         conn.execute("DELETE FROM rooms WHERE room_id = %s", (row[0],))
         conn.commit()
         return counts

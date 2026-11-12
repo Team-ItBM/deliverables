@@ -13,7 +13,8 @@ import { keys } from "./storage";
 export function usePolling<T>(
   fetcher: () => Promise<T>,
   active: (data: T | null) => boolean,
-  deps: unknown[]
+  deps: unknown[],
+  options: { visibleOnly?: boolean; stopOnError?: (error: unknown) => boolean; successDelayMs?: (data: T) => number | undefined } = {}
 ): { data: T | null; error: unknown; reload: () => void; loading: boolean } {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<unknown>(null);
@@ -24,30 +25,44 @@ export function usePolling<T>(
   fetchRef.current = fetcher;
   const activeRef = useRef(active);
   activeRef.current = active;
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
 
   useEffect(() => {
     let cancelled = false;
+    let stopped = false;
+    let inFlight = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const run = async () => {
+      if (cancelled || stopped || inFlight || (optionsRef.current.visibleOnly && document.visibilityState !== "visible")) return;
+      inFlight = true;
       let next: T | null = null;
       try {
         next = await fetchRef.current();
         if (cancelled) return;
         setData(next);
         setError(null);
-        delay.current = Math.min(delay.current + 500, 5000);
+        delay.current = optionsRef.current.successDelayMs?.(next) ?? Math.min(delay.current + 500, 5000);
       } catch (err) {
         if (cancelled) return;
         setError(err);
+        if (optionsRef.current.stopOnError?.(err)) {
+          stopped = true;
+          setData(null);
+        }
         delay.current = Math.min(delay.current * 2, 20000);
       } finally {
+        inFlight = false;
         if (!cancelled) setLoading(false);
       }
-      if (!cancelled && activeRef.current(next)) timer = setTimeout(run, delay.current);
+      if (!cancelled && !stopped && activeRef.current(next) && (!optionsRef.current.visibleOnly || document.visibilityState === "visible")) {
+        timer = setTimeout(run, delay.current);
+      }
     };
     void run();
     const onVisible = () => {
-      if (document.visibilityState === "visible") {
+      if (optionsRef.current.visibleOnly) clearTimeout(timer);
+      if (!stopped && document.visibilityState === "visible") {
         clearTimeout(timer);
         delay.current = 3000;
         void run();

@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
+import { ApiError } from "../api/errors";
 import type { RoomView } from "../api/types";
 import { inviteUrl } from "../lib/hostToken";
 import { FAILURE_TEXT } from "../lib/status";
+import { clearRoomStorage } from "../lib/storage";
 import { OpenPact } from "./OpenPact";
 import { PushOptIn } from "./PushOptIn";
 import { BottomBar, ConfirmSheet, CopyButton, ErrorMessage } from "./ui";
@@ -32,9 +34,11 @@ export function HostPanel({
   ownPrimary?: boolean;
   hasResult?: boolean | null;
 }) {
+  const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [confirmEarly, setConfirmEarly] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const s = room.room_status;
 
   // 재생성 가능 여부는 서버 규칙(정상 결과 2개면 거절)과 같은 기준으로 판단한다.
@@ -72,6 +76,26 @@ export function HostPanel({
   const inBar = mode === "room";
   const canOpen = inBar && (s === "ready" || hasResult === true);
   const scenariosFailed = s === "open" && room.scenario_status === "failed";
+  const deleteDisabled = busy || room.scenario_status === "preparing" || s === "generating";
+  const deleteRoom = async () => {
+    if (deleteDisabled) return;
+    setBusy(true);
+    setError(null);
+    try {
+      try {
+        await api.deleteRoom(code, token);
+      } catch (err) {
+        if (!(err instanceof ApiError && err.status === 404)) throw err;
+      }
+      clearRoomStorage(code);
+      navigate("/", { replace: true });
+    } catch (err) {
+      setError(err);
+    } finally {
+      setConfirmDelete(false);
+      setBusy(false);
+    }
+  };
 
   const generateButton = (primary: boolean) => (
     <button
@@ -124,6 +148,12 @@ export function HostPanel({
       {!inBar && <CopyButton text={inviteUrl(code)} label="초대 링크 복사" />}
       {error !== null && <ErrorMessage error={error} />}
       <PushOptIn code={code} role="host" hostToken={token} />
+      <button type="button" className="btn-text" disabled={deleteDisabled} onClick={() => setConfirmDelete(true)}>
+        방 삭제하기
+      </button>
+      {(room.scenario_status === "preparing" || s === "generating") && (
+        <p className="t-body-sm secondary">문항이나 협약서를 만드는 동안에는 방을 삭제할 수 없어요.</p>
+      )}
 
       {inBar && canGenerate && !ownPrimary && <BottomBar>{generateButton(true)}</BottomBar>}
       {inBar && s === "failed" && !canOpen && <BottomBar>{retryButton(true)}</BottomBar>}
@@ -154,6 +184,19 @@ export function HostPanel({
             응답 <span className="t-numeral">{room.submitted_count}</span>건으로 만들어요. 만들기 시작하면 더는 답을 받지
             않아요.
           </p>
+        </ConfirmSheet>
+      )}
+      {confirmDelete && (
+        <ConfirmSheet
+          title="방을 삭제할까요?"
+          confirmLabel="방 삭제하기"
+          cancelLabel="그만두기"
+          busy={deleteDisabled}
+          onConfirm={deleteRoom}
+          onCancel={() => !busy && setConfirmDelete(false)}
+        >
+          <p>이 방의 모든 응답과 협약서가 사라지고 초대 링크도 더는 열리지 않아요. 삭제한 방은 되돌릴 수 없어요.</p>
+          <p>기기에 이미 저장한 협약서 이미지는 남아 있어요.</p>
         </ConfirmSheet>
       )}
     </section>

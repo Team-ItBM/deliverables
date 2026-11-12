@@ -107,6 +107,20 @@ class Notifier:
             status = 0
         else:
             try:
+                # enqueue 이후 방/구독이 삭제되거나 이미 발송된 알림이면 건너뛴다.
+                # 발송기에 넘긴 뒤 진행 중인 요청까지 취소하지는 않는다.
+                async with self.pool.connection() as conn:
+                    cur = await conn.execute(
+                        "SELECT 1 FROM notifications n JOIN push_subscriptions s "
+                        "ON s.subscription_id = n.subscription_id "
+                        "WHERE n.notification_id = %s AND s.subscription_id = %s AND n.sent_at IS NULL",
+                        (item["notification_id"], item["subscription_id"]))
+                    if await cur.fetchone() is None:
+                        return
+            except Exception as exc:
+                log("push_check_error", room_code=room_code, push_event=event, error=type(exc).__name__)
+                return
+            try:
                 status = await asyncio.to_thread(self.sender.send, subscription, payload)
             except Exception as exc:  # 발송기 오류는 기록만 한다
                 log("push_error", room_code=room_code, push_event=event, error=type(exc).__name__)

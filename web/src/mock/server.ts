@@ -1,4 +1,4 @@
-// VITE_MOCK=1 전용 가짜 서버. 12개 경로(§0-B)를 브라우저 안에서 흉내 낸다.
+// VITE_MOCK=1 전용 가짜 서버. 사용자 API(§0-B)를 브라우저 안에서 흉내 낸다.
 // 실제 모델·AWS·푸시를 부르지 않는다. 상태는 같은 브라우저의 탭끼리 나눠 쓰도록 localStorage에 둔다.
 import type { Transport, TransportRequest, TransportResponse } from "../api/client";
 import type {
@@ -61,6 +61,7 @@ interface Room {
   included?: string[];
   selected: string | null;
   scenarioCount?: number;
+  pushSubscriptions?: { subscription_id: string; role: string; session_id: string | null; endpoint: string }[];
 }
 type DB = Record<string, Room>;
 
@@ -253,7 +254,7 @@ function shared(room: Room, o: Original, version?: Original["edits"][number]): S
     kind: version ? "host_edited" : "ai_original",
     source_result_id: version?.source_result_id ?? null,
     label: version ? "방장 수정" : null,
-    draft: room.selected === null,
+    draft: room.selected !== o.result_id,
     trip: publicTrip(room.trip),
     pact_status: tpl.pact_status,
     included_count: o.included.length,
@@ -388,6 +389,15 @@ function handle(req: TransportRequest, db: DB): TransportResponse {
   const isHost = req.headers["X-Host-Token"] === room.token;
   const needHost = () => (isHost ? null : err(403, "host_forbidden"));
 
+  if (req.method === "DELETE" && sub === "") {
+    const f = needHost();
+    if (f) return f;
+    if (room.scenarioStatus === "preparing" || room.status === "generating")
+      return err(409, "invalid_state");
+    delete db[room.code];
+    return ok(204, null);
+  }
+
   if (req.method === "GET" && sub === "") {
     return ok(200, {
       room_status: room.status,
@@ -478,7 +488,7 @@ function handle(req: TransportRequest, db: DB): TransportResponse {
     const results: ResultEntry[] = room.originals.map((o) =>
       o.state === "failed"
         ? { result_id: o.result_id, attempt: o.attempt, state: "failed", created_at: o.created_at }
-        : { ...shared(room, o), attempt: o.attempt, state: "normal", created_at: o.created_at, editable: editable(room, o) }
+        : { ...shared(room, o), draft: room.selected !== o.result_id, attempt: o.attempt, state: "normal", created_at: o.created_at, editable: editable(room, o) }
     );
     return ok(200, { selected_result_id: room.selected, results });
   }
@@ -508,12 +518,31 @@ function handle(req: TransportRequest, db: DB): TransportResponse {
     o.edits.push(version);
     return ok(201, shared(room, o, version));
   }
-  if (req.method === "POST" && sub === "/push-subscriptions") {
+  const registering = req.method === "POST" && sub === "/push-subscriptions";
+  const checking = req.method === "POST" && sub === "/push-subscriptions/status";
+  const removing = req.method === "DELETE" && sub === "/push-subscriptions";
+  if (registering || checking || removing) {
+    if (body.role !== "host" && body.role !== "participant") return err(422, "invalid_input");
     if (body.role === "host") {
       const f = needHost();
       if (f) return f;
     }
-    return ok(201, { subscription_id: rid("sub") });
+    const sessionId = typeof body.session_id === "string" ? body.session_id : null;
+    if (body.role === "participant" && !sessionId) return err(422, "invalid_input");
+    if (sessionId && !room.sessions[sessionId]) return err(404, "not_found");
+    const endpoint = registering ? (body.subscription as { endpoint?: unknown } | undefined)?.endpoint : body.endpoint;
+    if (typeof endpoint !== "string" || !endpoint) return err(422, "invalid_input");
+    const subscriptions = room.pushSubscriptions ?? [];
+    const same = subscriptions.find((s) => s.role === body.role && s.session_id === sessionId && s.endpoint === endpoint);
+    if (checking) return ok(200, { subscribed: !!same, room_subscribed: subscriptions.some((s) => s.endpoint === endpoint) });
+    if (removing) {
+      room.pushSubscriptions = subscriptions.filter((s) => s.endpoint !== endpoint);
+      return ok(204, null);
+    }
+    if (same) return ok(200, { subscription_id: same.subscription_id });
+    const subscription_id = rid("sub");
+    room.pushSubscriptions = [...subscriptions, { subscription_id, role: body.role, session_id: sessionId, endpoint }];
+    return ok(201, { subscription_id });
   }
   return err(404, "not_found");
 }

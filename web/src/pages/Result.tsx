@@ -1,41 +1,30 @@
-import { Download } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Download, Share2 } from "lucide-react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { ApiError, isNotFound } from "../api/errors";
 import type { ResultEntry, ResultsList, RoomView, SharedResult } from "../api/types";
 import { EditForm } from "../components/EditForm";
 import { HostPanel } from "../components/HostPanel";
+import { PushOptIn } from "../components/PushOptIn";
 import { PetalDrift } from "../components/PactBranch";
 import { hasPaper, issueItemCount, ResultSheet } from "../components/PactSheet";
 import { BottomBar, ErrorMessage, ICON, RoomNotFound, ShareButton } from "../components/ui";
 import { useHeaderBack } from "../lib/back";
 import { displaySegments, setAtPointer } from "../lib/editable";
 import { useHostToken, usePolling, usePrefersReducedMotion } from "../lib/hooks";
-import { savePaperImage } from "../lib/saveImage";
-import { resultShare, serviceShare } from "../lib/shareText";
+import { canSharePaperImage, downloadPaperImage, preparePaperImage, sharePaperImage } from "../lib/saveImage";
+import { loadSubmitted } from "../lib/answerSession";
+import { serviceShare } from "../lib/shareText";
 import { issueSeen, markIssueSeen, useIssueSequence } from "../lib/issue";
 import { issueSoundFor, SILENT } from "../lib/issueSound";
 
 const NAMES_NOTICE = "이미지에 동행 이름이 보여요";
-const SHARE_SAVE_HINT = "공유 창이 열리면 '이미지 저장'을 눌러 사진에 저장할 수 있어요.";
-
-/** 이 브라우저가 이미지 파일을 공유 창으로 보낼 수 있는지. 아니면 바로 내려받는다(savePaperImage). */
-function canShareImageFile(): boolean {
-  const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
-  if (typeof nav.share !== "function" || typeof nav.canShare !== "function" || typeof File === "undefined") return false;
-  try {
-    return nav.canShare({ files: [new File([""], "dowon-pact.png", { type: "image/png" })] });
-  } catch {
-    return false;
-  }
-}
-
 /**
  * 화면용 종이와, 저장 이미지용으로 화면 밖에 360px 폭으로 그린 같은 종이.
  * 저장이 그 화면의 주 동작이면 아래 고정 영역에, 아니면 종이 아래에 둔다.
  */
-function SheetWithSave({
+export function SheetWithSave({
   code,
   started,
   result,
@@ -58,48 +47,100 @@ function SheetWithSave({
   const [animate] = useState(() => paper && !reduced && !issueSeen(code));
   const [sound] = useState(() => (animate ? issueSoundFor(started) : SILENT));
   const phase = useIssueSequence(animate, paperRef, issueItemCount(result), sound);
-  const [state, setState] = useState<"idle" | "busy" | "error" | "shared" | "downloaded">("idle");
-  const [shareSupported] = useState(canShareImageFile);
+  const [prepared, setPrepared] = useState<{ file: File; url: string; shareSupported: boolean } | null>(null);
+  const [captureError, setCaptureError] = useState(false);
+  const [action, setAction] = useState<"idle" | "sharing" | "download-requested" | "shared" | "share-error" | "download-error">("idle");
+  const [showHelp, setShowHelp] = useState(false);
+  const signature = useRef<string | null>(null);
+  const generation = useRef(0);
+  const imageUrl = useRef<string | null>(null);
 
   useEffect(() => {
     markIssueSeen(code);
   }, [code]);
 
-  // 저장과 공유는 한 버튼이다. 공유 창을 지원하면 공유 창(아이폰은 여기서 사진에 저장), 아니면 내려받는다.
-  const makeImage = async () => {
-    if (!captureRef.current) return;
-    setState("busy");
+  const capture = () => {
+    const node = captureRef.current;
+    if (!node) return;
+    const version = ++generation.current;
+    if (imageUrl.current) URL.revokeObjectURL(imageUrl.current);
+    imageUrl.current = null;
+    setPrepared(null);
+    setCaptureError(false);
+    setAction("idle");
+    setShowHelp(false);
+    void preparePaperImage(node).then((file) => {
+      if (generation.current !== version) return;
+      const url = URL.createObjectURL(file);
+      imageUrl.current = url;
+      setPrepared({ file, url, shareSupported: canSharePaperImage(file) });
+    }).catch(() => {
+      if (generation.current === version) setCaptureError(true);
+    });
+  };
+
+  // 객체가 새로 도착해도 실제 종이 내용이 같으면 다시 만들지 않는다.
+  // DOM 반영 직후 비교하여 바뀐 종이에 이전 파일 버튼이 잠깐 남지 않게 한다.
+  useLayoutEffect(() => {
+    const next = captureRef.current?.innerHTML ?? "";
+    if (signature.current === next) return;
+    signature.current = next;
+    capture();
+  });
+  useEffect(() => () => {
+    generation.current += 1;
+    signature.current = null;
+    if (imageUrl.current) URL.revokeObjectURL(imageUrl.current);
+    imageUrl.current = null;
+  }, []);
+
+  const download = () => {
+    if (!prepared) return;
     try {
-      await document.fonts?.ready;
-      const r = await savePaperImage(captureRef.current, "dowon-pact.png", resultShare);
-      setState(r === "cancelled" ? "idle" : r);
+      downloadPaperImage(prepared.file);
+      setAction("download-requested");
     } catch {
-      setState("error");
+      setAction("download-error");
+    }
+  };
+  const share = () => {
+    if (!prepared || action === "sharing") return;
+    const version = generation.current;
+    try {
+      // 준비된 실제 파일만 클릭 핸들러에서 곧바로 전달한다.
+      const request = sharePaperImage(prepared.file);
+      setAction("sharing");
+      void request.then(() => {
+        if (generation.current === version) setAction("shared");
+      }).catch((err: unknown) => {
+        if (generation.current === version) setAction((err as { name?: string })?.name === "AbortError" ? "idle" : "share-error");
+      });
+    } catch {
+      setAction("share-error");
     }
   };
 
-  const saveButton = (
-    <button
-      type="button"
-      className={`btn ${saveIsPrimary ? "btn-primary" : "btn-outline"}`}
-      onClick={() => void makeImage()}
-      disabled={state === "busy"}
-    >
-      <Download {...ICON} />
-      {state === "busy" ? "이미지를 만드는 중이에요" : "이미지 저장·공유"}
-    </button>
-  );
-
-  const saveNotice = (
-    <p className="t-body-sm secondary">
-      {NAMES_NOTICE}
-      {shareSupported && (
-        <>
-          <br />
-          {SHARE_SAVE_HINT}
-        </>
+  const saveButtons = (
+    <div className="stack-sm">
+      <button type="button" className={`btn ${saveIsPrimary ? "btn-primary" : "btn-outline"}`} onClick={download} disabled={!prepared}>
+        <Download {...ICON} />이미지 다운로드
+      </button>
+      {prepared?.shareSupported && (
+        <button type="button" className="btn btn-outline" onClick={share} disabled={action === "sharing"}>
+          <Share2 {...ICON} />{action === "sharing" ? "공유 창을 여는 중이에요" : "이미지 공유"}
+        </button>
       )}
-    </p>
+    </div>
+  );
+  const saveNotice = (
+    <div className="stack-sm">
+      {!prepared && !captureError && <p className="t-body-sm secondary" role="status">이미지를 준비하고 있어요.</p>}
+      {captureError && <ErrorMessage text="이미지를 준비하지 못했어요." onRetry={capture} />}
+      {action === "download-requested" && <p className="t-body-sm secondary" role="status">브라우저에 이미지 다운로드를 요청했어요. 다운로드 목록을 확인해 주세요.</p>}
+      {action === "shared" && <p className="t-body-sm secondary" role="status">공유 창이 닫혔어요. 저장하거나 보낸 곳을 확인해 주세요.</p>}
+      {action === "share-error" && <ErrorMessage text="공유 창을 열지 못했어요. 이미지 다운로드를 이용해 주세요." />}
+      {action === "download-error" && <ErrorMessage text="다운로드를 요청하지 못했어요. 다시 시도하거나 아래 저장 도움말을 확인해 주세요." />}
+    </div>
   );
 
   return (
@@ -109,19 +150,20 @@ function SheetWithSave({
         <ResultSheet ref={captureRef} result={result} capture edited={edited} />
       </div>
       {belowPaper}
-      {state === "error" && <ErrorMessage text="이미지를 저장하지 못했어요. 화면의 협약서는 그대로 있어요." />}
-      {state === "downloaded" && <p className="secondary" role="status">이미지를 저장했어요.</p>}
-      {state === "shared" && <p className="secondary" role="status">공유 창에서 이미지를 저장하거나 보냈어요.</p>}
+      {saveNotice}
       {saveIsPrimary ? (
-        <BottomBar>
-          {saveNotice}
-          {saveButton}
-        </BottomBar>
+        <BottomBar><p className="t-body-sm secondary">{NAMES_NOTICE}</p>{saveButtons}</BottomBar>
       ) : (
-        <div className="stack-sm">
-          {saveNotice}
-          {saveButton}
-        </div>
+        <div className="stack-sm"><p className="t-body-sm secondary">{NAMES_NOTICE}</p>{saveButtons}</div>
+      )}
+      {prepared && (
+        <section className="stack-sm" aria-label="이미지 저장 도움말">
+          <button type="button" className="btn-text" aria-expanded={showHelp} onClick={() => setShowHelp((open) => !open)}>저장이 안 되나요?</button>
+          {showHelp && <>
+            <p className="t-body-sm secondary">아래 이미지를 길게 눌러 저장해 보세요. 앱 안 브라우저라면 메뉴에서 Safari 또는 Chrome으로 열어 다시 내려받을 수 있어요.</p>
+            <img src={prepared.url} alt="저장할 여행 동행 협약서" style={{ width: "100%", height: "auto" }} />
+          </>}
+        </section>
       )}
       <section className="stack-sm" aria-label="공유">
         <ShareButton data={serviceShare} shareLabel="도원결의 알려 주기" copyLabel="도원결의 링크 복사" secondary />
@@ -174,6 +216,7 @@ function HostResults({
   const [error, setError] = useState<unknown>(null);
   const [tab, setTab] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [comparing, setComparing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<unknown>(null);
   const [newResult, setNewResult] = useState<number | null>(null);
@@ -217,6 +260,7 @@ function HostResults({
       setTab(latest.result_id);
       setEditing(false);
       setNewResult(latest.attempt);
+      setComparing(true);
       window.scrollTo(0, 0);
     }
   }, [list, entries]);
@@ -227,13 +271,16 @@ function HostResults({
 
   const firstNormal = entries.find((e) => e.state === "normal");
   const publicId = list?.selected_result_id ?? firstNormal?.result_id ?? null;
-  const current = entries.find((e) => e.result_id === tab) ?? entries.find((e) => e.result_id === publicId) ?? entries[0];
+  const current = (comparing ? entries.find((e) => e.result_id === tab) : undefined) ?? entries.find((e) => e.result_id === publicId) ?? entries[0];
 
   const act = async (fn: () => Promise<unknown>) => {
     setBusy(true);
     setActionError(null);
     try {
       await fn();
+      setComparing(false);
+      setTab(null);
+      setNewResult(null);
       await load();
       onPublicChanged();
     } catch (err) {
@@ -277,6 +324,13 @@ function HostResults({
         </p>
       )}
       {entries.length > 1 && (
+        <button type="button" className="btn-text" aria-expanded={comparing} onClick={() => {
+          setComparing((open) => !open);
+          setEditing(false);
+          setTab(null);
+        }}>다른 결과 보기</button>
+      )}
+      {entries.length > 1 && comparing && (
         <div className="tabs" role="tablist" aria-label="만든 결과">
           {entries.map((e) => (
             <button
@@ -303,7 +357,7 @@ function HostResults({
               ? "이 결과가 동행에게 공개되고 있어요."
               : current.result_id === publicId
                 ? "고르기 전이라 이 결과가 초안으로 공개되고 있어요. 고르면 초안 표시가 사라져요."
-                : "아직 방장에게만 보이는 결과예요. 고르면 동행에게 공개돼요."}
+                : "선택되지 않은 결과예요. 고르면 동행에게 공개돼요."}
           </p>
           <SheetWithSave
             code={code}
@@ -367,25 +421,16 @@ export function Result() {
   const started = (location.state as { started?: boolean } | null)?.started === true;
   const reduced = usePrefersReducedMotion();
   useHeaderBack(() => navigate(token ? `/r/${encodeURIComponent(code)}` : "/"));
-  const [result, setResult] = useState<SharedResult | null>(null);
-  const [error, setError] = useState<unknown>(null);
   const [tick, setTick] = useState(0);
-
-  useEffect(() => {
-    let cancelled = false;
-    api
-      .getResult(code)
-      .then((r) => {
-        if (!cancelled) {
-          setResult(r);
-          setError(null);
-        }
-      })
-      .catch((err) => !cancelled && setError(err));
-    return () => {
-      cancelled = true;
-    };
-  }, [code, tick]);
+  const publicResult = usePolling<SharedResult>(
+    () => api.getResult(code),
+    () => !token,
+    [code, tick],
+    { visibleOnly: !token, stopOnError: isNotFound, successDelayMs: (result) => result.draft ? undefined : 30_000 }
+  );
+  const result = publicResult.data;
+  const error = publicResult.error;
+  const submitted = loadSubmitted(code);
 
   const notReady = error instanceof ApiError && error.code === "invalid_state";
 
@@ -412,7 +457,10 @@ export function Result() {
       {token ? (
         <HostResults code={code} token={token} started={started} onPublicChanged={() => setTick((t) => t + 1)} />
       ) : (
-        result && <SheetWithSave code={code} started={started} result={result} saveIsPrimary />
+        <>
+          {result && <SheetWithSave code={code} started={started} result={result} saveIsPrimary />}
+          {submitted && <PushOptIn code={code} role="participant" sessionId={submitted.session_id} />}
+        </>
       )}
       {!reduced && hasPaper(result?.pact_status) && <PetalDrift />}
     </main>
