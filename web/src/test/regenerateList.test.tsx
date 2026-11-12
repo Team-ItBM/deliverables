@@ -1,10 +1,12 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { setTransport, type Transport } from "../api/client";
 import type { RoomView } from "../api/types";
 import { keys, writeJSON } from "../lib/storage";
 import { Result } from "../pages/Result";
+
+vi.mock("html-to-image", () => ({ toBlob: async () => null }));
 
 beforeEach(() => {
   window.scrollTo = () => {};

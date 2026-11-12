@@ -1,5 +1,5 @@
-import { Download } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Download, Share2 } from "lucide-react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { ApiError, isNotFound } from "../api/errors";
@@ -13,31 +13,18 @@ import { BottomBar, ErrorMessage, ICON, RoomNotFound, ShareButton } from "../com
 import { useHeaderBack } from "../lib/back";
 import { displaySegments, setAtPointer } from "../lib/editable";
 import { useHostToken, usePolling, usePrefersReducedMotion } from "../lib/hooks";
+import { canSharePaperImage, downloadPaperImage, preparePaperImage, sharePaperImage } from "../lib/saveImage";
 import { loadSubmitted } from "../lib/answerSession";
-import { savePaperImage } from "../lib/saveImage";
-import { resultShare, serviceShare } from "../lib/shareText";
+import { serviceShare } from "../lib/shareText";
 import { issueSeen, markIssueSeen, useIssueSequence } from "../lib/issue";
 import { issueSoundFor, SILENT } from "../lib/issueSound";
 
 const NAMES_NOTICE = "이미지에 동행 이름이 보여요";
-const SHARE_SAVE_HINT = "공유 창이 열리면 '이미지 저장'을 눌러 사진에 저장할 수 있어요.";
-
-/** 이 브라우저가 이미지 파일을 공유 창으로 보낼 수 있는지. 아니면 바로 내려받는다(savePaperImage). */
-function canShareImageFile(): boolean {
-  const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
-  if (typeof nav.share !== "function" || typeof nav.canShare !== "function" || typeof File === "undefined") return false;
-  try {
-    return nav.canShare({ files: [new File([""], "dowon-pact.png", { type: "image/png" })] });
-  } catch {
-    return false;
-  }
-}
-
 /**
  * 화면용 종이와, 저장 이미지용으로 화면 밖에 360px 폭으로 그린 같은 종이.
  * 저장이 그 화면의 주 동작이면 아래 고정 영역에, 아니면 종이 아래에 둔다.
  */
-function SheetWithSave({
+export function SheetWithSave({
   code,
   started,
   result,
@@ -60,48 +47,100 @@ function SheetWithSave({
   const [animate] = useState(() => paper && !reduced && !issueSeen(code));
   const [sound] = useState(() => (animate ? issueSoundFor(started) : SILENT));
   const phase = useIssueSequence(animate, paperRef, issueItemCount(result), sound);
-  const [state, setState] = useState<"idle" | "busy" | "error" | "shared" | "downloaded">("idle");
-  const [shareSupported] = useState(canShareImageFile);
+  const [prepared, setPrepared] = useState<{ file: File; url: string; shareSupported: boolean } | null>(null);
+  const [captureError, setCaptureError] = useState(false);
+  const [action, setAction] = useState<"idle" | "sharing" | "download-requested" | "shared" | "share-error" | "download-error">("idle");
+  const [showHelp, setShowHelp] = useState(false);
+  const signature = useRef<string | null>(null);
+  const generation = useRef(0);
+  const imageUrl = useRef<string | null>(null);
 
   useEffect(() => {
     markIssueSeen(code);
   }, [code]);
 
-  // 저장과 공유는 한 버튼이다. 공유 창을 지원하면 공유 창(아이폰은 여기서 사진에 저장), 아니면 내려받는다.
-  const makeImage = async () => {
-    if (!captureRef.current) return;
-    setState("busy");
+  const capture = () => {
+    const node = captureRef.current;
+    if (!node) return;
+    const version = ++generation.current;
+    if (imageUrl.current) URL.revokeObjectURL(imageUrl.current);
+    imageUrl.current = null;
+    setPrepared(null);
+    setCaptureError(false);
+    setAction("idle");
+    setShowHelp(false);
+    void preparePaperImage(node).then((file) => {
+      if (generation.current !== version) return;
+      const url = URL.createObjectURL(file);
+      imageUrl.current = url;
+      setPrepared({ file, url, shareSupported: canSharePaperImage(file) });
+    }).catch(() => {
+      if (generation.current === version) setCaptureError(true);
+    });
+  };
+
+  // 객체가 새로 도착해도 실제 종이 내용이 같으면 다시 만들지 않는다.
+  // DOM 반영 직후 비교하여 바뀐 종이에 이전 파일 버튼이 잠깐 남지 않게 한다.
+  useLayoutEffect(() => {
+    const next = captureRef.current?.innerHTML ?? "";
+    if (signature.current === next) return;
+    signature.current = next;
+    capture();
+  });
+  useEffect(() => () => {
+    generation.current += 1;
+    signature.current = null;
+    if (imageUrl.current) URL.revokeObjectURL(imageUrl.current);
+    imageUrl.current = null;
+  }, []);
+
+  const download = () => {
+    if (!prepared) return;
     try {
-      await document.fonts?.ready;
-      const r = await savePaperImage(captureRef.current, "dowon-pact.png", resultShare);
-      setState(r === "cancelled" ? "idle" : r);
+      downloadPaperImage(prepared.file);
+      setAction("download-requested");
     } catch {
-      setState("error");
+      setAction("download-error");
+    }
+  };
+  const share = () => {
+    if (!prepared || action === "sharing") return;
+    const version = generation.current;
+    try {
+      // 준비된 실제 파일만 클릭 핸들러에서 곧바로 전달한다.
+      const request = sharePaperImage(prepared.file);
+      setAction("sharing");
+      void request.then(() => {
+        if (generation.current === version) setAction("shared");
+      }).catch((err: unknown) => {
+        if (generation.current === version) setAction((err as { name?: string })?.name === "AbortError" ? "idle" : "share-error");
+      });
+    } catch {
+      setAction("share-error");
     }
   };
 
-  const saveButton = (
-    <button
-      type="button"
-      className={`btn ${saveIsPrimary ? "btn-primary" : "btn-outline"}`}
-      onClick={() => void makeImage()}
-      disabled={state === "busy"}
-    >
-      <Download {...ICON} />
-      {state === "busy" ? "이미지를 만드는 중이에요" : "이미지 저장·공유"}
-    </button>
-  );
-
-  const saveNotice = (
-    <p className="t-body-sm secondary">
-      {NAMES_NOTICE}
-      {shareSupported && (
-        <>
-          <br />
-          {SHARE_SAVE_HINT}
-        </>
+  const saveButtons = (
+    <div className="stack-sm">
+      <button type="button" className={`btn ${saveIsPrimary ? "btn-primary" : "btn-outline"}`} onClick={download} disabled={!prepared}>
+        <Download {...ICON} />이미지 다운로드
+      </button>
+      {prepared?.shareSupported && (
+        <button type="button" className="btn btn-outline" onClick={share} disabled={action === "sharing"}>
+          <Share2 {...ICON} />{action === "sharing" ? "공유 창을 여는 중이에요" : "이미지 공유"}
+        </button>
       )}
-    </p>
+    </div>
+  );
+  const saveNotice = (
+    <div className="stack-sm">
+      {!prepared && !captureError && <p className="t-body-sm secondary" role="status">이미지를 준비하고 있어요.</p>}
+      {captureError && <ErrorMessage text="이미지를 준비하지 못했어요." onRetry={capture} />}
+      {action === "download-requested" && <p className="t-body-sm secondary" role="status">브라우저에 이미지 다운로드를 요청했어요. 다운로드 목록을 확인해 주세요.</p>}
+      {action === "shared" && <p className="t-body-sm secondary" role="status">공유 창이 닫혔어요. 저장하거나 보낸 곳을 확인해 주세요.</p>}
+      {action === "share-error" && <ErrorMessage text="공유 창을 열지 못했어요. 이미지 다운로드를 이용해 주세요." />}
+      {action === "download-error" && <ErrorMessage text="다운로드를 요청하지 못했어요. 다시 시도하거나 아래 저장 도움말을 확인해 주세요." />}
+    </div>
   );
 
   return (
@@ -111,19 +150,20 @@ function SheetWithSave({
         <ResultSheet ref={captureRef} result={result} capture edited={edited} />
       </div>
       {belowPaper}
-      {state === "error" && <ErrorMessage text="이미지를 저장하지 못했어요. 화면의 협약서는 그대로 있어요." />}
-      {state === "downloaded" && <p className="secondary" role="status">이미지를 저장했어요.</p>}
-      {state === "shared" && <p className="secondary" role="status">공유 창에서 이미지를 저장하거나 보냈어요.</p>}
+      {saveNotice}
       {saveIsPrimary ? (
-        <BottomBar>
-          {saveNotice}
-          {saveButton}
-        </BottomBar>
+        <BottomBar><p className="t-body-sm secondary">{NAMES_NOTICE}</p>{saveButtons}</BottomBar>
       ) : (
-        <div className="stack-sm">
-          {saveNotice}
-          {saveButton}
-        </div>
+        <div className="stack-sm"><p className="t-body-sm secondary">{NAMES_NOTICE}</p>{saveButtons}</div>
+      )}
+      {prepared && (
+        <section className="stack-sm" aria-label="이미지 저장 도움말">
+          <button type="button" className="btn-text" aria-expanded={showHelp} onClick={() => setShowHelp((open) => !open)}>저장이 안 되나요?</button>
+          {showHelp && <>
+            <p className="t-body-sm secondary">아래 이미지를 길게 눌러 저장해 보세요. 앱 안 브라우저라면 메뉴에서 Safari 또는 Chrome으로 열어 다시 내려받을 수 있어요.</p>
+            <img src={prepared.url} alt="저장할 여행 동행 협약서" style={{ width: "100%", height: "auto" }} />
+          </>}
+        </section>
       )}
       <section className="stack-sm" aria-label="공유">
         <ShareButton data={serviceShare} shareLabel="도원결의 알려 주기" copyLabel="도원결의 링크 복사" secondary />

@@ -721,6 +721,10 @@ select.input {
 body.result-bg {
   background: var(--c-surface);
 }
+.result-bg .page {
+  /* 이미지 다운로드·공유 두 버튼 아래로 마지막 링크까지 스크롤할 수 있게 한다. */
+  padding-bottom: calc(var(--s-4xl) * 4 + env(safe-area-inset-bottom));
+}
 .result-bg .bottom-bar {
   background: var(--c-surface);
 }

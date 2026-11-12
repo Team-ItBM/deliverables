@@ -6,6 +6,8 @@ import { keys, writeJSON } from "../lib/storage";
 import { Result } from "../pages/Result";
 import { usePolling } from "../lib/hooks";
 
+vi.mock("html-to-image", () => ({ toBlob: async () => null }));
+
 function visible(state: "visible" | "hidden") {
   Object.defineProperty(document, "visibilityState", { configurable: true, value: state });
   document.dispatchEvent(new Event("visibilitychange"));

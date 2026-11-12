@@ -1,34 +1,38 @@
 import { toBlob } from "html-to-image";
 
-/**
- * 화면 밖에 360px 폭으로 그린 같은 종이를 3배로 그려 1080px 이미지를 만든다(DESIGN.md pact-paper).
- * 공유 시트가 파일을 받으면 공유하고, 아니면 내려받는다.
- */
-export async function savePaperImage(
-  node: HTMLElement,
-  fileName: string,
-  share: ShareData = { title: "여행 동행 협약서" }
-): Promise<"shared" | "downloaded" | "cancelled"> {
+/** 360px 종이를 3배로 그려 1080px PNG 파일을 미리 준비한다. */
+export async function preparePaperImage(node: HTMLElement, fileName = "dowon-pact.png"): Promise<File> {
+  await document.fonts?.ready;
   const blob = await toBlob(node, { pixelRatio: 3, backgroundColor: "#FAF8F5" });
   if (!blob) throw new Error("capture_failed");
-  const file = new File([blob], fileName, { type: "image/png" });
-  const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
-  if (typeof nav.share === "function" && nav.canShare?.({ files: [file] })) {
-    try {
-      await nav.share({ ...share, files: [file] });
-      return "shared";
-    } catch (err) {
-      if ((err as { name?: string }).name === "AbortError") return "cancelled";
-      // 공유 실패는 내려받기로 넘어간다.
-    }
+  return new File([blob], fileName, { type: "image/png" });
+}
+
+export function canSharePaperImage(file: File): boolean {
+  try {
+    return typeof navigator.share === "function" && typeof navigator.canShare === "function" && navigator.canShare({ files: [file] });
+  } catch {
+    return false;
   }
-  const url = URL.createObjectURL(blob);
+}
+
+/** 사용자 클릭의 호출 스택에서 바로 공유한다. 준비나 다운로드 fallback을 여기서 하지 않는다. */
+export function sharePaperImage(file: File): Promise<void> {
+  return navigator.share({ files: [file] });
+}
+
+/** 브라우저에 다운로드를 요청한다. 실제 파일 저장 완료는 브라우저 밖에서 확인해야 한다. */
+export function downloadPaperImage(file: File): void {
+  const url = URL.createObjectURL(file);
   const a = document.createElement("a");
-  a.href = url;
-  a.download = fileName;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 10_000);
-  return "downloaded";
+  try {
+    a.href = url;
+    a.download = file.name;
+    document.body.appendChild(a);
+    a.click();
+  } finally {
+    a.remove();
+    // 링크를 처리하는 브라우저가 파일을 읽을 시간을 주고 해제한다.
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  }
 }
