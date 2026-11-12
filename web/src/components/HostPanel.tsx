@@ -76,7 +76,7 @@ export function HostPanel({
   const inBar = mode === "room";
   const canOpen = inBar && (s === "ready" || hasResult === true);
   const scenariosFailed = s === "open" && room.scenario_status === "failed";
-  const deleteDisabled = busy || room.scenario_status === "preparing" || s === "closed" || s === "generating";
+  const deleteDisabled = busy || room.scenario_status === "preparing" || s === "generating";
   const deleteRoom = async () => {
     if (deleteDisabled) return;
     setBusy(true);
@@ -151,7 +151,7 @@ export function HostPanel({
       <button type="button" className="btn-text" disabled={deleteDisabled} onClick={() => setConfirmDelete(true)}>
         방 삭제하기
       </button>
-      {(room.scenario_status === "preparing" || s === "closed" || s === "generating") && (
+      {(room.scenario_status === "preparing" || s === "generating") && (
         <p className="t-body-sm secondary">문항이나 협약서를 만드는 동안에는 방을 삭제할 수 없어요.</p>
       )}
 

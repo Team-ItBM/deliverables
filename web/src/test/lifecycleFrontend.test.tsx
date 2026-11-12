@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setTransport, type TransportRequest } from "../api/client";
@@ -13,6 +13,7 @@ const enableHost = "응답 완료·생성 알림 받기";
 const swDescriptor = Object.getOwnPropertyDescriptor(navigator, "serviceWorker");
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   if (swDescriptor) Object.defineProperty(navigator, "serviceWorker", swDescriptor);
@@ -28,10 +29,10 @@ function browserPush(permission: NotificationPermission = "granted", subscribed 
   const requestPermission = vi.fn(async () => "granted");
   vi.stubGlobal("Notification", { permission, requestPermission });
   vi.stubGlobal("PushManager", class {});
-  Object.defineProperty(navigator, "serviceWorker", {
-    configurable: true, value: { ready: Promise.resolve({ pushManager: { getSubscription, subscribe } }) },
-  });
-  return { unsubscribe, getSubscription, subscribe, requestPermission };
+  const registration = { active: {}, pushManager: { getSubscription, subscribe } };
+  const worker = { getRegistration: vi.fn(async () => registration as unknown as ServiceWorkerRegistration | undefined), ready: Promise.resolve(registration) };
+  Object.defineProperty(navigator, "serviceWorker", { configurable: true, value: worker });
+  return { unsubscribe, getSubscription, subscribe, requestPermission, worker, registration };
 }
 
 function servePush(initial: PushSubscriptionStatus, failure?: "status" | "delete" | "register") {
@@ -167,6 +168,96 @@ describe("방별 알림 상태", () => {
     expect(seen.filter((req) => req.path.endsWith("/status"))).toHaveLength(1);
   });
 
+  it("활성 워커가 있으면 ready를 기다리지 않고 상태를 확인한다", async () => {
+    const { worker } = browserPush();
+    worker.ready = new Promise(() => {});
+    servePush({ subscribed: true, room_subscribed: true });
+    push();
+    await screen.findByText(enabledText);
+    expect(worker.getRegistration).toHaveBeenCalledOnce();
+  });
+
+  it("워커 미등록으로 5초가 지나면 대기를 끝내고 재시도로 회복한다", async () => {
+    vi.useFakeTimers();
+    const { worker, registration } = browserPush();
+    worker.getRegistration.mockResolvedValue(undefined);
+    worker.ready = new Promise(() => {});
+    const seen = servePush({ subscribed: true, room_subscribed: true });
+    push();
+    await act(async () => vi.advanceTimersByTimeAsync(4999));
+    expect(screen.getByText("알림 상태를 확인하고 있어요.")).toBeTruthy();
+    await act(async () => vi.advanceTimersByTimeAsync(1));
+    expect(screen.getByText("알림 상태를 확인하지 못했어요. 다시 확인해 주세요.")).toBeTruthy();
+    expect(screen.queryByText("알림 상태를 확인하고 있어요.")).toBeNull();
+    expect(seen).toHaveLength(0);
+    worker.getRegistration.mockResolvedValue(registration as unknown as ServiceWorkerRegistration);
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "다시 시도" })));
+    expect(screen.getByText(enabledText)).toBeTruthy();
+    await act(async () => vi.advanceTimersByTimeAsync(5000));
+    expect(screen.queryByText("알림 상태를 확인하지 못했어요. 다시 확인해 주세요.")).toBeNull();
+  });
+
+  it("초기 워커 활성화가 늦어도 제한 시간 안에 준비되면 상태를 확인한다", async () => {
+    vi.useFakeTimers();
+    const { worker, registration } = browserPush();
+    worker.getRegistration.mockResolvedValue(undefined);
+    let activate!: (value: typeof registration) => void;
+    worker.ready = new Promise((resolve) => { activate = resolve; });
+    servePush({ subscribed: true, room_subscribed: true });
+    push();
+    await act(async () => vi.advanceTimersByTimeAsync(1000));
+    await act(async () => activate(registration));
+    expect(screen.getByText(enabledText)).toBeTruthy();
+    await act(async () => vi.advanceTimersByTimeAsync(5000));
+    expect(screen.queryByText("알림 상태를 확인하지 못했어요. 다시 확인해 주세요.")).toBeNull();
+  });
+
+  it("알림 켜기도 워커 대기 5초 후 끝나고 다시 시도할 수 있다", async () => {
+    vi.useFakeTimers();
+    const { worker, registration, subscribe } = browserPush("default", false);
+    worker.getRegistration.mockResolvedValue(undefined);
+    worker.ready = new Promise(() => {});
+    servePush({ subscribed: false, room_subscribed: false });
+    push();
+    await act(async () => {});
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: enableHost })));
+    expect((screen.getByRole("button", { name: enableHost }) as HTMLButtonElement).disabled).toBe(true);
+    await act(async () => vi.advanceTimersByTimeAsync(5000));
+    expect(screen.getByText("알림을 켜지 못했어요. 이 화면을 다시 열면 진행 상황을 볼 수 있어요.")).toBeTruthy();
+    expect((screen.getByRole("button", { name: enableHost }) as HTMLButtonElement).disabled).toBe(false);
+    expect(subscribe).not.toHaveBeenCalled();
+    worker.getRegistration.mockResolvedValue(registration as unknown as ServiceWorkerRegistration);
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "다시 시도" })));
+    expect(screen.getByText(enabledText)).toBeTruthy();
+  });
+
+  it("화면 복귀 조회 중 버튼을 유지하고 변경 요청을 막으며 실패한 상태는 재확인한다", async () => {
+    browserPush();
+    servePush({ subscribed: true, room_subscribed: true });
+    push();
+    await screen.findByText(enabledText);
+    const disableButton = screen.getByRole("button", { name: "이 방 알림 끄기" }) as HTMLButtonElement;
+    let finish!: () => void;
+    const checking = new Promise<void>((resolve) => { finish = resolve; });
+    const requests: TransportRequest[] = [];
+    setTransport(async (req) => { requests.push(req); await checking; return { status: 503, body: null }; });
+    fireEvent(document, new Event("visibilitychange"));
+    await waitFor(() => expect(requests).toHaveLength(1));
+    expect(screen.getByRole("button", { name: "이 방 알림 끄기" })).toBe(disableButton);
+    expect(disableButton.disabled).toBe(true);
+    fireEvent.click(disableButton);
+    fireEvent(document, new Event("visibilitychange"));
+    expect(requests).toHaveLength(1);
+    finish();
+    await screen.findByText("알림 상태를 확인하지 못했어요. 다시 확인해 주세요.");
+    expect(screen.queryByText(enabledText)).toBeNull();
+    expect(disableButton.disabled).toBe(true);
+    servePush({ subscribed: true, room_subscribed: true });
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+    await screen.findByText(enabledText);
+    expect(disableButton.disabled).toBe(false);
+  });
+
   it.each(["default", "denied"] as const)("브라우저 권한 %s이면 예전 true를 켠 상태로 표시하지 않는다", async (permission) => {
     const browser = browserPush(permission);
     writeJSON("local", keys.push("c", "host"), true);
@@ -254,7 +345,6 @@ describe("방장 방 삭제", () => {
 
   it.each([
     { scenario_status: "preparing" as const },
-    { room_status: "closed" as const },
     { room_status: "generating" as const },
   ])("문항·협약서 생성 중에는 삭제가 비활성화된다: %o", (overrides) => {
     hostPanel(overrides);

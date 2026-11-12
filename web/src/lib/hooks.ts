@@ -14,7 +14,7 @@ export function usePolling<T>(
   fetcher: () => Promise<T>,
   active: (data: T | null) => boolean,
   deps: unknown[],
-  options: { visibleOnly?: boolean; stopOnError?: (error: unknown) => boolean } = {}
+  options: { visibleOnly?: boolean; stopOnError?: (error: unknown) => boolean; successDelayMs?: (data: T) => number | undefined } = {}
 ): { data: T | null; error: unknown; reload: () => void; loading: boolean } {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<unknown>(null);
@@ -42,7 +42,7 @@ export function usePolling<T>(
         if (cancelled) return;
         setData(next);
         setError(null);
-        delay.current = Math.min(delay.current + 500, 5000);
+        delay.current = optionsRef.current.successDelayMs?.(next) ?? Math.min(delay.current + 500, 5000);
       } catch (err) {
         if (cancelled) return;
         setError(err);

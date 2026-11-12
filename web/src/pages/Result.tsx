@@ -426,7 +426,7 @@ export function Result() {
     () => api.getResult(code),
     () => !token,
     [code, tick],
-    { visibleOnly: !token, stopOnError: isNotFound }
+    { visibleOnly: !token, stopOnError: isNotFound, successDelayMs: (result) => result.draft ? undefined : 30_000 }
   );
   const result = publicResult.data;
   const error = publicResult.error;

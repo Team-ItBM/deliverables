@@ -20,6 +20,23 @@ function pushSupported(): boolean {
   return "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
 }
 
+async function readyRegistration(): Promise<ServiceWorkerRegistration> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      (async () => {
+        const registration = await navigator.serviceWorker.getRegistration();
+        return registration?.active ? registration : navigator.serviceWorker.ready;
+      })(),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("service worker activation timed out")), 5000);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function b64ToBytes(b64: string): Uint8Array {
   const pad = "=".repeat((4 - (b64.length % 4)) % 4);
   const raw = atob((b64 + pad).replace(/-/g, "+").replace(/_/g, "/"));
@@ -43,6 +60,7 @@ export function PushOptIn({
   hostToken?: string | null;
 }) {
   const [busy, setBusy] = useState(false);
+  const [checking, setChecking] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [failedAction, setFailedAction] = useState<"check" | "enable" | "disable">("check");
   const [refresh, setRefresh] = useState(0);
@@ -57,25 +75,29 @@ export function PushOptIn({
   const denied = !MOCK && supported && Notification.permission === "denied";
   const authenticated = role === "host" ? Boolean(hostToken) : Boolean(sessionId);
   const current = checked?.identity === identity ? checked : null;
+  const checkFailed = Boolean(error && failedAction === "check");
 
   useEffect(() => {
     const onVisible = () => {
-      if (document.visibilityState === "visible" && !busy) setRefresh((n) => n + 1);
+      if (document.visibilityState === "visible" && !busy && !checking) setRefresh((n) => n + 1);
     };
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
-  }, [busy]);
+  }, [busy, checking]);
 
   useEffect(() => {
     let cancelled = false;
-    setChecked(null);
     setError(null);
-    if (iosTab || !supported || denied || !authenticated) return;
+    if (iosTab || !supported || denied || !authenticated) {
+      setChecking(false);
+      return;
+    }
+    setChecking(true);
     const check = async () => {
       try {
         let endpoint: string | null = MOCK ? "mock://push" : null;
         if (!MOCK && Notification.permission === "granted") {
-          const reg = await navigator.serviceWorker.ready;
+          const reg = await readyRegistration();
           endpoint = (await reg.pushManager.getSubscription())?.endpoint ?? null;
         }
         const status = endpoint
@@ -94,6 +116,8 @@ export function PushOptIn({
           setFailedAction("check");
           setError("알림 상태를 확인하지 못했어요. 다시 확인해 주세요.");
         }
+      } finally {
+        if (!cancelled) setChecking(false);
       }
     };
     void check();
@@ -116,6 +140,7 @@ export function PushOptIn({
   if (!authenticated) return null;
 
   const enable = async () => {
+    if (busy || checking || checkFailed || !current) return;
     setBusy(true);
     setError(null);
     try {
@@ -126,7 +151,7 @@ export function PushOptIn({
           setError("알림을 허용하지 않았어요. 이 화면을 다시 열면 진행 상황을 볼 수 있어요.");
           return;
         }
-        const reg = await navigator.serviceWorker.ready;
+        const reg = await readyRegistration();
         const { public_key } = await api.vapidKey();
         const sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
@@ -156,7 +181,7 @@ export function PushOptIn({
   };
 
   const disable = async () => {
-    if (!current?.endpoint || !current.status.room_subscribed) return;
+    if (busy || checking || checkFailed || !current?.endpoint || !current.status.room_subscribed) return;
     setBusy(true);
     setError(null);
     try {
@@ -183,15 +208,15 @@ export function PushOptIn({
   return (
     <div className="stack-sm">
       {current?.status.subscribed ? (
-        <p className="t-body-sm secondary">알림을 켰어요. 상태가 바뀌면 알려 드려요.</p>
+        !checkFailed && <p className="t-body-sm secondary">{checking ? "알림 상태를 다시 확인하고 있어요." : "알림을 켰어요. 상태가 바뀌면 알려 드려요."}</p>
       ) : (
-        <button type="button" className="btn btn-outline" onClick={enable} disabled={busy || !current}>
+        <button type="button" className="btn btn-outline" onClick={enable} disabled={busy || checking || checkFailed || !current}>
           <Bell {...ICON} />
           {role === "host" ? "응답 완료·생성 알림 받기" : "결과가 공개되면 알림 받기"}
         </button>
       )}
       {current?.status.room_subscribed && (
-        <button type="button" className="btn-text" onClick={disable} disabled={busy}>
+        <button type="button" className="btn-text" onClick={disable} disabled={busy || checking || checkFailed}>
           이 방 알림 끄기
         </button>
       )}

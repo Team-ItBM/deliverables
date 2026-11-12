@@ -70,10 +70,20 @@ describe("참여자 결과 화면", () => {
     await act(async () => vi.advanceTimersByTimeAsync(3500));
     expect(screen.queryByText("선택되지 않은 결과예요")).toBeNull();
     current = { ...current, clauses: [{ ...paper.clauses[0]!, action: "방장이 고친 문구" }] };
-    await act(async () => vi.advanceTimersByTimeAsync(4000));
+    const beforeEdit = requests;
+    await act(async () => vi.advanceTimersByTimeAsync(29_999));
+    expect(requests).toBe(beforeEdit);
+    expect(screen.queryByText("방장이 고친 문구")).toBeNull();
+    await act(async () => vi.advanceTimersByTimeAsync(1));
     expect(screen.getAllByText("방장이 고친 문구")).toHaveLength(2);
+    const beforeHidden = requests;
+    await act(async () => { visible("hidden"); await vi.advanceTimersByTimeAsync(60_000); });
+    expect(requests).toBe(beforeHidden);
+    current = { ...current, result_id: "r3" };
+    await act(async () => visible("visible"));
+    expect(requests).toBe(beforeHidden + 1);
     gone = true;
-    await act(async () => vi.advanceTimersByTimeAsync(4500));
+    await act(async () => vi.advanceTimersByTimeAsync(30_000));
     expect(screen.getByRole("heading", { name: "방을 찾지 못했어요" })).toBeTruthy();
     expect(screen.queryByText("방장이 고친 문구")).toBeNull();
     const count = requests;
@@ -85,7 +95,7 @@ describe("참여자 결과 화면", () => {
     writeJSON("local", keys.submitted("c"), { session_id: "submitted-session", participant_id: "p1" });
     vi.stubGlobal("Notification", { permission: "granted" });
     vi.stubGlobal("PushManager", function PushManager() {});
-    Object.defineProperty(navigator, "serviceWorker", { configurable: true, value: { ready: Promise.resolve({ pushManager: { getSubscription: async () => ({ endpoint: "https://push.example/device" }) } }) } });
+    Object.defineProperty(navigator, "serviceWorker", { configurable: true, value: { getRegistration: async () => undefined, ready: Promise.resolve({ pushManager: { getSubscription: async () => ({ endpoint: "https://push.example/device" }) } }) } });
     const requests: TransportRequest[] = [];
     setTransport(async (req) => {
       requests.push(req);
