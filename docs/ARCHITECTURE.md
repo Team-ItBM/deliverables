@@ -26,7 +26,7 @@
 | `tests/harness/scenario_cases.yaml`, `tests/harness/fixtures/scenario/`, `tests/test_scenario_golden.py` | 문항 출력 검증기의 골든 케이스 46개, 기준 fixture 8개, 테스트 하니스(형식·상태 조합·요청 수·문항 ID와 판단 중복·선택지 ID 순서·인물 토큰·`scene` 줄 수) | 강의 5 | 수용됨(2026-11-04, `14b84ae`). 46/46 통과 |
 | `tests/test_tools.py` | 도구 계약 테스트 | 강의 6 | 수용됨(2026-11-04). 21/21 통과 |
 | `tests/test_pool.py` | pool 계약 테스트(목록 생성·`lookup_template`) | 강의 6 | 수용됨(2026-11-04, `d790d26`). 28/28 통과 |
-| `src/travel/server/app.py`, `db.py`, `jobs.py` | FastAPI 앱(§0-B 경로 12개는 `app.py` 한 파일), PostgreSQL 스키마(rooms·profiles·sessions·submissions·responses·results·push_subscriptions·notifications·llm_calls), 생성 작업·재시도·한도·멈춤 판정·시도 ID | 강의 4 SPEC 5절, 강의 6 | 구현됨(2026-11-05). 판정 수용(결함 주입 d0~d28). PR #16 리뷰로 문항 시도 ID·복구, 풀 복구, 비용 장부를 더했다 |
+| `src/travel/server/app.py`, `db.py`, `jobs.py` | FastAPI 앱(§0-B 사용자 API는 `app.py` 한 파일), PostgreSQL 스키마(rooms·profiles·sessions·submissions·responses·results·push_subscriptions·notifications·llm_calls), 생성 작업·재시도·한도·멈춤 판정·시도 ID | 강의 4 SPEC 5절, 강의 6 | 구현됨(2026-11-05). 판정 수용(결함 주입 d0~d28). PR #16 리뷰로 문항 시도 ID·복구, 풀 복구, 비용 장부를 더했다 |
 | `src/travel/server/llm.py`, `llm_openai.py`, `replay.py` | 모델 호출 경계(`generate(stage, model_input, repair_errors) -> LLMResult`), openai SDK 클라이언트(Sol Responses API, `text.format` json_schema `strict: false` 명시, `tools` function `strict: true`, `store: false`, 문항 단계 도구 루프·호출 상한 12회·전송부 해시 대조), 저장 출력 재생 모드(`replay.py`: 실제 Sol 문항 출력 1건 + 코드로 합성한 추천) | 강의 3, 강의 6 | 구현됨(2026-11-05). 도구 루프는 `tests/test_llm_loop.py` 8개(가짜 전송 계층) 통과. 실제 호출은 방 10개로 측정했다(2026-11-05, [서비스 위임 기록 §2-4](prompts/delegation_service.md)). 현재 입력(`core_constraints` 포함)으로는 미측정 |
 | `src/travel/server/render.py` | profile·participant 토큰 치환과 조사 5쌍 처리, 공유 결과(§0-C)·`editable` 조각. 화면과 이미지가 같은 결과 텍스트를 쓴다 | 강의 4 SPEC 5절 | 구현됨(2026-11-05) |
 | `src/travel/server/push.py`, `main.py` | 이벤트 단위 중복 방지(`ready:N`·`failed:N`·`selected`), 발송기 경계. `main.py`가 pywebpush 발송기와 운영 설정(환경변수·`config/llm.yaml`)을 묶어 `uvicorn travel.server.main:app`으로 뜬다 | 강의 4 SPEC 알림 정책 | 구현됨(2026-11-05). 구독 주소 제한과 등록 멱등성은 2026-11-05 추가. 실제 푸시 발송은 미확인 |
@@ -37,6 +37,8 @@
 | `.github/workflows/` | PR 검사(ruff, pytest 전체, 서버 테스트용 Postgres 컨테이너, SPA typecheck·build·test, 기본 Docker 빌드, terraform validate), main 배포(이미지 확인·푸시, 스키마 초기화, ECS 갱신, 새 자산 업로드, HTML 전환, CloudFront 무효화, 사이트 확인, 이전 자산 정리 순서). AWS 접근은 OIDC | 강의 5 검증 루프 | PR 검사는 GitHub에서 실행해 통과했다. `deploy.yml`은 2026-11-06에 main에서 처음 실행했고, OIDC 주체를 고친 뒤 성공했다 |
 | `tests/test_server_*.py`, `tests/test_llm_loop.py`, `docs/prompts/delegation_server.md`, `docs/prompts/delegation_service.md` | 서버 계약 테스트(SPEC 6절 케이스 ID 10개, 86개)와 도구 루프 테스트 8개, 위임·결함 주입 기록 | 강의 5 | 구조 수용과 판정 수용(2026-11-05, 결함 주입 d0~d28, C2·C7). 하니스 약점 3건은 PR #16 리뷰 회차에서 고치고 해당 결함을 다시 주입했다 |
 | `docs/PRIVACY.md` | 개인정보 처리방침 공개본(SPA 첫 화면·방 생성·이름 선택 화면에서 링크) | 강의 4 SPEC 운영 정책 | 공개본 작성(2026-11-05, AI 검토·전문가 미검토, 시행일 2026-11-06) |
+
+2026-11-12 피드백 반영: 방장 직접 삭제는 기존 외래키 연관 삭제를 사용하며 생성 중에는 거부한다. 푸시 상태 조회·해제는 같은 방·기기의 endpoint로 범위를 제한한다. 화면은 PNG를 미리 준비해 다운로드와 공유를 구분하고, 선택본을 중심으로 후보를 접어 보여 준다. DB 스키마와 모델 호출 경로는 바꾸지 않는다. 실기기 검증 상태는 TODO에서 관리한다.
 
 오케스트레이션은 별도 프레임워크 없이 함수 조합으로 둔다. 이유는 5절.
 

@@ -43,7 +43,15 @@
 | 11 | `POST /api/rooms/{room_code}/results/{result_id}/edits` | 방장 | `{edits: [{path, text}]}`. `path`는 공유 결과의 문장 위치(JSON Pointer), `text`는 `{{participant:ID}}` 토큰을 유지한 문장 | 201 공유 결과(`kind: "host_edited"`, `source_result_id`). `result_id`는 AI 원본이다. 그 원본의 가장 최근 수정본이 있으면 거기서 시작하고, 없으면 원본에서 시작한다. `source_result_id`는 시작한 판이다. 새 수정본은 새 행이고 원본과 이전 수정본 행은 바꾸지 않는다 | `host_forbidden`, `not_found`, `edit_not_allowed`, `memo_quote` | SPEC 처리 정책 "방장 편집", AC12, AC3(방장 수정본에도 15자 기준), ARCHITECTURE 2절 규칙 2(편집본은 별도 행), 결정 4·5·6 |
 | 12 | `GET /api/push/vapid-public-key`, `POST /api/rooms/{room_code}/push-subscriptions` | 구독 `role`이 `host`면 방장 | `{role: "host" \| "participant", session_id?, subscription: {endpoint, keys: {p256dh, auth}}}` | 201 `{subscription_id}`. 같은 방·역할·세션·endpoint를 다시 등록하면 200과 같은 `subscription_id`를 돌려주고 키만 새 값으로 바꾼다(결정 50) | `invalid_input`(허용하지 않는 endpoint 포함), `host_forbidden`, `not_found` | SPEC 5절 푸시 등록·발송, F6, ARCHITECTURE 2절 `push.py`. 요청 형식은 [에이전트 안](결정 11) |
 
-제출 내용을 조회하는 경로는 두지 않는다(ARCHITECTURE 2절 규칙 3 확인, AC16). 방 단위 삭제 명령(`admin.py`)과 만료는 이번 범위가 아니다.
+제출 내용을 조회하는 경로는 두지 않는다(ARCHITECTURE 2절 규칙 3 확인, AC16). 2026-11-12 승인된 피드백 계획에 따라 아래 API를 추가한다. 자동 만료 처리 일정은 그대로 둔다.
+
+| 경로 | 권한·입력 | 동작 |
+|---|---|---|
+| `DELETE /api/rooms/{room_code}` | `X-Host-Token` | 방을 잠그고 권한·생성 상태를 확인한다. 문항 준비 또는 협약서 생성 대기·진행 중이면 409 `invalid_state`, 없으면 404. 연관 자료 삭제 후 204. |
+| `POST /api/rooms/{room_code}/push-subscriptions/status` | `{role, session_id?, endpoint}`. 방장은 토큰, 참여자는 해당 방 세션으로 검증 | `{subscribed, room_subscribed}`. 전자는 현재 역할·세션·endpoint, 후자는 같은 방·endpoint의 구독 존재 여부다. |
+| `DELETE /api/rooms/{room_code}/push-subscriptions` | 상태 조회와 같은 입력·권한 | 같은 방·endpoint의 모든 역할·세션 구독을 삭제한다. 이미 해제된 구독도 204. 다른 기기·방은 유지한다. |
+
+endpoint는 로그에 남기지 않는다. 발송 직전 구독·알림 행이 남았는지 확인하며, 외부 전송을 시작한 알림은 회수하지 못한다. 기존 등록 API는 유지하고 재등록 시 과거 이벤트를 재발송하지 않는다.
 
 **편집용 응답** (결정 29·33·34, 2026-11-05)
 
@@ -63,7 +71,7 @@ editable: [{path, segments: [{text} | {participant_id, display, pair}]}]
 ```
 {
   result_id, kind, source_result_id?, label,          // label: kind가 host_edited면 "방장 수정", 아니면 null
-  draft,                                              // bool. 방장이 고르기 전 공개 결과면 true(화면 표시 "초안")
+  draft,                                              // bool. 공개 결과는 선택 전, 방장 목록은 각 미선택 후보가 true(화면 표시 "초안")
   pact_status,                                        // PactRecommendation.status
   included_count, excluded_names: [display_name],     // 반영한 제출 수, 반영되지 않은 등록 이름
   trip: {destination, duration_days, party_size},     // 공개 여행 정보(결정 47)
