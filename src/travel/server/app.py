@@ -637,7 +637,7 @@ def _register_routes(app, settings, jobs, notifier, clock, pool_source):
                     entries.append({"result_id": str(row["result_id"]), "kind": row["kind"], "attempt": row["attempt"],
                                     "state": "failed", "created_at": iso(row["created_at"])})
                     continue
-                entry = shared(row, room, roster, draft=room["selected_result_id"] is None)
+                entry = shared(row, room, roster, draft=room["selected_result_id"] != row["result_id"])
                 base = await latest_edit(conn, row["result_id"]) or row
                 entry.update({"attempt": row["attempt"], "state": "normal", "created_at": iso(row["created_at"]),
                               "editable": render.editable_segments(db.as_json(base["output"]), roster)})

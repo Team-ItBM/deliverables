@@ -55,7 +55,7 @@ function Labels({ result, edited, sample }: { result: Partial<SharedResult>; edi
       {result.draft && (
         <span className="draft-block">
           <span className="draft-label">초안</span>
-          <span className="draft-note">방장이 고르기 전이에요</span>
+          <span className="draft-note">선택되지 않은 결과예요</span>
         </span>
       )}
       {hostLabel && (

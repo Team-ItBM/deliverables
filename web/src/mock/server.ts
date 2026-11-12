@@ -488,7 +488,7 @@ function handle(req: TransportRequest, db: DB): TransportResponse {
     const results: ResultEntry[] = room.originals.map((o) =>
       o.state === "failed"
         ? { result_id: o.result_id, attempt: o.attempt, state: "failed", created_at: o.created_at }
-        : { ...shared(room, o), attempt: o.attempt, state: "normal", created_at: o.created_at, editable: editable(room, o) }
+        : { ...shared(room, o), draft: room.selected !== o.result_id, attempt: o.attempt, state: "normal", created_at: o.created_at, editable: editable(room, o) }
     );
     return ok(200, { selected_result_id: room.selected, results });
   }

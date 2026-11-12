@@ -176,6 +176,7 @@ function HostResults({
   const [error, setError] = useState<unknown>(null);
   const [tab, setTab] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [comparing, setComparing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<unknown>(null);
   const [newResult, setNewResult] = useState<number | null>(null);
@@ -219,6 +220,7 @@ function HostResults({
       setTab(latest.result_id);
       setEditing(false);
       setNewResult(latest.attempt);
+      setComparing(true);
       window.scrollTo(0, 0);
     }
   }, [list, entries]);
@@ -229,13 +231,16 @@ function HostResults({
 
   const firstNormal = entries.find((e) => e.state === "normal");
   const publicId = list?.selected_result_id ?? firstNormal?.result_id ?? null;
-  const current = entries.find((e) => e.result_id === tab) ?? entries.find((e) => e.result_id === publicId) ?? entries[0];
+  const current = (comparing ? entries.find((e) => e.result_id === tab) : undefined) ?? entries.find((e) => e.result_id === publicId) ?? entries[0];
 
   const act = async (fn: () => Promise<unknown>) => {
     setBusy(true);
     setActionError(null);
     try {
       await fn();
+      setComparing(false);
+      setTab(null);
+      setNewResult(null);
       await load();
       onPublicChanged();
     } catch (err) {
@@ -279,6 +284,13 @@ function HostResults({
         </p>
       )}
       {entries.length > 1 && (
+        <button type="button" className="btn-text" aria-expanded={comparing} onClick={() => {
+          setComparing((open) => !open);
+          setEditing(false);
+          setTab(null);
+        }}>다른 결과 보기</button>
+      )}
+      {entries.length > 1 && comparing && (
         <div className="tabs" role="tablist" aria-label="만든 결과">
           {entries.map((e) => (
             <button
@@ -305,7 +317,7 @@ function HostResults({
               ? "이 결과가 동행에게 공개되고 있어요."
               : current.result_id === publicId
                 ? "고르기 전이라 이 결과가 초안으로 공개되고 있어요. 고르면 초안 표시가 사라져요."
-                : "아직 방장에게만 보이는 결과예요. 고르면 동행에게 공개돼요."}
+                : "선택되지 않은 결과예요. 고르면 동행에게 공개돼요."}
           </p>
           <SheetWithSave
             code={code}
@@ -369,26 +381,16 @@ export function Result() {
   const started = (location.state as { started?: boolean } | null)?.started === true;
   const reduced = usePrefersReducedMotion();
   useHeaderBack(() => navigate(token ? `/r/${encodeURIComponent(code)}` : "/"));
-  const [result, setResult] = useState<SharedResult | null>(null);
-  const [error, setError] = useState<unknown>(null);
   const [tick, setTick] = useState(0);
+  const publicResult = usePolling<SharedResult>(
+    () => api.getResult(code),
+    () => !token,
+    [code, tick],
+    { visibleOnly: !token, stopOnError: isNotFound }
+  );
+  const result = publicResult.data;
+  const error = publicResult.error;
   const submitted = loadSubmitted(code);
-
-  useEffect(() => {
-    let cancelled = false;
-    api
-      .getResult(code)
-      .then((r) => {
-        if (!cancelled) {
-          setResult(r);
-          setError(null);
-        }
-      })
-      .catch((err) => !cancelled && setError(err));
-    return () => {
-      cancelled = true;
-    };
-  }, [code, tick]);
 
   const notReady = error instanceof ApiError && error.code === "invalid_state";
 

@@ -1,4 +1,4 @@
-"""승인된 방 삭제·현재 브라우저 알림 해제 회귀 검사. 실제 격리 PostgreSQL을 쓴다."""
+"""승인된 방 삭제·현재 브라우저 알림 해제·후보 draft 회귀 검사. 실제 격리 PostgreSQL을 쓴다."""
 
 import threading
 import uuid
@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 import pytest
 
 from harness.server import db as testdb
+from harness.server import pact_outputs as po
 from harness.server.api import assert_error
 
 ENDPOINT = "https://push.test/current-browser"
@@ -227,3 +228,18 @@ def test_unsubscribe_does_not_wait_for_or_recall_inflight_push(srv, monkeypatch)
         future.result(timeout=10)
     assert srv.push.count() == 1
     assert not srv.sql("SELECT 1 FROM notifications")
+
+
+def test_result_candidates_only_selected_original_is_not_draft(srv):
+    app = srv.app
+    room, _ = app.ready_room()
+    app.replay.push("pact", po.pact_item())
+    assert app.regenerate(room).status_code == 202
+    app.join()
+    entries = app.results_body(room)["results"]
+    assert len(entries) == 2 and all(entry["draft"] is True for entry in entries)
+    for chosen in (entries[0]["result_id"], entries[1]["result_id"]):
+        assert app.select(room, chosen).status_code == 200
+        assert {entry["result_id"]: entry["draft"] for entry in app.results_body(room)["results"]} == {
+            entry["result_id"]: entry["result_id"] != chosen for entry in entries}
+        assert app.result(room).json()["draft"] is False
