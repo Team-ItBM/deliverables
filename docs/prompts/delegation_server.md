@@ -47,11 +47,15 @@
 
 | 경로 | 권한·입력 | 동작 |
 |---|---|---|
-| `DELETE /api/rooms/{room_code}` | `X-Host-Token` | 방을 잠그고 권한·생성 상태를 확인한다. 문항 준비 또는 협약서 생성 대기·진행 중이면 409 `invalid_state`, 없으면 404. 연관 자료 삭제 후 204. |
+| `DELETE /api/rooms/{room_code}` | `X-Host-Token` | 방을 잠그고 권한·생성 상태를 확인한다. 문항 준비 또는 협약서 생성 중이면 409 `invalid_state`, 없으면 404. 호출 장부의 방 연결을 끊고 나머지 연관 자료 삭제 후 204. 한 트랜잭션에서 처리한다. |
 | `POST /api/rooms/{room_code}/push-subscriptions/status` | `{role, session_id?, endpoint}`. 방장은 토큰, 참여자는 해당 방 세션으로 검증 | `{subscribed, room_subscribed}`. 전자는 현재 역할·세션·endpoint, 후자는 같은 방·endpoint의 구독 존재 여부다. |
 | `DELETE /api/rooms/{room_code}/push-subscriptions` | 상태 조회와 같은 입력·권한 | 같은 방·endpoint의 모든 역할·세션 구독을 삭제한다. 이미 해제된 구독도 204. 다른 기기·방은 유지한다. |
 
-endpoint는 로그에 남기지 않는다. 발송 직전 구독·알림 행이 남았는지 확인하며, 외부 전송을 시작한 알림은 회수하지 못한다. 기존 등록 API는 유지하고 재등록 시 과거 이벤트를 재발송하지 않는다.
+호출 장부는 기존 메타데이터와 비용을 2027-01-12 운영 정리까지 보존하며 일일 비용 한도에 포함한다. 관리자 삭제도 같다.
+
+2026-11-12 로컬 회귀 검증: 격리 PostgreSQL에서 전체 Python 테스트 402개, 화면 테스트 123개가 통과했다(skip 및 xfail 0). `ruff check .`, 웹 타입 검사와 빌드, 변경 문서의 링크 및 `git diff --check`도 통과했다. 실제 푸시 발송과 휴대폰 검증은 포함하지 않았다.
+
+endpoint는 로그에 남기지 않는다. 발송 전 DB 점검이 실패하면 발송하지 않고 `status_code`와 `sent_at`을 갱신하지 않는다. 자동 재처리는 추가하지 않는다. 발송 직전 구독·알림 행이 남았는지 확인하며, 외부 전송을 시작한 알림은 회수하지 못한다. 기존 등록 API는 유지하고 재등록 시 과거 이벤트를 재발송하지 않는다.
 
 **편집용 응답** (결정 29·33·34, 2026-11-05)
 
@@ -71,7 +75,7 @@ editable: [{path, segments: [{text} | {participant_id, display, pair}]}]
 ```
 {
   result_id, kind, source_result_id?, label,          // label: kind가 host_edited면 "방장 수정", 아니면 null
-  draft,                                              // bool. 공개 결과는 선택 전, 방장 목록은 각 미선택 후보가 true(화면 표시 "초안")
+  draft,                                              // bool. 공개 결과는 선택 전, 방장 목록과 편집 응답은 미선택 원본에 속하면 true(화면 표시 "초안")
   pact_status,                                        // PactRecommendation.status
   included_count, excluded_names: [display_name],     // 반영한 제출 수, 반영되지 않은 등록 이름
   trip: {destination, duration_days, party_size},     // 공개 여행 정보(결정 47)
@@ -314,7 +318,7 @@ editable: [{path, segments: [{text} | {participant_id, display, pair}]}]
 - 실제 모델 문항이 프로필 토큰 뒤에 조사 쌍 표기를 쓰는지는 검사하지 않는다. 문항 프롬프트를 이번에 고치지 않았다(결정 3).
 - PSH-P04에서 500 발송을 남기는 기록의 형식은 정하지 않는다. 서버는 기록만 하고, 테스트는 구독이 남는지만 본다(결정 26).
 - 화면이 참여자 조각을 고칠 수 없는 칩으로 보여주는지는 SPA 확인이다. 서버 케이스는 `editable`만으로 편집 요청을 만들 수 있는지까지 본다.
-- 결과 목록(§0-B 9) 항목의 `draft` 값은 검사하지 않는다. 초안 표시는 참여자 결과 조회(§0-B 8)에서 본다.
+- 기존 계약 86개에서는 결과 목록(§0-B 9)의 `draft`를 검사하지 않고 참여자 결과 조회(§0-B 8)의 초안 표시를 본다. 목록과 편집 응답의 원본별 `draft` 일치는 `tests/test_server_browser_controls.py`에서 별도로 검사한다.
 
 ## 결정한 것 (2026-11-04)
 
