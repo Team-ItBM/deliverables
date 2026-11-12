@@ -44,3 +44,19 @@ export const keys = {
   seen: (code: string) => `dowon.seen.${code}`,
   sound: "dowon.sound",
 };
+
+/** 방 삭제 성공 또는 이미 삭제된 방에만 적용한다. 다른 방과 기기 설정은 보존한다. */
+export function clearRoomStorage(code: string): void {
+  const roomKeys = [
+    keys.host(code),
+    keys.session(code),
+    keys.submitted(code),
+    keys.pending(code),
+    keys.push(code, "host"),
+    keys.push(code, "participant"),
+    keys.seen(code),
+  ];
+  for (const a of ["local", "session"] as const) {
+    for (const key of roomKeys) remove(a, key);
+  }
+}

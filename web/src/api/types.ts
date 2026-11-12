@@ -173,3 +173,15 @@ export interface PushSubscriptionBody {
   session_id?: string;
   subscription: { endpoint: string; keys: { p256dh: string; auth: string } };
 }
+
+/** 이 브라우저의 현재 역할과 같은 방·endpoint 전체를 함께 조회한다. */
+export interface PushSubscriptionScope {
+  role: "host" | "participant";
+  session_id?: string;
+  endpoint: string;
+}
+
+export interface PushSubscriptionStatus {
+  subscribed: boolean;
+  room_subscribed: boolean;
+}

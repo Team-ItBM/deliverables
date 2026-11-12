@@ -3,6 +3,8 @@ import type {
   CreateRoomResponse,
   ProfileInput,
   PushSubscriptionBody,
+  PushSubscriptionScope,
+  PushSubscriptionStatus,
   ResultsList,
   RoomView,
   SessionResponse,
@@ -13,7 +15,7 @@ import type {
 } from "./types";
 
 export interface TransportRequest {
-  method: "GET" | "POST";
+  method: "GET" | "POST" | "DELETE";
   path: string;
   headers: Record<string, string>;
   body?: unknown;
@@ -57,7 +59,7 @@ export function setTransport(t: Transport): void {
 }
 
 async function call<T>(
-  method: "GET" | "POST",
+  method: "GET" | "POST" | "DELETE",
   path: string,
   opts: { body?: unknown; hostToken?: string | null; headers?: Record<string, string> } = {}
 ): Promise<T> {
@@ -74,6 +76,7 @@ export const api = {
   createRoom: (trip: Trip, participant_profiles: ProfileInput[]) =>
     call<CreateRoomResponse>("POST", "/rooms", { body: { trip, participant_profiles } }),
   getRoom: (code: string, hostToken?: string | null) => call<RoomView>("GET", room(code), { hostToken }),
+  deleteRoom: (code: string, hostToken: string) => call<void>("DELETE", room(code), { hostToken }),
   createSession: (code: string, profile_id: string) =>
     call<SessionResponse>("POST", `${room(code)}/sessions`, { body: { profile_id } }),
   submit: (code: string, body: SubmissionBody, idempotencyKey: string) =>
@@ -104,4 +107,8 @@ export const api = {
   vapidKey: () => call<{ public_key: string }>("GET", "/push/vapid-public-key"),
   subscribePush: (code: string, body: PushSubscriptionBody, hostToken?: string | null) =>
     call<{ subscription_id: string }>("POST", `${room(code)}/push-subscriptions`, { body, hostToken }),
+  pushStatus: (code: string, body: PushSubscriptionScope, hostToken?: string | null) =>
+    call<PushSubscriptionStatus>("POST", `${room(code)}/push-subscriptions/status`, { body, hostToken }),
+  unsubscribePush: (code: string, body: PushSubscriptionScope, hostToken?: string | null) =>
+    call<void>("DELETE", `${room(code)}/push-subscriptions`, { body, hostToken }),
 };

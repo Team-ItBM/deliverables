@@ -6,12 +6,14 @@ import { ApiError, isNotFound } from "../api/errors";
 import type { ResultEntry, ResultsList, RoomView, SharedResult } from "../api/types";
 import { EditForm } from "../components/EditForm";
 import { HostPanel } from "../components/HostPanel";
+import { PushOptIn } from "../components/PushOptIn";
 import { PetalDrift } from "../components/PactBranch";
 import { hasPaper, issueItemCount, ResultSheet } from "../components/PactSheet";
 import { BottomBar, ErrorMessage, ICON, RoomNotFound, ShareButton } from "../components/ui";
 import { useHeaderBack } from "../lib/back";
 import { displaySegments, setAtPointer } from "../lib/editable";
 import { useHostToken, usePolling, usePrefersReducedMotion } from "../lib/hooks";
+import { loadSubmitted } from "../lib/answerSession";
 import { savePaperImage } from "../lib/saveImage";
 import { resultShare, serviceShare } from "../lib/shareText";
 import { issueSeen, markIssueSeen, useIssueSequence } from "../lib/issue";
@@ -370,6 +372,7 @@ export function Result() {
   const [result, setResult] = useState<SharedResult | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [tick, setTick] = useState(0);
+  const submitted = loadSubmitted(code);
 
   useEffect(() => {
     let cancelled = false;
@@ -412,7 +415,10 @@ export function Result() {
       {token ? (
         <HostResults code={code} token={token} started={started} onPublicChanged={() => setTick((t) => t + 1)} />
       ) : (
-        result && <SheetWithSave code={code} started={started} result={result} saveIsPrimary />
+        <>
+          {result && <SheetWithSave code={code} started={started} result={result} saveIsPrimary />}
+          {submitted && <PushOptIn code={code} role="participant" sessionId={submitted.session_id} />}
+        </>
       )}
       {!reduced && hasPaper(result?.pact_status) && <PetalDrift />}
     </main>

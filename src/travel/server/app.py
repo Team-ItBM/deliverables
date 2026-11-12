@@ -1,4 +1,4 @@
-"""FastAPI 앱과 §0-B 경로 12개(docs/prompts/delegation_server.md §0).
+"""FastAPI 앱과 §0-B 사용자 API(docs/prompts/delegation_server.md §0).
 
 create_app(settings=, llm_client=, push_sender=, sleeper=, clock=)으로 만든다. 테스트는 재생 클라이언트·가짜 발송기·
 가짜 대기·가짜 시각을 넣고, 운영은 main.py가 실제 구현을 넣는다.
@@ -23,7 +23,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from travel.pact import InputIndex, check_memo_quotes
@@ -418,6 +418,16 @@ def _register_routes(app, settings, jobs, notifier, clock, pool_source):
             view["scenario_notice"] = room["scenario_notice"]
         return view
 
+    @app.delete("/api/rooms/{room_code}", status_code=204)
+    async def delete_room(room_code: str, request: Request):
+        async with pool().transaction() as conn:
+            room = await load_room(conn, room_code, for_update=True)
+            require_host(room, request)
+            if room["scenario_status"] == "preparing" or room["status"] in ("closed", "generating"):
+                raise ApiError("invalid_state")
+            await conn.execute("DELETE FROM rooms WHERE room_id = %s", (room["room_id"],))
+        return Response(status_code=204)
+
     # 3. 세션(이름 선택)
     @app.post("/api/rooms/{room_code}/sessions", status_code=201)
     async def create_session(room_code: str, request: Request):
@@ -724,33 +734,71 @@ def _register_routes(app, settings, jobs, notifier, clock, pool_source):
     async def vapid_public_key():
         return {"public_key": settings.vapid_public_key}
 
+    def subscription_scope(body):
+        if not isinstance(body, dict) or body.get("role") not in ("host", "participant"):
+            raise ApiError("invalid_input")
+        role = body["role"]
+        session_id = parse_uuid(body["session_id"]) if body.get("session_id") is not None else None
+        if role == "participant" and session_id is None:
+            raise ApiError("invalid_input")  # 참여자 구독은 세션과 묶는다(결정 11·44)
+        return role, session_id
+
+    async def require_subscription_access(conn, room_code, request, role, session_id):
+        room = await load_room(conn, room_code)
+        if role == "host":
+            require_host(room, request)
+        if session_id is not None:
+            cur = await conn.execute("SELECT 1 FROM sessions WHERE session_id = %s AND room_id = %s",
+                                     (session_id, room["room_id"]))
+            if await cur.fetchone() is None:
+                raise ApiError("not_found")
+        return room
+
+    def endpoint_scope(body):
+        role, session_id = subscription_scope(body)
+        endpoint = body.get("endpoint")
+        if not endpoint_allowed(endpoint, settings.push_allowed_hosts):
+            raise ApiError("invalid_input")
+        return role, session_id, endpoint
+
+    @app.post("/api/rooms/{room_code}/push-subscriptions/status")
+    async def subscription_status(room_code: str, request: Request):
+        role, session_id, endpoint = endpoint_scope(await read_json(request))
+        async with pool().connection() as conn:
+            room = await require_subscription_access(conn, room_code, request, role, session_id)
+            cur = await conn.execute(
+                "SELECT EXISTS (SELECT 1 FROM push_subscriptions WHERE room_id = %s AND role = %s "
+                "AND session_id IS NOT DISTINCT FROM %s AND endpoint = %s) AS subscribed, "
+                "EXISTS (SELECT 1 FROM push_subscriptions WHERE room_id = %s AND endpoint = %s) AS room_subscribed",
+                (room["room_id"], role, session_id, endpoint, room["room_id"], endpoint))
+            row = await cur.fetchone()
+        return {"subscribed": row["subscribed"], "room_subscribed": row["room_subscribed"]}
+
+    @app.delete("/api/rooms/{room_code}/push-subscriptions", status_code=204)
+    async def unsubscribe(room_code: str, request: Request):
+        role, session_id, endpoint = endpoint_scope(await read_json(request))
+        async with pool().transaction() as conn:
+            room = await require_subscription_access(conn, room_code, request, role, session_id)
+            # 브라우저의 같은 endpoint를 쓰는 이 방의 다른 역할·세션도 함께 해제한다.
+            await conn.execute("DELETE FROM push_subscriptions WHERE room_id = %s AND endpoint = %s",
+                               (room["room_id"], endpoint))
+        return Response(status_code=204)
+
     @app.post("/api/rooms/{room_code}/push-subscriptions", status_code=201)
     async def subscribe(room_code: str, request: Request):
         body = await read_json(request)
-        if not isinstance(body, dict):
-            raise ApiError("invalid_input")
-        role = body.get("role")
+        role, session_id = subscription_scope(body)
         subscription = body.get("subscription")
-        if role not in ("host", "participant") or not isinstance(subscription, dict):
+        if not isinstance(subscription, dict):
             raise ApiError("invalid_input")
         if not endpoint_allowed(subscription.get("endpoint"), settings.push_allowed_hosts):
             raise ApiError("invalid_input")
         keys = subscription.get("keys")
         if keys is not None and not isinstance(keys, dict):
             raise ApiError("invalid_input")
-        session_id = parse_uuid(body["session_id"]) if body.get("session_id") is not None else None
-        if role == "participant" and session_id is None:
-            raise ApiError("invalid_input")  # 참여자 구독은 세션과 묶는다(결정 11·44)
         now = clock()
         async with pool().transaction() as conn:
-            room = await load_room(conn, room_code)
-            if role == "host":
-                require_host(room, request)
-            if session_id is not None:
-                cur = await conn.execute("SELECT 1 FROM sessions WHERE session_id = %s AND room_id = %s",
-                                         (session_id, room["room_id"]))
-                if await cur.fetchone() is None:
-                    raise ApiError("not_found")
+            room = await require_subscription_access(conn, room_code, request, role, session_id)
             # 같은 방·역할·세션·endpoint는 한 구독이다. 다시 등록하면 키만 새 값으로 바꾼다.
             cur = await conn.execute(
                 "INSERT INTO push_subscriptions (subscription_id, room_id, role, session_id, endpoint, keys, created_at) "
