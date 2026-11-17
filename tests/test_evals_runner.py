@@ -174,3 +174,26 @@ def test_judge_only_rejudges_after_expect_change_but_not_input_change(tmp_path):
     assert recs["pa_H01"]["judge"]["pass"] is True
     assert [e["code"] for e in recs["pa_P2"]["errors"]] == ["input_changed"]
     assert payload["info"]["source_evalset_version"] != payload["info"]["evalset_version"]
+
+
+def test_history_gets_judge_agreement_and_old_header_is_migrated(tmp_path):
+    old_columns = [c for c in run_evals.HISTORY_COLUMNS if not c.startswith("judge_") or c == "judge_version"]
+    with (tmp_path / "history.csv").open("w", encoding="utf-8", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=old_columns)
+        w.writeheader()
+        w.writerow({"run_id": "OLD", "mode": "live"})
+    judge = run_evals.load_judge()
+    run_evals.append_csv(tmp_path / "judge_validation.csv", run_evals.VALIDATION_COLUMNS, {
+        "judge_version": judge["version"], "judge_pact_sha256": judge["pact"]["sha256"],
+        "judge_scenarios_sha256": judge["scenarios"]["sha256"], "judge_run_id": "J", "label_run_id": "OUT",
+        "labeled_cases": "10", "compared_cases": "10", "agreement_by_criterion": json.dumps({"j1": 1.0, "j2": 0.9}),
+        "forbidden_recall": "1.0", "thresholds_status": "confirmed", "passed": "true"})
+    args = run_evals.parse_args(["--mode", "stored", "--cases", "pa_H01", "--results-dir", str(tmp_path), "--run-id", "NEW"])
+    asyncio.run(run_evals.run_main(args))
+    with (tmp_path / "history.csv").open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert [r["run_id"] for r in rows] == ["OLD", "NEW"]
+    assert list(rows[0]) == list(run_evals.HISTORY_COLUMNS)
+    assert rows[0]["judge_agreement_min"] == ""
+    assert rows[1]["judge_agreement_min"] == "0.9"
+    assert rows[1]["judge_forbidden_recall"] == "1.0" and rows[1]["judge_validation_passed"] == "true"

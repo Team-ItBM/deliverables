@@ -67,6 +67,7 @@
 
 - 가정할 역할: 여행을 앞두고 방을 만드는 방장과, 초대 링크로 들어오는 동행입니다.
 - 체험 목표: 서로 바람이 다른 답으로 추천 협약서를 받습니다. 그다음 방장이 결과를 고르고 이미지로 저장합니다.
+- 관련 AC: 이 시나리오는 [제품 스펙](docs/SPEC.md#6-수용-기준)의 AC1·AC3·AC4·AC6~AC9·AC12·AC13·AC15·AC17을 확인합니다. 단계별 AC는 아래 [확인 방법](#확인-방법)에 적었습니다.
 
 메모에는 일정 조율에 필요한 내용만 쓰세요. 건강 상태처럼 조율과 상관없는 개인 사정은 쓰지 않습니다. 답변은 AI가 처리하며, 자세한 내용은 [개인정보 처리방침](docs/PRIVACY.md)에 있습니다.
 
@@ -159,27 +160,29 @@
 협약서에는 다음 내용이 나옵니다. 결과에 따라 일부는 없을 수 있습니다.
 
 
-| 항목                 | 뜻                                                 |
-| ------------------ | ------------------------------------------------- |
-| `목적지 · 기간 · 인원`    | 여행 정보. 동행 관계는 표시하지 않습니다                           |
-| `제1조`, `제2조`       | 추천 조항                                             |
-| `적용 대상`            | 그 조항이 해당하는 사람                                     |
-| `제안 조건`            | AI가 새로 제안한 약속                                     |
-| `조건부 대안`, `필요한 변경` | 누군가 원래 조건을 바꿔야 가능한 제안                             |
-| `아직 풀지 못한 조건`      | 이번 응답으로 조율하지 못한 내용                                |
-| `반영한 응답 N건`        | 협약서에 쓴 제출 수                                       |
-| 안내 문구              | "AI가 각자의 응답을 바탕으로 만든 추천안이에요. 동행 모두가 정한 약속은 아니에요." |
+| 항목                 | 뜻                                                 | 관련 AC |
+| ------------------ | ------------------------------------------------- | ----- |
+| `목적지 · 기간 · 인원`    | 여행 정보. 동행 관계는 표시하지 않습니다                           | AC13  |
+| `제1조`, `제2조`       | 추천 조항                                             | AC6   |
+| `적용 대상`            | 그 조항이 해당하는 사람                                     | AC6, AC13 |
+| `제안 조건`            | AI가 새로 제안한 약속                                     | AC7   |
+| `조건부 대안`, `필요한 변경` | 누군가 원래 조건을 바꿔야 가능한 제안                             | AC8   |
+| `아직 풀지 못한 조건`      | 이번 응답으로 조율하지 못한 내용                                | AC6, AC9 |
+| `반영한 응답 N건`        | 협약서에 쓴 제출 수                                       | AC4   |
+| 안내 문구              | "AI가 각자의 응답을 바탕으로 만든 추천안이에요. 동행 모두가 정한 약속은 아니에요." | AC7   |
 
 
-조항 없이 "너네 조합 꽝이니 여행 가지 마세요!"가 나오면 이번 응답 조건으로는 추천안을 찾지 못했다는 뜻입니다. 막힌 조건이 함께 나옵니다. 성격이나 궁합을 판정한 결과는 아닙니다.
+조항 없이 "너네 조합 꽝이니 여행 가지 마세요!"가 나오면 이번 응답 조건으로는 추천안을 찾지 못했다는 뜻입니다. 막힌 조건이 함께 나옵니다. 성격이나 궁합을 판정한 결과는 아닙니다(AC7, AC9).
 
 ### 확인 방법
 
-- `반영한 응답` 건수가 제출 수와 같은지 확인합니다.
-- 서로 다른 바람이 조항이나 조건에 담겼는지 읽어 봅니다.
-- 동행 화면에서 협약서를 열어 봅니다. 방장의 선택과 메모 원문이 그대로 보이면 안 됩니다.
-- 방장이 고른 뒤 동행 화면을 새로고침합니다. 초안 표시가 사라져야 합니다.
-- 저장한 이미지가 화면의 협약서와 같은지 봅니다.
+- 문항에서 본인은 `당신`, 동행은 등록한 이름으로 나오고, 6개 문항이 서로 다른 상황인지 봅니다(AC1, AC15).
+- `반영한 응답` 건수가 제출 수와 같은지 확인합니다(AC4).
+- 서로 다른 바람이 조항이나 조건부 대안에 담겼는지 읽어 봅니다(AC6, AC8).
+- 동행 화면에서 협약서를 열어 봅니다. 방장의 선택과 메모 원문이 그대로 보이면 안 됩니다(AC3).
+- 방장이 고른 뒤 동행 화면을 새로고침합니다. 초안 표시가 사라져야 합니다(AC17).
+- `문구 고치기`로 저장한 수정본에 `방장 수정`이 붙는지 봅니다(AC12).
+- 저장한 이미지가 화면의 협약서와 같은지 봅니다(AC13).
 
 ### 다른 입력으로 다시 실행하기
 
@@ -307,6 +310,7 @@ API 키가 없으면 `LLM_MODE=live OPENAI_API_KEY=<API 키>` 대신 `LLM_MODE=r
 | 문항 골든   | `python -m pytest tests/test_scenario_golden.py -q -rs`                                                                    |
 | 도구 계약   | `python -m pytest tests/test_tools.py -q -rs`                                                                              |
 | pool 계약 | `python -m pytest tests/test_pool.py -q -rs`                                                                               |
+| evals 러너 | `python -m pytest tests/test_evals_runner.py -q -rs`                                                                       |
 | 린트      | `ruff check .`                                                                                                             |
 | 화면      | `cd web && npm run typecheck && npm run test`                                                                              |
 
@@ -341,18 +345,37 @@ API 키가 없으면 `LLM_MODE=live OPENAI_API_KEY=<API 키>` 대신 `LLM_MODE=r
 
 ### 품질 측정(evals)
 
-준비 중입니다. `evals/` 폴더는 아직 저장소에 없습니다. 다음 자료를 만들 계획이며 진행 상황은 [TODO](TODO.md)에 있습니다.
+강의 7 산출물입니다. 파일 위치는 강의 7 작성지침을 따랐고, 표준 구조의 `evals/README.md`(evals 설계)에 해당하는 문서는 `evals/EVAL_DESIGN.md`입니다.
 
 
-| 자료                               | 상태   |
-| -------------------------------- | ---- |
-| 지표와 채점 규칙 `evals/EVAL_DESIGN.md` | 준비 중 |
-| 평가 데이터셋 `evals/evalset.jsonl`    | 준비 중 |
-| 판정 프롬프트 `evals/judge_prompt.md`  | 준비 중 |
-| 러너와 `evals/results/`             | 준비 중 |
+| 자료 | 위치 |
+| ---- | ---- |
+| evals 설계(지표마다 AC, 계산 방법, 합격선) | [`evals/EVAL_DESIGN.md`](evals/EVAL_DESIGN.md) |
+| 평가 데이터셋(46건: 문항 21, 추천 25. 입력, 기대 조건, 범주) | [`evals/evalset.jsonl`](evals/evalset.jsonl) |
+| judge 프롬프트(judge_v2) | [`evals/judge_prompt.md`](evals/judge_prompt.md) |
+| 러너 | [`evals/run_evals.py`](evals/run_evals.py) |
+| 결과 파일(케이스별 출력과 판정) | [`evals/results/`](evals/results/) |
+| 실행 이력(judge 일치율 열 포함) | [`evals/results/history.csv`](evals/results/history.csv) |
+| 사람 라벨과 judge 일치율 | [`evals/judge_labels.jsonl`](evals/judge_labels.jsonl), [`evals/results/judge_validation.csv`](evals/results/judge_validation.csv) |
+| 러너 위임과 확인 기록 | [`docs/prompts/delegation_evals.md`](docs/prompts/delegation_evals.md) |
 
 
-지금 볼 수 있는 자료는 기술 타당성 실험 기록과 실제 호출 측정입니다. 비용과 지연 측정은 [서비스 위임 기록](docs/prompts/delegation_service.md) §2-4에 있습니다. 이 자료는 evals 결과가 아닙니다.
+실행 방법은 아래와 같습니다. 실제 호출(`--mode live`)은 비용이 들고 `OPENAI_API_KEY`가 필요합니다. 저장 응답 모드(`--mode stored`)는 비용 없이 러너 동작만 확인합니다.
+
+```sh
+python evals/run_evals.py --mode live --skip-judge --change "<바꾼 내용>" --golden "<골든 테스트 결과>"
+python evals/run_evals.py --mode live --judge-only <출력 실행ID> --change "<바꾼 내용>"
+python evals/run_evals.py --validate-judge evals/judge_labels.jsonl --run <judge 실행ID>
+```
+
+2026-11-17 첫 측정 결과입니다(문항 프롬프트 v9, 추천 프롬프트 v12, `gpt-6.1-sol`). 출력 실행은 `2026-11-17T1530`, judge 판정은 `2026-11-17T1722`입니다.
+
+- 문항 21건: 형식·상태 기대 21/21, 기간 부적합 문항 0, 도구 계약 17/17, 프로필 노출 0, 각색 의미 보존 17/17(judge).
+- 추천 25건: 최초 출력 형식 24/25(E01 이름 조사 오류, 재요청 1회로 통과), 상태 라우팅 6/6, 조율 품질 16/22(목표 80% 미달), 금지 오류 2건(H04, H08: 명시적 한계의 숫자가 공유 문장에서 흐려짐), 공개 문장 개인정보 2건(H03 멀미, P7 무릎). 두 절대 규칙 지표는 목표 0건을 넘었습니다.
+- 운영: 지연 p95 문항 27.6초, 추천 31.6초. 방당 추정 비용 평균 $0.066, 최대 $0.108. 실행 비용 $1.00(judge 별도 $0.37).
+- judge 검증: judge_v1은 사람 라벨과의 일치율이 j1 0.7, j2 0.5, j5 0.6으로 미달이었습니다. 원인을 고친 judge_v2는 기준별 일치율 0.9 이상, 금지 기준 재현율 1.0으로 합격했습니다. 경과는 [설계서 3절 judge 검증 기록](evals/EVAL_DESIGN.md#judge-검증-기록)에 있습니다.
+
+한계: 사람 라벨은 추천 10건, 1인입니다. 설계서의 정식 라벨(추천 22건과 문항 요청, 2인 독립 후 합의)은 최종 평가 전에 채웁니다. 데이터셋 46건 중 26건은 기대 조건에 초안이 섞여 있어 이번 실행은 베이스라인 자격(`baseline_eligible`)이 없습니다. 같은 커밋 3회 실행으로 정하는 허용 오차, 오류 분석과 개선 기록도 최종 평가 전에 합니다.
 
 ### 강의별 산출물
 
@@ -365,6 +388,7 @@ API 키가 없으면 `LLM_MODE=live OPENAI_API_KEY=<API 키>` 대신 `LLM_MODE=r
 | 4강 · 기술 타당성 실험 | [문항 선정·각색](docs/spikes/scenario_adaptation.md), [추천 협약서 품질](docs/spikes/grounded_pact.md), [문항 도구 호출](docs/spikes/scenario_tool_call.md)  |
 | 5강 · 위임·검증     | [골든 케이스·하니스](tests/), [위임 기록](docs/prompts/)                                                                                              |
 | 6강 · 아키텍처·도구   | [아키텍처 설계서](docs/ARCHITECTURE.md), [도구](src/travel/tools/), [서버](src/travel/server/), [화면](web/), [인프라](infra/)                            |
+| 7강 · Evals      | [evals 설계](evals/EVAL_DESIGN.md), [데이터셋](evals/evalset.jsonl), [judge 프롬프트](evals/judge_prompt.md), [러너](evals/run_evals.py), [결과](evals/results/) |
 
 
 [회의록](docs/meetings/README.md) · [질문 pool 50개](src/travel/data/scenario_pool.json) · [남은 작업](TODO.md) · [강의 작성지침](references/course/00_README.md)

@@ -61,6 +61,8 @@ HISTORY_COLUMNS = (
     "pact_format_first", "pact_unusable", "pact_routing_match", "pact_forbidden_errors", "pact_quality_pass",
     "pact_public_privacy", "pact_injection_violation", "scenario_latency_p95", "pact_latency_p95",
     "room_cost_estimate_mean", "room_cost_estimate_max", "eval_run_cost",
+    "judge_label_run_id", "judge_labeled_cases", "judge_agreement_min", "judge_agreement_by_criterion",
+    "judge_forbidden_recall", "judge_validation_passed",
 )
 VALIDATION_COLUMNS = (
     "created_at", "judge_version", "judge_pact_sha256", "judge_scenarios_sha256", "judge_run_id", "label_run_id",
@@ -834,6 +836,29 @@ def apply_targets(metrics, targets, judge_validated, live):
     return metrics
 
 
+def latest_validation(results_dir, judge):
+    path = Path(results_dir) / "judge_validation.csv"
+    if not path.exists():
+        return None
+    found = None
+    with path.open(encoding="utf-8", newline="") as f:
+        for row in csv.DictReader(f):
+            if (row["judge_version"] == judge["version"] and row["judge_pact_sha256"] == judge["pact"]["sha256"]
+                    and row["judge_scenarios_sha256"] == judge["scenarios"]["sha256"]):
+                found = row
+    return found
+
+
+def validation_columns(row):
+    if row is None:
+        return {}
+    agreement = json.loads(row["agreement_by_criterion"] or "{}")
+    return {"judge_label_run_id": row["label_run_id"], "judge_labeled_cases": row["labeled_cases"],
+            "judge_agreement_min": fmt(min(agreement.values())) if agreement else "",
+            "judge_agreement_by_criterion": row["agreement_by_criterion"],
+            "judge_forbidden_recall": row["forbidden_recall"], "judge_validation_passed": row["passed"]}
+
+
 def judge_is_validated(results_dir, judge, targets):
     path = Path(results_dir) / "judge_validation.csv"
     if not path.exists():
@@ -879,6 +904,20 @@ def append_csv(path, columns, row):
     path = Path(path)
     new = not path.exists()
     path.parent.mkdir(parents=True, exist_ok=True)
+    if not new:
+        with path.open(encoding="utf-8", newline="") as f:
+            reader = csv.DictReader(f)
+            header = reader.fieldnames or []
+            old_rows = list(reader)
+        if header != list(columns):
+            unknown = [h for h in header if h not in columns]
+            if unknown:
+                raise EvalError("csv_unknown_columns", f"{path.name}: {unknown}")
+            with path.open("w", encoding="utf-8", newline="") as f:
+                w = csv.DictWriter(f, fieldnames=list(columns))
+                w.writeheader()
+                for r in old_rows:
+                    w.writerow({k: r.get(k, "") for k in columns})
     with path.open("a", encoding="utf-8", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(columns))
         if new:
@@ -901,6 +940,7 @@ def history_row(info, metrics):
     row["pool"] = f"v{info['pool']['version']}"
     for key in METRIC_ORDER:
         row[key] = fmt(metric_value(metrics[key]))
+    row.update(info.get("judge_validation_columns") or {})
     return row
 
 
@@ -1024,6 +1064,7 @@ async def run_main(args):
     tasks = [run_case(c, ctx, reuse.get(c["id"])) for c in cases]
     records = await asyncio.gather(*tasks)
     judge_validated = judge_is_validated(args.results_dir, judge, targets)
+    validation = latest_validation(args.results_dir, judge) if judge_enabled else None
     live = mode == "live" and not args.judge_only
     metrics = compute_metrics(records, live=live, judge_ran=judge_enabled)
     model_cost = sum(r["cost_usd"] for r in records) if not args.judge_only else 0.0
@@ -1036,6 +1077,7 @@ async def run_main(args):
     full_set = len(cases) == len(all_cases)
     if source is not None:
         info["source_evalset_version"] = source["info"]["evalset_version"]
+    info["judge_validation_columns"] = validation_columns(validation)
     info.update({"judge_validated": judge_validated, "cost_usd": total_cost, "incomplete": incomplete,
                  "judge_enabled": judge_enabled, "full_evalset": full_set,
                  "baseline_eligible": info["draft_cases"] == 0 and info["draft_targets"] == 0 and full_set and not incomplete

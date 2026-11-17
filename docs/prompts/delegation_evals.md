@@ -168,3 +168,4 @@ stored 실행의 콘솔 출력 전체, 케이스별로 적용한 검사를 한 �
 |---|---|---|
 | 데이터셋 버전 해시를 줄바꿈을 LF로 맞춘 뒤 계산 | Windows에서 Git이 CRLF로 바꾸면 같은 데이터셋이 다른 버전으로 기록돼 비교 조건(설계서 6절)이 깨진다 | CRLF 사본과 원본의 버전이 같은 값(`46 cases, dad8ff7`) |
 | `--judge-only`가 출력 실행 뒤 기대 조건만 바뀐 데이터셋에서도 돌게 함. 케이스마다 모델 입력 해시(`input_sha256`)를 기록하고, 출력 실행과 입력이 다르면 `input_changed` 오류로 남김. 결과에 `source_evalset_version` 기록 | judge_v1 검증 미달 뒤 팀 결정으로 pa_P1·P3의 기대 조건을 바꿨다. 사람 라벨은 출력 실행 `2026-11-17T1530`의 출력에 매겼으므로 같은 출력에 judge_v2를 다시 돌려야 한다 | `tests/test_evals_runner.py`의 judge-only 테스트(기대 조건 변경은 다시 판정, 입력 변경은 `input_changed`). 단위 테스트 12건, 골든 88건 통과, ruff 통과 |
+| `history.csv`에 judge 검증 열(`judge_label_run_id`, `judge_labeled_cases`, `judge_agreement_min`, `judge_agreement_by_criterion`, `judge_forbidden_recall`, `judge_validation_passed`)을 더함. 열이 바뀌면 기존 줄을 보존한 채 머리글을 새 열로 다시 씀 | 중간평가 기준이 실행 이력에 judge 일치율을 포함하라고 요구한다. 일치율은 `judge_validation.csv`에만 있었다 | 이력 열 이동·일치율 기록 테스트. 단위 테스트 13건, 골든 88건 통과, ruff 통과 |

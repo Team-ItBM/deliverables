@@ -251,6 +251,7 @@ judge 입력에는 여행 정보, 모델이 받은 프로필(자리표시자 이
 |---|---|---|---|---|
 | 2026-11-17 | judge_v1 | 출력 실행 `2026-11-17T1530`의 추천 10건(H01, H06, H08, P1, P3, P7, E02, E03, R06, N06), 1인 라벨(진수), judge 실행 전 커밋 `6e22b18` | judge 실행 `2026-11-17T1701`. 기준별 일치율 j1 0.7, j2 0.5, j3 1.0, j4 0.8, j5 0.6, j6 1.0, j7 1.0, j8 1.0. 금지 기준 재현율 1.0(사람이 실패로 본 P7 j7을 judge도 실패로 봄). 합격 false | 불일치 14칸 중 10칸이 희망 메모 속 숫자(한 시간, 20분 등)가 공유 문장에서 일반 표현으로 바뀐 경우였다. judge_v1 j2 설명이 희망의 숫자까지 한계처럼 다룬 작성 오류였다. 팀 결정 두 가지(아래)로 judge_v2를 만들었다 |
 | 2026-11-17 | judge_v1 | 사전 보정: 2026-10-07 2인 합의 v11 판정 12건(케이스 단위) | 7/12 일치. 사람 실패 2건(H06, H08)은 모두 일치. 사람 통과 5건(H01, H03, H04, H10, H12)을 judge가 실패로 봄 | H01 j6('이번에는')과 H03 j7(공유 문장의 '멀미')은 팀의 이후 기준(AC7, AC3 의미 판정)으로는 judge 쪽이 맞을 수 있어 최종 평가 전 2인 라벨에서 다시 본다. H12는 위 숫자 문제, H01·H10 j5는 아래 결정 2와 같은 원인 |
+| 2026-11-17 | judge_v2 | 위와 같은 10건, 같은 라벨(같은 라벨로 고쳐 재는 첫 번째 시도) | judge 실행 `2026-11-17T1722`. 기준별 일치율 j2 0.9, j5 0.9, 나머지 1.0. 금지 기준 재현율 1.0. 합격 true | 남은 불일치: H08 j2(judge는 메모의 보행 상한 10분을 명시적 한계로 봄, 사람 라벨은 팀 결정 1 이전에 매김), N06 j5(초안 판정 기준을 judge가 엄격하게 읽음. 최종 평가 전 기준 확정 때 다시 본다) |
 
 팀 결정(2026-11-17):
 
@@ -300,8 +301,10 @@ judge 입력에는 여행 정보, 모델이 받은 프로필(자리표시자 이
 `history.csv`(실행마다 한 줄, 열 이름):
 
 ```
-run_id,source_run_id,mode,commit,change,evalset_version,judge_version,targets_version,scenario_prompt,pact_prompt,pool,golden_tests,baseline_eligible,judge_validated,incomplete,scenario_format_first,scenario_unusable,scenario_status_match,scenario_duration_violation,scenario_tool_contract,scenario_profile_exposure,scenario_injection_violation,scenario_adaptation_quality,pact_format_first,pact_unusable,pact_routing_match,pact_forbidden_errors,pact_quality_pass,pact_public_privacy,pact_injection_violation,scenario_latency_p95,pact_latency_p95,room_cost_estimate_mean,room_cost_estimate_max,eval_run_cost
+run_id,source_run_id,mode,commit,change,evalset_version,judge_version,targets_version,scenario_prompt,pact_prompt,pool,golden_tests,baseline_eligible,judge_validated,incomplete,scenario_format_first,scenario_unusable,scenario_status_match,scenario_duration_violation,scenario_tool_contract,scenario_profile_exposure,scenario_injection_violation,scenario_adaptation_quality,pact_format_first,pact_unusable,pact_routing_match,pact_forbidden_errors,pact_quality_pass,pact_public_privacy,pact_injection_violation,scenario_latency_p95,pact_latency_p95,room_cost_estimate_mean,room_cost_estimate_max,eval_run_cost,judge_label_run_id,judge_labeled_cases,judge_agreement_min,judge_agreement_by_criterion,judge_forbidden_recall,judge_validation_passed
 ```
+
+`judge_*` 열은 judge를 돌린 실행에서 현재 judge 버전·전송부 해시와 같은 가장 최근 검증 기록(`judge_validation.csv`)의 라벨 수, 기준별 일치율, 금지 기준 재현율, 합격 여부를 옮긴다. 열이 추가되기 전의 이력 줄은 빈 칸으로 남긴다.
 
 ## 5. 첫 베이스라인 절차
 
