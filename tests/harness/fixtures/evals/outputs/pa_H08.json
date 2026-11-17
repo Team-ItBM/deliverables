@@ -1,0 +1,12 @@
+{
+ "source": "docs/spikes/grounded_pact_eval.jsonl#H08 (v11 출력)",
+ "attempts": [
+  {
+   "raw_output": "{\"status\": \"conditional_only\", \"clauses\": null, \"positions\": [{\"response_id\": \"H08-A\", \"position\": {\"desired_action\": \"걷고 싶지만 10분 넘게 걸을 수 없으며 차량비 7천 원은 괜찮음\", \"condition\": \"발이 아파서\"}}, {\"response_id\": \"H08-B\", \"position\": {\"desired_action\": \"추가 교통비 없이 걸어가고 싶음\"}}, {\"response_id\": \"H08-C\", \"position\": {\"desired_action\": \"각자 편한 교통편을 이용하고 본인은 차량으로 가고 싶음\"}}], \"conditional_alternatives\": [{\"scenario_id\": \"walk_or_ride\", \"action\": \"이동 수단에 대한 바람이 다르면 걷고 싶은 마음과 실제로 걸을 수 있는 범위를 먼저 함께 살펴봐요. {{participant:A}}이/가 차량 이동으로 바꾸는 데 동의한다면, {{participant:A}}과/와 {{participant:C}}은/는 차량을 이용하고 {{participant:B}}은/는 추가 교통비 없이 걷는 방식을 추천해요. 따로 출발하기 전에 도착해서 만날 장소와 연락 방법을 정해요.\", \"participant_ids\": [\"A\", \"B\", \"C\"], \"source_response_ids\": [\"H08-A\", \"H08-B\", \"H08-C\"], \"proposed_conditions\": [\"이동 수단을 정하기 전에 걷고 싶은 마음, 걸을 수 있는 범위와 교통비 부담을 함께 확인해요.\", \"따로 이동한다면 도착해서 만날 장소와 연락 방법을 정해요.\"], \"required_changes\": [{\"source_response_id\": \"H08-A\", \"original_condition\": \"걷고 싶지만 발이 아파서 10분 넘게 걸을 수는 없어요.\", \"proposed_change\": \"{{participant:A}}의 걷기 한계는 지키면서, 이동 수단을 차량으로 바꾸는 데 동의하는 경우를 제안해요.\"}]}], \"unresolved_conditions\": [{\"scenario_id\": \"walk_or_ride\", \"source_response_ids\": [\"H08-A\", \"H08-B\", \"H08-C\"], \"description\": \"함께 걷기와 각자 이동하기를 검토했어요. {{participant:A}}의 걷고 싶은 바람과 걸을 수 있는 범위를 장면의 도보 이동으로 함께 충족하기 어려워요. 차량비를 부담할 수 있다는 응답만으로 차량 이동에 동의했다고 볼 수 없어, {{participant:A}}의 이동 수단 변경은 미확정이에요. {{participant:B}}의 추가 교통비 없는 도보 이동과 {{participant:C}}의 차량 이동은 대안에 반영했어요.\"}], \"message\": \"걷기 한계를 지키는 별도 이동안을 검토했어요. {{participant:A}}이/가 차량 이동으로 바꾸는 데 동의할 때 가능한 대안이며, 그 동의는 아직 확인되지 않았어요.\"}",
+   "response_status": "completed",
+   "opened_template_ids": [],
+   "usage": null,
+   "latency_s": null
+  }
+ ]
+}

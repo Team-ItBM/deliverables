@@ -1,0 +1,12 @@
+{
+ "source": "docs/spikes/grounded_pact_eval.jsonl#H01 (v11 출력)",
+ "attempts": [
+  {
+   "raw_output": "{\"status\": \"conditional_only\", \"clauses\": null, \"positions\": [{\"response_id\": \"H01-A\", \"position\": {\"desired_action\": \"유료 체험을 하고 싶으며 혼자 참여해도 괜찮음\"}}, {\"response_id\": \"H01-B\", \"position\": {\"desired_action\": \"무료 산책을 하고 싶으며 오늘 추가 지출은 하지 않음\"}}, {\"response_id\": \"H01-C\", \"position\": {\"desired_action\": \"셋이 함께 시간을 보내고 싶으며 유료 체험은 원하지 않음\"}}], \"conditional_alternatives\": [{\"scenario_id\": \"paid_activity\", \"action\": \"자유 시간에 유료 활동과 함께하는 무료 활동의 희망이 다르면, {{participant:A}}이/가 이번에는 체험을 미루는 데 동의할 경우 세 사람이 함께 무료로 산책하는 안을 추천해요. {{participant:B}}의 추가 지출 제한과 {{participant:C}}의 함께 보내려는 바람을 지킬 수 있어요.\", \"participant_ids\": [\"A\", \"B\", \"C\"], \"source_response_ids\": [\"H01-A\", \"H01-B\", \"H01-C\"], \"proposed_conditions\": [\"활동을 정하기 전에 변경 제안에 대한 동의를 함께 확인해요.\"], \"required_changes\": [{\"source_response_id\": \"H01-A\", \"original_condition\": \"체험을 하고 싶고 혼자 참여해도 괜찮아요.\", \"proposed_change\": \"{{participant:A}}이/가 이번 자유 시간에는 체험을 미루고 함께 무료 산책을 하는 데 동의하는 변경을 제안해요.\"}]}, {\"scenario_id\": \"paid_activity\", \"action\": \"{{participant:C}}이/가 자유 시간 일부를 따로 보내는 데 동의할 경우, {{participant:A}}은/는 원하는 유료 활동에 참여하고 {{participant:B}}과/와 {{participant:C}}은/는 무료 산책을 하는 안을 추천해요. 헤어지기 전에 각자 필요한 시간과 이후 공동 일정에 맞춰 다시 만날 방법을 정해요.\", \"participant_ids\": [\"A\", \"B\", \"C\"], \"source_response_ids\": [\"H01-A\", \"H01-B\", \"H01-C\"], \"proposed_conditions\": [\"따로 움직이기 전에 각자 필요한 시간과 다시 만날 시간·장소를 함께 정해요.\", \"{{participant:B}}과/와 {{participant:C}}이/가 함께 산책하는 데 동의하는지 확인해요.\"], \"required_changes\": [{\"source_response_id\": \"H01-C\", \"original_condition\": \"셋이 같이 보내는 시간을 원해요.\", \"proposed_change\": \"{{participant:C}}이/가 자유 시간 일부에는 세 사람이 따로 움직이고 이후 다시 함께하는 방식에 동의하는 변경을 제안해요.\"}]}], \"unresolved_conditions\": [{\"scenario_id\": \"paid_activity\", \"source_response_ids\": [\"H01-A\", \"H01-B\", \"H01-C\"], \"description\": \"함께 무료 활동을 하면 {{participant:A}}의 체험 희망을 지키기 어렵고, 따로 움직이면 {{participant:C}}의 세 사람이 함께하려는 바람을 지키기 어려워요. {{participant:B}}의 추가 지출 제한과 {{participant:C}}의 유료 활동 거부는 유지하며, 체험을 미루거나 일부 시간을 따로 보내는 변경에 동의할 때 대안을 적용할 수 있어요.\"}], \"message\": \"함께 무료 활동을 하는 방식과 따로 움직이는 방식을 검토했어요. 체험 희망과 세 사람이 함께하려는 바람을 동시에 보존하는 안은 정하지 못했으며, 제안한 변경에 대한 동의는 아직 확인되지 않았어요.\"}",
+   "response_status": "completed",
+   "opened_template_ids": [],
+   "usage": null,
+   "latency_s": null
+  }
+ ]
+}

@@ -1,0 +1,12 @@
+{
+ "source": "docs/spikes/grounded_pact_eval.jsonl#H10 (v11 출력)",
+ "attempts": [
+  {
+   "raw_output": "{\"status\": \"conditional_only\", \"clauses\": null, \"conditional_alternatives\": [{\"scenario_id\": \"drink_bill\", \"action\": \"술·음료 주문 금액이 다를 때는 {{participant:A}}이/가 전체 금액을 균등하게 나누려는 바람을 조정할 수 있다면, 식사비는 함께 나누고 술·음료는 각자 주문한 만큼 내는 방식을 추천해요. {{participant:B}}의 계산을 단순하게 하려는 바람과 다른 사람 몫을 부담하지 않으려는 한계, {{participant:C}}의 다른 사람 술값을 나누지 않으려는 한계를 함께 지킬 수 있어요. 정산 전에 주문 내역과 각자 부담할 금액을 함께 확인해요.\", \"participant_ids\": [\"A\", \"B\", \"C\"], \"source_response_ids\": [\"H10-A\", \"H10-B\", \"H10-C\"], \"proposed_conditions\": [\"정산 전에 주문 내역을 확인하고 식사비와 개인별 술·음료 금액을 구분해 각자 부담할 금액을 함께 확인해요.\"], \"required_changes\": [{\"source_response_id\": \"H10-A\", \"original_condition\": \"전체 금액을 인원수대로 똑같이 나누고 싶어요\", \"proposed_change\": \"{{participant:A}}이/가 술·음료까지 균등하게 나누려는 바람을 조정해, 식사비는 함께 나누고 술·음료는 각자 주문한 만큼 내는 방식을 받아들일 수 있다면 가능해요.\"}]}], \"unresolved_conditions\": [{\"scenario_id\": \"drink_bill\", \"source_response_ids\": [\"H10-A\", \"H10-B\", \"H10-C\"], \"description\": \"전체 금액을 균등하게 나누는 방식은 {{participant:C}}의 술값 부담 한계와 맞지 않아요. {{participant:A}}의 예상만으로 {{participant:C}}의 추가 부담 동의를 볼 수는 없어요. 주문별 정산은 {{participant:B}}과/와 {{participant:C}}의 한계를 지킬 수 있지만 {{participant:A}}의 분담 방식 조정은 확인되지 않았어요.\"}], \"message\": \"균등 분담과 주문별 정산을 검토했어요. 원래 바람과 한계를 모두 지키는 조항은 정하지 못했고, {{participant:A}}이/가 분담 방식을 조정할 때 가능한 대안을 제안해요.\", \"positions\": [{\"response_id\": \"H10-A\", \"position\": {\"desired_action\": \"전체 금액을 인원수대로 똑같이 나누고 싶음\"}}, {\"response_id\": \"H10-B\", \"position\": {\"desired_action\": \"계산을 단순하게 하되 자신의 주문보다 적게 낸 사람 몫을 대신 부담하고 싶지 않음\"}}, {\"response_id\": \"H10-C\", \"position\": {\"desired_action\": \"식사는 똑같이 나누고 술·음료는 주문한 사람이 내며 다른 사람의 술값은 나누지 않겠음\"}}]}",
+   "response_status": "completed",
+   "opened_template_ids": [],
+   "usage": null,
+   "latency_s": null
+  }
+ ]
+}

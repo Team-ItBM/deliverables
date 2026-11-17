@@ -1,0 +1,12 @@
+{
+ "source": "docs/spikes/grounded_pact_eval.jsonl#H04 (v11 출력)",
+ "attempts": [
+  {
+   "raw_output": "{\"status\": \"proposed\", \"clauses\": [{\"scenario_id\": \"meal_splurge\", \"action\": \"식사에 쓰고 싶은 비용과 특별한 식사의 횟수가 다르면, 식당을 정하기 전에 {{participant:A}}과/와 {{participant:B}}의 매번 높은 가격대로 먹고 싶은 바람, {{participant:C}}의 한 번만 특별하게 먹고 싶은 바람, {{participant:D}}의 전체 식비 한계를 함께 확인해요. 각자 원하는 가격대와 횟수를 지킬 수 있도록 식사별로 따로 먹는 방식을 추천해요. {{participant:D}}에게 다른 사람의 식비를 부담시키지 않고, 각자 식비를 부담하며 식사 뒤 다시 만날 방법을 정해요.\", \"participant_ids\": [\"A\", \"B\", \"C\", \"D\"], \"source_response_ids\": [\"H04-A\", \"H04-B\", \"H04-C\", \"H04-D\"], \"proposed_conditions\": [\"식당을 정하기 전에 각자 쓸 수 있는 전체 식비와 특별한 식사를 원하는 횟수를 확인해요.\", \"따로 식사하는 방식에 각자 동의하는지 확인하고, 식비는 각자 부담해요.\", \"따로 먹는 식사마다 다시 만날 시간과 장소를 함께 정해요.\"]}], \"positions\": [{\"response_id\": \"H04-A\", \"position\": {\"desired_action\": \"세 끼 모두 4만 원 식당을 이용하고 싶음\"}}, {\"response_id\": \"H04-B\", \"position\": {\"desired_action\": \"세 끼 모두 4만 원 식당을 이용하고 싶음\"}}, {\"response_id\": \"H04-C\", \"position\": {\"desired_action\": \"한 끼만 4만 원 식당을 이용하고 싶으며 비싼 식사를 한 번은 하고 싶음\"}}, {\"response_id\": \"H04-D\", \"position\": {\"desired_action\": \"세 끼 모두 1만 5천 원 정도로 먹고 싶으며 세 끼 합계 4만 5천 원까지만 쓸 수 있고 다른 사람 식비를 대신 내지 않겠음\"}}]}",
+   "response_status": "completed",
+   "opened_template_ids": [],
+   "usage": null,
+   "latency_s": null
+  }
+ ]
+}

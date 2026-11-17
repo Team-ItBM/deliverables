@@ -1,0 +1,12 @@
+{
+ "source": "docs/spikes/grounded_pact_eval.jsonl#H07 (v11 출력)",
+ "attempts": [
+  {
+   "raw_output": "{\"status\": \"proposed\", \"clauses\": [{\"scenario_id\": \"paid_activity\", \"action\": \"자유 시간에 유료 활동 참여 여부가 다르면 각자 원하는 활동을 하는 걸 추천해요. {{participant:A}}은/는 유료 활동에 참여하지 않고 무료로 산책하고, {{participant:B}}은/는 원하는 유료 활동에 참여하고, {{participant:C}}은/는 기다리는 동안 산책할 수 있어요. 활동을 정하기 전에 각자 필요한 시간과 이후 공동 일정에 맞춰 다시 만날 시간·장소를 함께 정해요.\", \"participant_ids\": [\"A\", \"B\", \"C\"], \"source_response_ids\": [\"H07-A\", \"H07-B\", \"H07-C\"], \"proposed_conditions\": [\"각자 활동에 필요한 시간을 확인하고, 이후 공동 일정을 지킬 수 있도록 다시 만날 시간·장소를 함께 정해요.\"]}], \"positions\": [{\"response_id\": \"H07-A\", \"position\": {\"desired_action\": \"유료 체험에 참여하지 않고 무료 산책을 하고 싶음\"}}, {\"response_id\": \"H07-B\", \"position\": {\"desired_action\": \"유료 체험에 참여하고 싶으며 끝나고 다시 만나도 괜찮음\"}}, {\"response_id\": \"H07-C\", \"position\": {\"desired_action\": \"무료 산책을 하고 싶으며 체험하는 친구를 기다리는 동안 가만히 있기보다 걷고 싶음\", \"reason\": \"체험하는 친구를 기다리는 동안 가만히 있기보다는 걷고 싶어요.\"}}]}",
+   "response_status": "completed",
+   "opened_template_ids": [],
+   "usage": null,
+   "latency_s": null
+  }
+ ]
+}

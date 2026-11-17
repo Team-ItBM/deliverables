@@ -1,0 +1,12 @@
+{
+ "source": "docs/spikes/grounded_pact_eval.jsonl#H06 (v11 출력)",
+ "attempts": [
+  {
+   "raw_output": "{\"status\": \"conditional_only\", \"clauses\": null, \"positions\": [{\"response_id\": \"H06-A\", \"position\": {\"desired_action\": \"노을을 놓치지 않도록 지금 출발하고 싶음\", \"reason\": \"노을을 놓치고 싶지 않아서\"}}, {\"response_id\": \"H06-B\", \"position\": {\"desired_action\": \"소품숍에서 20분 보고 해변으로 가고 싶음\"}}, {\"response_id\": \"H06-C\", \"position\": {\"desired_action\": \"오늘 소품숍을 충분히 보고 싶으며 별도 차량 비용은 낼 수 없음\"}}], \"conditional_alternatives\": [{\"scenario_id\": \"sunset_window\", \"action\": \"방문 시간과 출발 희망이 다르고 차량을 함께 써야 할 때는, {{participant:A}}은/는 출발을 잠시 늦출 수 있는지, {{participant:C}}은/는 원하는 구경을 짧은 방문 안에 마칠 수 있는지 먼저 조율해요. 두 사람이 변경에 동의하면 {{participant:B}}의 방문 희망도 반영해 함께 구경한 뒤 이동하는 안을 추천해요. 별도 차량 비용을 부담하는 안은 전제로 두지 않아요.\", \"participant_ids\": [\"A\", \"B\", \"C\"], \"source_response_ids\": [\"H06-A\", \"H06-B\", \"H06-C\"], \"proposed_conditions\": [\"출발 전에 각자 필요한 방문 시간과 이동 시간을 함께 확인하고, 방문을 마칠 기준에 모두 동의한 뒤 이동해요.\"], \"required_changes\": [{\"source_response_id\": \"H06-A\", \"original_condition\": \"지금 출발하고 싶어요.\", \"proposed_change\": \"{{participant:A}}은/는 원하는 관람 시점을 지킬 수 있는 범위에서 다른 일행의 짧은 방문이 끝날 때까지 출발을 늦추는 안을 검토해요.\"}, {\"source_response_id\": \"H06-C\", \"original_condition\": \"오늘 소품숍을 충분히 보고 싶어요.\", \"proposed_change\": \"{{participant:C}}은/는 {{participant:B}}이/가 원하는 짧은 방문 시간 안에서 구경을 마치는 안을 검토해요. 별도 차량 비용을 내지 않는 한계는 유지해요.\"}]}], \"unresolved_conditions\": [{\"scenario_id\": \"sunset_window\", \"source_response_ids\": [\"H06-A\", \"H06-B\", \"H06-C\"], \"description\": \"{{participant:A}}의 즉시 출발 희망과 {{participant:B}}의 방문 시간은 공동 이동으로 함께 지키기 어려워요. {{participant:C}}에게 충분한 구경 시간이 어느 정도인지는 미확정이에요. 시간을 나누는 안은 출발 희망과 방문 범위를 조정해야 하고, 별도 차량 비용을 내는 안은 {{participant:C}}의 한계에 맞지 않아요. 변경 동의가 확인되기 전에는 함께 이동하는 조항을 확정하지 않아요.\"}], \"message\": \"함께 방문한 뒤 이동하는 안과 별도 이동을 검토했어요. 출발 시점과 구경 시간을 조정해야 가능한 대안이며, 아직 누구의 동의도 확인된 것은 아니에요.\"}",
+   "response_status": "completed",
+   "opened_template_ids": [],
+   "usage": null,
+   "latency_s": null
+  }
+ ]
+}

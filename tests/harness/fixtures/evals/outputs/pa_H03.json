@@ -1,0 +1,12 @@
+{
+ "source": "docs/spikes/grounded_pact_eval.jsonl#H03 (v11 출력)",
+ "attempts": [
+  {
+   "raw_output": "{\"status\": \"proposed\", \"clauses\": [{\"scenario_id\": \"ride_participation\", \"action\": \"함께 온 곳에서 활동 참여 여부가 다르면 원하는 사람끼리 참여하고 쉬는 사람은 기다리는 방식을 추천해요. {{participant:A}}과/와 {{participant:B}}, {{participant:C}}은/는 빠른 놀이기구를 함께 타고 싶은 바람을 조율하고, {{participant:D}}은/는 멀미 때문에 어떤 놀이기구도 타지 않는 한계를 지켜 쉬도록 해요. 활동을 고르기 전에 기다릴 공간과 필요한 시간, 다시 만날 방법을 함께 정해요.\", \"participant_ids\": [\"A\", \"B\", \"C\", \"D\"], \"source_response_ids\": [\"H03-A\", \"H03-B\", \"H03-C\", \"H03-D\"], \"proposed_conditions\": [\"활동을 고르기 전에 쉬며 기다릴 공간과 필요한 시간, 다시 만날 방법을 함께 정해요.\"]}], \"positions\": [{\"response_id\": \"H03-A\", \"position\": {\"desired_action\": \"빠른 놀이기구도 함께 타고 싶음\"}}, {\"response_id\": \"H03-B\", \"position\": {\"desired_action\": \"빠른 놀이기구도 함께 타고 싶음\"}}, {\"response_id\": \"H03-C\", \"position\": {\"desired_action\": \"빠른 놀이기구도 함께 타고 싶음\"}}, {\"response_id\": \"H03-D\", \"position\": {\"desired_action\": \"오늘은 어떤 놀이기구도 타지 않고 쉬는 공간에서 기다려도 괜찮음\", \"condition\": \"멀미가 심해서\", \"reason\": \"멀미가 심해서\"}}]}",
+   "response_status": "completed",
+   "opened_template_ids": [],
+   "usage": null,
+   "latency_s": null
+  }
+ ]
+}

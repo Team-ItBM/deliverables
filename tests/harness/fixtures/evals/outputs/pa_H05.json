@@ -1,0 +1,12 @@
+{
+ "source": "docs/spikes/grounded_pact_eval.jsonl#H05 (v11 출력)",
+ "attempts": [
+  {
+   "raw_output": "{\"status\": \"conditional_only\", \"clauses\": null, \"positions\": [{\"response_id\": \"H05-A\", \"position\": {\"desired_action\": \"추가 비용 없이 모두 함께 어느 후보로든 가고 싶으며 운전은 하지 않음\"}}, {\"response_id\": \"H05-B\", \"position\": {\"desired_action\": \"추가 2만 원을 내고 별도 차량으로 북쪽 후보에 가고 싶음\"}}, {\"response_id\": \"H05-C\", \"position\": {\"desired_action\": \"남쪽 후보에 모두 함께 가고 싶으며 추가 교통비는 낼 수 없음\"}}, {\"response_id\": \"H05-D\", \"position\": {\"desired_action\": \"두 후보보다 다른 곳에 함께 가고 싶으며 일행과 떨어져 이동하고 싶지 않음\"}}], \"conditional_alternatives\": [{\"scenario_id\": \"shared_vehicle\", \"action\": \"이동 수단이 하나이고 가고 싶은 곳이 다르면, {{participant:B}}은/는 원하는 방향을 바꿀 수 있고 {{participant:D}}은/는 다른 곳을 찾는 바람을 조정할 수 있을 때 {{participant:C}}의 추가 교통비 없는 이동과 원하는 방향을 함께 살리는 안을 검토해요. {{participant:A}}의 운전하지 않는 한계를 지키며 모두 함께 갈 수 있는지 확인해요. 두 사람의 변경 동의와 운전 가능한 동행의 자발적인 동의를 확인한 뒤 이동 방식을 정하는 걸 추천해요.\", \"participant_ids\": [\"A\", \"B\", \"C\", \"D\"], \"source_response_ids\": [\"H05-A\", \"H05-B\", \"H05-C\", \"H05-D\"], \"proposed_conditions\": [\"목적지 요구를 조정할 사람의 동의를 먼저 확인해요.\", \"{{participant:A}}에게 운전을 맡기지 않고, 다른 동행 중 운전 가능한 사람이 자발적으로 맡을 수 있는지 확인해요. 확인 전에는 공동 차량 이동을 확정하지 않아요.\"], \"required_changes\": [{\"source_response_id\": \"H05-B\", \"original_condition\": \"내가 원하는 곳은 북쪽 후보예요.\", \"proposed_change\": \"{{participant:B}}은/는 원하는 방향을 조정해 {{participant:C}}이/가 원하는 방향으로 함께 가는 안을 검토해요.\"}, {\"source_response_id\": \"H05-D\", \"original_condition\": \"두 후보보다 다른 곳을 원해요.\", \"proposed_change\": \"{{participant:D}}은/는 다른 곳을 찾는 바람을 조정해 {{participant:C}}이/가 원하는 후보로 모두 함께 가는 안을 검토해요.\"}]}], \"unresolved_conditions\": [{\"scenario_id\": \"shared_vehicle\", \"source_response_ids\": [\"H05-A\", \"H05-B\", \"H05-C\", \"H05-D\"], \"description\": \"함께 한 곳을 가면 원하는 방향이나 다른 곳을 찾는 바람의 조정이 필요해요. 따로 가는 방식은 {{participant:A}}과/와 {{participant:D}}의 함께 이동하는 바람을 충족하지 못하고, {{participant:C}}은/는 추가 교통비를 낼 수 없어요. {{participant:A}}은/는 운전하지 않으며 다른 동행의 운전 가능 여부와 동의도 확인되지 않았어요.\"}], \"message\": \"함께 이동하거나 나눠 가는 방식을 검토했지만 원래 바람을 모두 지키는 안은 찾지 못했어요. 원하는 방향과 목적지의 조정에 동의하고 운전 담당도 확인될 때 함께 이동하는 대안을 검토할 수 있어요.\"}",
+   "response_status": "completed",
+   "opened_template_ids": [],
+   "usage": null,
+   "latency_s": null
+  }
+ ]
+}

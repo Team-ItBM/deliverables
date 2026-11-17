@@ -1,0 +1,12 @@
+{
+ "source": "docs/spikes/grounded_pact_v11_regression_outputs.jsonl#P4 run_id v11-regression-20261007",
+ "attempts": [
+  {
+   "raw_output": "{\"status\": \"invalid_input\", \"clauses\": null, \"positions\": [], \"message\": \"{{participant:A}}의 free_time 응답에 문항에 없는 선택지가 포함되어 있어요.\"}",
+   "response_status": "completed",
+   "opened_template_ids": [],
+   "usage": null,
+   "latency_s": null
+  }
+ ]
+}
