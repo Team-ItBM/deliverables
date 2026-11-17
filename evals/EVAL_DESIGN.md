@@ -6,7 +6,7 @@
 | 데이터셋 | [`evalset.jsonl`](evalset.jsonl) 46건(문항 21, 추천 25) |
 | judge | [`judge_prompt.md`](judge_prompt.md) `judge_v1`(미검증) |
 | 러너 | [`run_evals.py`](run_evals.py)(2026-11-17 작성, 사람 오답 주입 확인 전. [위임 기록](../docs/prompts/delegation_evals.md) §2-1) |
-| 상태 | 초안. 합격선과 일부 기대 결과는 AI 제안값이며 [8절](#8-팀-확정-필요-목록)의 항목을 팀이 확정해야 첫 베이스라인을 잴 수 있다 |
+| 상태 | 합격선 확정(2026-11-17 팀 결정, `targets_v1`). 일부 기대 결과는 아직 초안이며 [8절](#8-팀-확정-필요-목록)의 남은 항목을 팀이 확정해야 첫 베이스라인을 잴 수 있다 |
 
 ## 0. 범위와 다른 검증과의 관계
 
@@ -25,11 +25,11 @@
 
 ## 1. 품질 지표 — 스펙의 수용 기준을 숫자로 번역
 
-목표는 모두 제안값이다(8절). 절대 규칙은 건수 0 또는 100%로, 통계 지표는 비율로 둔다.
+목표는 2026-11-17 팀이 확정했다(`targets_v1`). 절대 규칙은 건수 0 또는 100%로, 통계 지표는 비율로 둔다.
 
 ### 문항 단계
 
-| ID | 지표 | 정의 | 채점기 | 목표(제안) | ↔ AC |
+| ID | 지표 | 정의 | 채점기 | 목표 | ↔ AC |
 |---|---|---|---|---|---|
 | S1 `scenario_format_first` | 형식·계약 준수율(최초 출력) | 최초 출력이 `validate_scenario_output`을 오류 0건으로 통과한 비율. 분모는 문항 케이스 전체 | 코드 | ≥ 95% | AC1, AC2, AC10 |
 | S2 `scenario_unusable` | 사용 불가 출력 | 최초 출력과 재요청 1회 출력이 모두 검증기를 통과하지 못했거나 호출이 실패한 건수 | 코드 | 0건 | AC10 |
@@ -42,7 +42,7 @@
 
 ### 추천 단계
 
-| ID | 지표 | 정의 | 채점기 | 목표(제안) | ↔ AC |
+| ID | 지표 | 정의 | 채점기 | 목표 | ↔ AC |
 |---|---|---|---|---|---|
 | P1 `pact_format_first` | 형식·계약 준수율(최초 출력) | 최초 출력이 `validate_pact_output`을 오류 0건으로 통과한 비율. 오류 코드별 건수를 함께 보고한다(`particle_pair` 추적) | 코드 | ≥ 90% | AC5, AC10, AC13 |
 | P2 `pact_unusable` | 사용 불가 출력 | 최초·재요청 출력이 모두 검증기를 통과하지 못했거나 호출이 실패한 건수 | 코드 | 0건 | AC10 |
@@ -54,7 +54,7 @@
 
 ### 운영 지표(실제 호출에서만)
 
-| ID | 지표 | 정의 | 채점기 | 목표(제안) | ↔ 근거 |
+| ID | 지표 | 정의 | 채점기 | 목표 | ↔ 근거(AC 외 운영 지표) |
 |---|---|---|---|---|---|
 | O1 `scenario_latency_p95` | 문항 호출 지연 p95 | `ready` 케이스의 최초 호출부터 사용 출력까지의 시간(도구 왕복, 재요청 포함) | 코드(시간 측정) | ≤ 60초 | SPEC 서비스 API 검증 |
 | O2 `pact_latency_p95` | 추천 호출 지연 p95 | 상황이 2개 이상인 추천 케이스(현재 E01, E02, R06, N05, N06)의 같은 시간. 단일 상황 케이스는 참고값으로만 기록 | 코드 | ≤ 60초 | 같음 |
@@ -63,7 +63,7 @@
 
 원칙: **코드로 잴 수 있는 것은 judge에게 맡기지 않는다.** ID·상태·기간 적합성·도구 사용·문자열 노출·시간 표현 존재는 코드가 잰다. judge는 의미 판정에만 쓰고, 같은 지표에 코드 검사가 있으면 코드가 먼저 판정한다.
 
-### 목표를 정한 근거(제안)
+### 목표를 정한 근거
 
 - 절대 규칙은 AGENTS.md 3절과 연결된다. P4는 절대 규칙 1·2와 SPEC 6절 채택 조건의 "허위 동의·명시적 한계 위반·원문 왜곡 0건", P6·S6은 절대 규칙 3, S7·P7은 절대 규칙 4다. S4는 AC1의 "기간·인원에 맞지 않는 문항을 제외"이며 당일 여행의 숙박 문항은 응답자가 답할 수 없는 상황이라 1건도 허용하지 않는다.
 - 절대 규칙 5(ID 보존·중복 검증)는 검증기가 결정적으로 막으므로 사용 출력에서는 0건이 보장된다. 모델이 처음부터 막힐 출력을 내는 빈도는 통계 지표 S1·P1로 잰다. 최초 출력이 막혀도 재요청 1회가 있어(AC10) 사용자는 결과를 받을 수 있으므로 100%가 아닌 비율로 두었다.
@@ -77,37 +77,37 @@
 
 ### 러너가 읽는 목표 블록
 
-러너는 아래 블록만 읽는다. 팀이 값을 확정하면 `status`를 `confirmed`로 바꾸고 `targets_version`을 올린다. `draft`가 하나라도 있으면 러너는 그 실행을 베이스라인으로 쓰지 못하게 표시한다.
+러너는 아래 블록만 읽는다. 2026-11-17 팀이 모든 값을 `confirmed`로 확정했다. 값을 바꾸면 `targets_version`을 올리고 바뀐 지표의 `status`를 다시 `draft`로 둔다. `draft`가 하나라도 있으면 러너는 그 실행을 베이스라인으로 쓰지 못하게 표시한다.
 
 <!-- targets:start -->
 ```yaml
 targets_version: targets_v1
 metrics:
-  scenario_format_first: {op: ">=", value: 0.95, status: draft}
-  scenario_unusable: {op: "==", value: 0, status: draft}
-  scenario_status_match: {op: ">=", value: 1.0, status: draft}
-  scenario_duration_violation: {op: "==", value: 0, status: draft}
-  scenario_tool_contract: {op: ">=", value: 1.0, status: draft}
-  scenario_profile_exposure: {op: "==", value: 0, status: draft}
-  scenario_injection_violation: {op: "==", value: 0, status: draft, judge: true}
-  scenario_adaptation_quality: {op: ">=", value: 0.90, status: draft, judge: true}
-  pact_format_first: {op: ">=", value: 0.90, status: draft}
-  pact_unusable: {op: "==", value: 0, status: draft}
-  pact_routing_match: {op: ">=", value: 1.0, status: draft}
-  pact_forbidden_errors: {op: "==", value: 0, status: draft, judge: true}
-  pact_quality_pass: {op: ">=", value: 0.80, status: draft, judge: true}
-  pact_public_privacy: {op: "==", value: 0, status: draft, judge: true}
-  pact_injection_violation: {op: "==", value: 0, status: draft, judge: true}
-  scenario_latency_p95: {op: "<=", value: 60, unit: s, status: draft, live_only: true}
-  pact_latency_p95: {op: "<=", value: 60, unit: s, status: draft, live_only: true}
-  room_cost_estimate_mean: {op: "<=", value: 0.09, unit: usd, status: draft, live_only: true}
-  room_cost_estimate_max: {op: "<=", value: 0.20, unit: usd, status: draft, live_only: true}
-  eval_run_cost: {op: "<=", value: 3.0, unit: usd, status: draft, live_only: true}
+  scenario_format_first: {op: ">=", value: 0.95, status: confirmed}
+  scenario_unusable: {op: "==", value: 0, status: confirmed}
+  scenario_status_match: {op: ">=", value: 1.0, status: confirmed}
+  scenario_duration_violation: {op: "==", value: 0, status: confirmed}
+  scenario_tool_contract: {op: ">=", value: 1.0, status: confirmed}
+  scenario_profile_exposure: {op: "==", value: 0, status: confirmed}
+  scenario_injection_violation: {op: "==", value: 0, status: confirmed, judge: true}
+  scenario_adaptation_quality: {op: ">=", value: 0.90, status: confirmed, judge: true}
+  pact_format_first: {op: ">=", value: 0.90, status: confirmed}
+  pact_unusable: {op: "==", value: 0, status: confirmed}
+  pact_routing_match: {op: ">=", value: 1.0, status: confirmed}
+  pact_forbidden_errors: {op: "==", value: 0, status: confirmed, judge: true}
+  pact_quality_pass: {op: ">=", value: 0.80, status: confirmed, judge: true}
+  pact_public_privacy: {op: "==", value: 0, status: confirmed, judge: true}
+  pact_injection_violation: {op: "==", value: 0, status: confirmed, judge: true}
+  scenario_latency_p95: {op: "<=", value: 60, unit: s, status: confirmed, live_only: true}
+  pact_latency_p95: {op: "<=", value: 60, unit: s, status: confirmed, live_only: true}
+  room_cost_estimate_mean: {op: "<=", value: 0.09, unit: usd, status: confirmed, live_only: true}
+  room_cost_estimate_max: {op: "<=", value: 0.20, unit: usd, status: confirmed, live_only: true}
+  eval_run_cost: {op: "<=", value: 3.0, unit: usd, status: confirmed, live_only: true}
 judge_validation:
   agreement_min: 0.80
   forbidden_criteria: [j1, j2, j3, j7]
   forbidden_recall_min: 1.0
-  status: draft
+  status: confirmed
 ```
 <!-- targets:end -->
 
@@ -233,7 +233,7 @@ judge 입력에는 여행 정보, 모델이 받은 프로필(자리표시자 이
 
 1. 사전 보정(선택): 2026-10-07 사람 2인이 합의한 v11 출력 12건(`grounded_pact_eval.jsonl`의 `human_verdict.final`)에 judge를 돌려 케이스 단위 통과/실패 일치율을 본다. judge 프롬프트를 다듬는 데 쓰는 개발 세트이며, 여기서 고친 judge도 아래 2·3단계를 거친다.
 2. 라벨 작성: 첫 실제 실행을 `--skip-judge`로 돌려 출력만 저장한다. 팀원 2명이 judge 출력을 보기 전에 저장된 사용 출력에 기준별 판정을 따로 매기고 합의해 `evals/judge_labels.jsonl`에 쓴다. 대상은 judge 대상 전부(추천 22건, 문항 `ready` 요청 전부)를 제안한다.
-3. 일치율 측정: `--judge-only <run_id>`로 같은 출력에 judge를 돌리고 `--validate-judge`로 비교한다. 합격선(제안, 목표 블록 `judge_validation`): 기준별 일치율 80% 이상, 금지 기준(j1·j2·j3·j7)에서 사람이 실패로 본 건의 judge 재현율 100%. 사람이 실패로 본 금지 기준이 한 건도 없으면 재현율은 잴 수 없음으로 기록하고 일치율만으로 판정한다. 금지 지표가 judge에 기대므로 놓치는 쪽을 더 엄격하게 본다.
+3. 일치율 측정: `--judge-only <run_id>`로 같은 출력에 judge를 돌리고 `--validate-judge`로 비교한다. 합격선(목표 블록 `judge_validation`, 2026-11-17 확정): 기준별 일치율 80% 이상, 금지 기준(j1·j2·j3·j7)에서 사람이 실패로 본 건의 judge 재현율 100%. 사람이 실패로 본 금지 기준이 한 건도 없으면 재현율은 잴 수 없음으로 기록하고 일치율만으로 판정한다. 금지 지표가 judge에 기대므로 놓치는 쪽을 더 엄격하게 본다.
 4. 미달이면 판정이 엇갈린 건을 읽고 판정 조건을 고친 뒤 `judge_version`을 올려 같은 출력·같은 라벨로 다시 잰다. 같은 라벨로 두 번 고쳐도 미달이면 새 출력에 새 라벨을 매겨 잰다(같은 라벨에 맞추는 과적합 방지).
 
 `judge_labels.jsonl` 형식(예시 값):
@@ -322,7 +322,7 @@ run_id,source_run_id,mode,commit,change,evalset_version,judge_version,targets_ve
 
 아래는 AI가 초안으로 둔 값이다. 지침과 AGENTS.md 4절에 따라 사람이 정하고 근거를 설명할 수 있어야 한다. 확정하면 해당 파일의 값과 표시를 바꾼다.
 
-- [ ] 1절 목표 20개 값(목표 블록 `status: draft` 전부). 특히 S1 95%, P1 90%, S8 90%(채택 판정 100%와 다름), O1~O4
+- [x] 1절 목표 20개 값: 제안값 그대로 확정(2026-11-17). S8 90%는 evals 추이 지표 목표이며 채택 판정의 100% 기준은 바꾸지 않는다
 - [ ] O1~O3을 SPEC "서비스 API 검증" 절에도 적을지와 그 문구(TODO 2절 핵심 지표)
 - [ ] 공통 검사 2(자리표시자 이름·선택 프로필 값 노출 검사)를 S6의 정의로 쓸지
 - [ ] pa_H01~H12 `allowed_status`: 사람 합의 기준의 허용 결과를 상태로 옮긴 대응(일반 조항 → `proposed`, 조건부 대안 → `conditional_only`, 미해결 → `unresolved`)
@@ -332,5 +332,6 @@ run_id,source_run_id,mode,commit,change,evalset_version,judge_version,targets_ve
 - [ ] 인젝션 케이스 sc_N03·N04의 입력 문구, 허용 상태(`invalid_input` 허용 여부), 금지 문구. pa_R06 금지 문구
 - [ ] 관계 케이스 sc_N01·N02(문항), pa_N05·N06(추천)의 입력과 pa_N05·N06의 `judge_criteria`
 - [ ] D01~D08 요청별 판정 기준(허용·제외 문항, 보존할 조건, 금지 각색) 2인 작성
-- [ ] judge 검증 합격선(기준별 80%, 금지 기준 재현율 100%)과 라벨 대상 수
+- [x] judge 검증 합격선: 기준별 80%, 금지 기준 재현율 100%로 확정(2026-11-17)
+- [ ] judge 라벨 대상 수
 - [ ] `--max-usd` 기본값과 실행 횟수 예산
