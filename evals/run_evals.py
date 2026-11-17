@@ -685,6 +685,10 @@ async def run_case(case, ctx, reuse=None):
         rec["errors"].append({"code": exc.code, "detail": exc.detail})
         return finish_record(rec)
     rec["multi_scenario"] = stage == "pact" and len(model_input.get("scenarios") or []) >= 2
+    rec["input_sha256"] = sha256_text(canonical(model_input))
+    if reuse is not None and reuse.get("input_sha256") and reuse["input_sha256"] != rec["input_sha256"]:
+        rec["errors"].append({"code": "input_changed", "detail": "출력 실행 때와 모델 입력이 다르다"})
+        return finish_record(rec)
     if reuse is None:
         gen = await generate_case(case, stage, model_input, validator_for(stage, validation_input), ctx)
         rec["attempts"] = gen["attempts"]
@@ -1001,9 +1005,14 @@ async def run_main(args):
     reuse = {}
     if args.judge_only:
         source = json.loads((Path(args.results_dir) / f"{args.judge_only}.json").read_text(encoding="utf-8"))
-        if source["info"]["evalset_version"] != evalset_version:
-            raise EvalError("evalset_changed", f"{source['info']['evalset_version']} != {evalset_version}")
         reuse = {r["id"]: r for r in source["cases"]}
+        known = {c["id"] for c in all_cases}
+        missing = sorted(set(reuse) - known)
+        if missing:
+            raise EvalError("source_case_missing", ",".join(missing))
+        if source["info"]["evalset_version"] != evalset_version:
+            print(f"경고: 데이터셋이 출력 실행 뒤에 바뀌었다({source['info']['evalset_version']} -> {evalset_version}). "
+                  "입력이 같은 케이스만 다시 판정하고, 입력 해시가 다르면 오류로 남긴다.", file=sys.stderr)
         cases = [c for c in all_cases if c["id"] in reuse]
         mode = args.mode
     else:
@@ -1025,6 +1034,8 @@ async def run_main(args):
                     source_run_id=args.judge_only)
     incomplete = any(r["not_run"] or (r.get("judge") or {}).get("not_run") for r in records)
     full_set = len(cases) == len(all_cases)
+    if source is not None:
+        info["source_evalset_version"] = source["info"]["evalset_version"]
     info.update({"judge_validated": judge_validated, "cost_usd": total_cost, "incomplete": incomplete,
                  "judge_enabled": judge_enabled, "full_evalset": full_set,
                  "baseline_eligible": info["draft_cases"] == 0 and info["draft_targets"] == 0 and full_set and not incomplete

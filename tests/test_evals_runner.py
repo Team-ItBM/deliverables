@@ -81,8 +81,8 @@ def test_pool_table_covers_pool_and_duration_rule():
         run_evals.duration_violations({"duration_days": "며칠"}, output, table)
 
 
-def test_public_text_regex_groups_from_evalset():
-    groups = evalset_by_id()["pa_P1"]["expect"]["public_text_regex"]
+def test_public_text_regex_groups():
+    groups = [["(?<![가-힣])한 ?시간 ?이상", "1 ?시간 ?이상"], ["(?<![가-힣])한 ?시간(?! ?이상)", "1 ?시간(?! ?이상)"]]
     assert run_evals.regex_groups(groups, ["각자 필요한 시간을 정해요"]) == [False, False]
     assert run_evals.regex_groups(groups, ["A는 한 시간 이상 구경해요"]) == [True, False]
     assert run_evals.regex_groups(groups, ["B는 한 시간 쉬어요"]) == [False, True]
@@ -152,3 +152,25 @@ def test_stored_run_writes_result_and_history(tmp_path):
     assert rows[0]["run_id"] == "T1" and list(rows[0]) == list(run_evals.HISTORY_COLUMNS)
     assert payload["info"]["baseline_eligible"] is False
     assert {r["id"] for r in payload["cases"]} == {"sc_D01", "pa_P2"}
+
+
+def test_judge_only_rejudges_after_expect_change_but_not_input_change(tmp_path):
+    original = tmp_path / "evalset_a.jsonl"
+    cases = [json.loads(line) for line in run_evals.EVALSET_PATH.read_text(encoding="utf-8").splitlines() if line.strip()]
+    keep = [c for c in cases if c["id"] in ("pa_H01", "pa_P2")]
+    original.write_text("\n".join(json.dumps(c, ensure_ascii=False) for c in keep), encoding="utf-8")
+    first = run_evals.parse_args(["--mode", "stored", "--evalset", str(original), "--results-dir", str(tmp_path),
+                                  "--run-id", "OUT", "--skip-judge"])
+    asyncio.run(run_evals.run_main(first))
+    changed = tmp_path / "evalset_b.jsonl"
+    keep[0]["expect"]["forbidden_text"] = ["존재하지-않는-문구"]
+    keep[1]["query"] = {"participant_ids": [], "scenarios": [], "responses": [], "request": "다른 입력"}
+    changed.write_text("\n".join(json.dumps(c, ensure_ascii=False) for c in keep), encoding="utf-8")
+    second = run_evals.parse_args(["--mode", "stored", "--evalset", str(changed), "--results-dir", str(tmp_path),
+                                   "--run-id", "J", "--judge-only", "OUT"])
+    payload = asyncio.run(run_evals.run_main(second))
+    recs = {r["id"]: r for r in payload["cases"]}
+    assert recs["pa_H01"]["code"]["forbidden_text"]["pass"] is True
+    assert recs["pa_H01"]["judge"]["pass"] is True
+    assert [e["code"] for e in recs["pa_P2"]["errors"]] == ["input_changed"]
+    assert payload["info"]["source_evalset_version"] != payload["info"]["evalset_version"]
