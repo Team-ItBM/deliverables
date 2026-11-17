@@ -18,16 +18,16 @@
 | `src/travel/schemas/pact_recommendation.schema.json` | 추천 출력 계약 v4 | 강의 3 | |
 | `src/travel/prompts/prepare_scenarios.md` | 문항 선정·각색 프롬프트 v9(목록 + 도구, 조사 쌍 표기) | 강의 3 | 반영됨(2026-11-05, v9-candidate 적용 + 조사 쌍 규칙) |
 | `src/travel/prompts/generate_pact.md` | 입장 추출·추천 생성 프롬프트 v12 | 강의 3 | |
-| `src/travel/scenarios.py` | 문항 단계 오케스트레이션, 후처리(진입점 `validate_scenario_output(scenario_input, raw_output)`이 `route_scenario_result` 등을 호출한다) | 강의 3 함수 인터페이스, 강의 5 | 후처리: 구현됨(2026-11-04 수용, `b10a351`) / 오케스트레이션: `src/travel/server/jobs.py`에 구현됨(2026-11-05) |
+| `src/travel/scenarios.py` | 문항 출력 후처리(진입점 `validate_scenario_output(scenario_input, raw_output)`이 `route_scenario_result` 등을 호출한다) | 강의 3 함수 인터페이스, 강의 5 | 후처리: 구현됨(2026-11-04 수용, `b10a351`) / 오케스트레이션: `src/travel/server/jobs.py`에 구현됨(2026-11-05) |
 | `src/travel/pool.py` | pool 로드·목록 생성·`lookup_template` | 강의 3 함수 인터페이스 | 구현됨(목록 생성 2026-11-04 수용, `4b71a88`) |
 | `src/travel/tools/scenario_tools.py` | `get_scenario_template` 도구(모델 호출 → `lookup_template` 연결) | 강의 6 | 구현됨(2026-11-04 수용, `01da8ef`). 제품 경로에서는 `src/travel/server/llm_openai.py`가 호출한다 |
-| `src/travel/pact.py` | 추천 단계 호출·후처리. 후처리 진입점 `validate_pact_output(pact_input, raw_output)`이 `validate_positions`, `route_pact_result` 등을 호출한다 | 강의 3 함수 인터페이스, 강의 5 | 후처리: 구현됨(강의 5) / 호출: `src/travel/server/jobs.py`에 구현됨(2026-11-05) |
+| `src/travel/pact.py` | 추천 출력 후처리. 진입점 `validate_pact_output(pact_input, raw_output)`이 `validate_positions`, `route_pact_result` 등을 호출한다 | 강의 3 함수 인터페이스, 강의 5 | 후처리: 구현됨(강의 5) / 호출: `src/travel/server/jobs.py`에 구현됨(2026-11-05) |
 | `tests/harness/golden_cases.yaml`, `tests/test_pact_golden.py` | 추천 출력 검증기의 골든 케이스 30개와 테스트 하니스(형식·상태 조합·근거·인용·응답 연결·참여자 토큰과 조사·메모 인용) | 강의 5 | 반영됨, 30/30 통과 |
 | `tests/harness/scenario_cases.yaml`, `tests/harness/fixtures/scenario/`, `tests/test_scenario_golden.py` | 문항 출력 검증기의 골든 케이스 46개, 기준 fixture 8개, 테스트 하니스(형식·상태 조합·요청 수·문항 ID와 판단 중복·선택지 ID 순서·인물 토큰·`scene` 줄 수) | 강의 5 | 수용됨(2026-11-04, `14b84ae`). 46/46 통과 |
 | `tests/test_tools.py` | 도구 계약 테스트 | 강의 6 | 수용됨(2026-11-04). 21/21 통과 |
 | `tests/test_pool.py` | pool 계약 테스트(목록 생성·`lookup_template`) | 강의 6 | 수용됨(2026-11-04, `d790d26`). 28/28 통과 |
 | `src/travel/server/app.py`, `db.py`, `jobs.py` | FastAPI 앱(§0-B 사용자 API는 `app.py` 한 파일), PostgreSQL 스키마(rooms·profiles·sessions·submissions·responses·results·push_subscriptions·notifications·llm_calls), 생성 작업·재시도·한도·멈춤 판정·시도 ID | 강의 4 SPEC 5절, 강의 6 | 구현됨(2026-11-05). 판정 수용(결함 주입 d0~d28). PR #16 리뷰로 문항 시도 ID·복구, 풀 복구, 비용 장부를 더했다 |
-| `src/travel/server/llm.py`, `llm_openai.py`, `replay.py` | 모델 호출 경계(`generate(stage, model_input, repair_errors) -> LLMResult`), openai SDK 클라이언트(Sol Responses API, `text.format` json_schema `strict: false` 명시, `tools` function `strict: true`, `store: false`, 문항 단계 도구 루프·호출 상한 12회·전송부 해시 대조), 저장 출력 재생 모드(`replay.py`: 실제 Sol 문항 출력 1건 + 코드로 합성한 추천) | 강의 3, 강의 6 | 구현됨(2026-11-05). 도구 루프는 `tests/test_llm_loop.py` 8개(가짜 전송 계층) 통과. 실제 호출은 방 10개로 측정했다(2026-11-05, [서비스 위임 기록 §2-4](prompts/delegation_service.md)). 현재 입력(`core_constraints` 포함)으로는 미측정 |
+| `src/travel/server/llm.py`, `llm_openai.py`, `replay.py` | 모델 호출 경계(`generate(stage, model_input, repair_errors) -> LLMResult`), openai SDK 클라이언트(Sol Responses API, `text.format` json_schema `strict: false` 명시, `tools` function `strict: true`, `store: false`, 문항 단계 도구 루프·호출 상한 12회·전송부 해시 대조), 저장 출력 재생 모드(`replay.py`: 실제 Sol 문항 출력 1건 + 코드로 합성한 추천) | 강의 3, 강의 6 | 구현됨(2026-11-05). 도구 루프는 `tests/test_llm_loop.py` 8개(가짜 전송 계층) 통과. 실제 호출은 방 10개로 측정했다(2026-11-05, [서비스 위임 기록 §2-4](prompts/delegation_service.md)). 현재 문항 v9·pool v3의 호출 측정은 [evals 초기 결과](../evals/results/2026-11-17T1530.json)에 있다 |
 | `src/travel/server/render.py` | profile·participant 토큰 치환과 조사 5쌍 처리, 공유 결과(§0-C)·`editable` 조각. 화면과 이미지가 같은 결과 텍스트를 쓴다 | 강의 4 SPEC 5절 | 구현됨(2026-11-05) |
 | `src/travel/server/push.py`, `main.py` | 이벤트 단위 중복 방지(`ready:N`·`failed:N`·`selected`), 발송기 경계. `main.py`가 pywebpush 발송기와 운영 설정(환경변수·`config/llm.yaml`)을 묶어 `uvicorn travel.server.main:app`으로 뜬다 | 강의 4 SPEC 알림 정책 | 구현됨(2026-11-05). 구독 주소 제한과 등록 멱등성은 2026-11-05 추가. 실제 푸시 발송은 미확인 |
 | `src/travel/server/admin.py` | 방 단위 삭제 명령 `python -m travel.server.admin delete-room <room_code>`(F7 전 수동 삭제, F7의 기반) | 강의 4 SPEC 만료 정책 | 구현됨(2026-11-05, cascade 삭제 로컬 확인) |
@@ -38,7 +38,7 @@
 | `tests/test_server_*.py`, `tests/test_llm_loop.py`, `docs/prompts/delegation_server.md`, `docs/prompts/delegation_service.md` | 기존 서버 계약 테스트(2026-11-05 케이스 ID 10개, 86개), `test_server_browser_controls.py`의 방 삭제와 알림 제어, 편집 응답 회귀 검사, 도구 루프 테스트 8개와 위임 기록 | 강의 5 | 구조 수용과 판정 수용(2026-11-05, 결함 주입 d0~d28, C2·C7). 하니스 약점 3건은 PR #16 리뷰 회차에서 고치고 해당 결함을 다시 주입했다 |
 | `docs/PRIVACY.md` | 개인정보 처리방침 공개본(SPA 첫 화면·방 생성·이름 선택 화면에서 링크) | 강의 4 SPEC 운영 정책 | 공개본 작성(2026-11-05, AI 검토·전문가 미검토, 시행일 2026-11-06) |
 
-2026-11-12 피드백 반영: 방장 직접 삭제는 문항 준비 또는 협약서 생성 중에는 거부한다. 사용자 삭제와 관리자 삭제 모두 같은 트랜잭션에서 호출 장부의 `room_id`를 NULL로 바꾼 뒤 방을 삭제한다. 나머지 방 자료는 기존 외래키 연관 삭제로 지운다. 푸시 상태 조회·해제는 같은 방·기기의 endpoint로 범위를 제한한다. 화면은 PNG를 미리 준비해 다운로드와 공유를 구분하고, 선택본을 중심으로 후보를 접어 보여 준다. DB 스키마와 모델 호출 경로는 바꾸지 않는다. 실기기 검증 상태는 TODO에서 관리한다.
+2026-11-12 피드백 반영: 방장 직접 삭제는 문항 준비 또는 협약서 생성 중에는 거부한다. 사용자 삭제와 관리자 삭제 모두 같은 트랜잭션에서 호출 장부의 `room_id`를 NULL로 바꾼 뒤 방을 삭제한다. 나머지 방 자료는 기존 외래키 연관 삭제로 지운다. 푸시 상태 조회·해제는 같은 방·기기의 endpoint로 범위를 제한한다. 화면은 PNG를 미리 준비해 다운로드와 공유를 구분하고, 선택본을 중심으로 후보를 접어 보여 준다. DB 스키마와 모델 호출 경로는 바꾸지 않는다. 실기기 확인은 [서비스 위임 기록 §2-12](prompts/delegation_service.md#2-12-배포-확인과-실제-기기-2026-11-06-전민규에이전트-claude)에, 후속 작업은 [TODO](../TODO.md)에 있다.
 
 오케스트레이션은 별도 프레임워크 없이 함수 조합으로 둔다. 이유는 5절.
 

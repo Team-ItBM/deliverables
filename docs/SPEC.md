@@ -166,6 +166,19 @@ EARS 문형으로 조건·서비스·동작을 명시한다. 케이스 ID는 구
 
 AC6~AC9의 자동 발급 채택 조건은 [스파이크](spikes/grounded_pact.md)에서 사전에 정한 평가 세트의 80% 이상 통과와 허위 동의·명시적 한계 위반·원문 왜곡 0건이다. 구조 검사만 통과한 건은 최종 통과로 세지 않는다. 통과는 고정한 평가 세트에서 금지 오류가 나오지 않았고 채택 기준을 충족했다는 뜻이며, 이후 모든 출력의 무오류를 보장하지 않는다. 평가한 모델·프롬프트·pool·스키마 조합을 기록하고 조합이 바뀌면 다시 평가한다. 실제 참여자에게 공개할 조합의 판정은 공개 전에 끝낸다. 여기서 실제 참여자는 실제 여행 그룹이다. 2026-11-11~18 동료 평가는 가상 입력으로 하는 체험이라 품질 판정 전에 공개하고, 실제 여행 그룹은 사람 판정 뒤에 받는다(2026-11-07 팀 결정). 명확한 요구를 근거 없이 제외하거나 한계를 무시한 일부안을 만들면 건별 실패이다. 전체 정보 부족·전체 미해결·인젝션·호출 오류와 신규 운영 정책의 AC는 별도로 검증한다.
 
+### MVP 구현과 검증 대응
+
+| AC | 구현 | 판정 자료 |
+| --- | --- | --- |
+| AC1·AC2·AC15 | `scenarios.py`, `pool.py`, `tools/scenario_tools.py`, `server/jobs.py`, `server/render.py` | [문항 골든](../tests/harness/scenario_cases.yaml), [서버 케이스](../tests/harness/server_cases.yaml)의 `scenario_input`·`profile_rendering`, [문항 evals](../evals/EVAL_DESIGN.md#문항-단계) |
+| AC3·AC4·AC16 | `server/app.py`, `server/jobs.py`, `server/render.py` | [서버 케이스](../tests/harness/server_cases.yaml)의 `response_privacy`·`response_closure`·`duplicate_name`, [추천 evals P6](../evals/EVAL_DESIGN.md#추천-단계) |
+| AC5~AC9·AC11 | `pact.py`, `scenarios.py`, 문항·추천 프롬프트 | [추천 골든](../tests/harness/golden_cases.yaml), [문항 골든](../tests/harness/scenario_cases.yaml), [evals 지표와 의미 판정](../evals/EVAL_DESIGN.md) |
+| AC10·AC12·AC13·AC17·AC18 | `server/jobs.py`, `server/app.py`, `server/render.py`, `server/push.py`, `web/` | [서버 케이스](../tests/harness/server_cases.yaml)의 `output_validation`·`host_edit`·`result_export`·`regeneration`·`push_events` |
+| AC14 | `web/` | [실기기 확인 기록](prompts/delegation_service.md#2-12-배포-확인과-실제-기기-2026-11-06-전민규에이전트-claude), [README 확인 방법](../README.md#확인-방법) |
+| AC20 | `server/app.py`, `server/admin.py` | [방 삭제·비용 장부·실패 복구 검사](../tests/test_server_browser_controls.py) |
+
+구현 경로는 `src/travel/` 기준이며, 화면은 저장소 루트의 `web/`에 있습니다. 각 테스트의 실행 명령과 결함 주입 기록은 [README 검증](../README.md#검증)에서 연결합니다.
+
 ### 서비스 API 검증
 
 Sol 서비스 API는 [문항 스키마 v2](../src/travel/prompts/prepare_scenarios.md#b-스키마-규칙)와 추천 스키마 v4를 `text.format`의 `strict: false`로 수용한다(2026-11-05 확인, [스파이크](spikes/scenario_tool_call.md)). 방 500건의 전체 흐름을 기준으로 캐시·추론 토큰·실패 재시도·정상 결과 재생성을 포함해 예산을 확인한다. 총 크레딧 예산은 $100이고 방당 상한은 $0.20이다(2026-11-04 팀 결정). 2026-11-05 실제 호출 10회 측정에서 방당 비용은 $0.045~$0.123(평균 $0.083)였다([서비스 위임 기록 §2-4](prompts/delegation_service.md)). 평가·개발 호출도 같은 예산을 쓴다. 배분은 서비스 $45, 7강 평가 $25, 개발·회귀·리허설 $15, 예비 $15이며 측정 뒤 다시 나눌 수 있다(2026-11-05 팀 결정). 모델 출력 검사 결과를 API 연동·비용·지연의 측정값으로 사용하지 않는다.
