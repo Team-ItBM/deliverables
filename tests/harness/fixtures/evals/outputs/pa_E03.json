@@ -1,0 +1,12 @@
+{
+ "source": "docs/spikes/grounded_pact_v11_regression_outputs.jsonl#E03 run_id v11-regression-20261007",
+ "attempts": [
+  {
+   "raw_output": "{\"status\": \"unresolved\", \"clauses\": null, \"positions\": [{\"response_id\": \"e3_a\", \"position\": {\"desired_action\": \"반드시 둘이 함께 걸어서 이동해야 하며 차량 이용, 분리 이동, 이동 취소, 번갈아 이동과 조건 변경은 불가능함\"}}, {\"response_id\": \"e3_b\", \"position\": {\"desired_action\": \"반드시 둘이 함께 차량으로 이동해야 하며 걷기, 분리 이동, 이동 취소, 번갈아 이동과 조건 변경은 불가능함\"}}], \"unresolved_conditions\": [{\"scenario_id\": \"walk_or_ride\", \"source_response_ids\": [\"e3_a\", \"e3_b\"], \"description\": \"{{participant:sub_1}}은/는 함께 걷는 이동만, {{participant:sub_2}}은/는 함께 차량을 타는 이동만 가능해요. 함께 이동하기, 따로 이동하기, 이동을 취소하거나 번갈아 하기와 조건을 조정하는 대안을 검토했지만, 두 사람 모두 다른 방식과 조건 변경을 허용하지 않아 추천할 안을 찾지 못했어요. 재검토하려면 함께 이동할 수단이나 다른 방식의 허용 범위가 달라져야 해요.\"}], \"message\": \"함께 이동하거나 따로 이동하는 방식과 취소·번갈아 이동·조건 조정을 검토했어요. {{participant:sub_1}}의 함께 걷기와 {{participant:sub_2}}의 함께 차량 타기 조건을 모두 지키는 안은 찾지 못했어요. 현재는 조건 변경도 허용하지 않아 대안을 제안하기 어려워요.\"}",
+   "response_status": "completed",
+   "opened_template_ids": [],
+   "usage": null,
+   "latency_s": null
+  }
+ ]
+}

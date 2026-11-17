@@ -1,0 +1,12 @@
+{
+ "source": "docs/spikes/grounded_pact_v11_regression_outputs.jsonl#P5 run_id v11-regression-20261007",
+ "attempts": [
+  {
+   "raw_output": "{\"status\": \"unsupported\", \"clauses\": null, \"positions\": [], \"message\": \"여행 궁합을 점수로 평가하는 요청은 지원하지 않아요. 가상 상황의 응답을 바탕으로 여행 중 사용할 조율 조항을 추천할 수 있어요.\"}",
+   "response_status": "completed",
+   "opened_template_ids": [],
+   "usage": null,
+   "latency_s": null
+  }
+ ]
+}

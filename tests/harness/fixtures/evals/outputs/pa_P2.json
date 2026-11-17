@@ -1,0 +1,12 @@
+{
+ "source": "docs/spikes/grounded_pact_v11_regression_outputs.jsonl#P2 run_id v11-regression-20261007",
+ "attempts": [
+  {
+   "raw_output": "{\"status\": \"needs_information\", \"clauses\": null, \"positions\": [], \"message\": \"추천에 포함된 {{participant:C}}의 free_time 답변이 빠져 있어요.\"}",
+   "response_status": "completed",
+   "opened_template_ids": [],
+   "usage": null,
+   "latency_s": null
+  }
+ ]
+}

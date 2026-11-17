@@ -1,0 +1,12 @@
+{
+ "source": "docs/spikes/grounded_pact_eval.jsonl#H12 (v11 출력)",
+ "attempts": [
+  {
+   "raw_output": "{\"status\": \"proposed\", \"clauses\": [{\"scenario_id\": \"afternoon_rest\", \"action\": \"오후에 쉬는 방식과 다시 움직이고 싶은 때가 다르면 각자 필요한 휴식 시간을 먼저 맞춰 봐요. {{participant:A}}은/는 충분히 혼자 쉬고 저녁에 합류하고, {{participant:B}}은/는 짧게 앉아서 쉰 뒤 근처를 둘러보고, {{participant:C}}은/는 숙소에서 쉬다가 저녁 식사 때 만나는 방식을 추천해요. 따로 움직이기 전에 각자 필요한 시간과 저녁에 다시 만날 시간·장소를 함께 정해요.\", \"participant_ids\": [\"A\", \"B\", \"C\"], \"source_response_ids\": [\"H12-A\", \"H12-B\", \"H12-C\"], \"proposed_conditions\": [\"따로 시간을 보내기 전에 각자 필요한 휴식 시간과 다시 만날 시간·장소를 함께 정해요.\"]}], \"positions\": [{\"response_id\": \"H12-A\", \"position\": {\"desired_action\": \"혼자 40분 이상 쉬고 저녁에 합류하고 싶음\"}}, {\"response_id\": \"H12-B\", \"position\": {\"desired_action\": \"15분 정도 앉아서 쉰 뒤 근처를 보고 싶음\"}}, {\"response_id\": \"H12-C\", \"position\": {\"desired_action\": \"오후에는 숙소에서 쉬고 저녁 식사 때 만나고 싶음\"}}]}",
+   "response_status": "completed",
+   "opened_template_ids": [],
+   "usage": null,
+   "latency_s": null
+  }
+ ]
+}

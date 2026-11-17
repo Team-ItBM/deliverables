@@ -1,0 +1,4 @@
+{
+ "source": "러너 기계 확인용 합성 응답. 판정 근거 아님",
+ "raw_output": "{\"criteria\": {\"j1\": {\"reason\": \"러너 기계 확인용 합성 판정\", \"pass\": true}, \"j2\": {\"reason\": \"러너 기계 확인용 합성 판정\", \"pass\": true}, \"j3\": {\"reason\": \"러너 기계 확인용 합성 판정\", \"pass\": true}, \"j4\": {\"reason\": \"러너 기계 확인용 합성 판정\", \"pass\": true}, \"j5\": {\"reason\": \"러너 기계 확인용 합성 판정\", \"pass\": true}, \"j6\": {\"reason\": \"러너 기계 확인용 합성 판정\", \"pass\": true}, \"j7\": {\"reason\": \"러너 기계 확인용 합성 판정\", \"pass\": true}, \"j8\": {\"reason\": \"해당하지 않음(합성)\", \"pass\": null}}, \"overall_note\": \"\"}"
+}

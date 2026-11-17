@@ -1,0 +1,12 @@
+{
+ "source": "docs/spikes/grounded_pact_eval.jsonl#H11 (v11 출력)",
+ "attempts": [
+  {
+   "raw_output": "{\"status\": \"proposed\", \"clauses\": [{\"scenario_id\": \"restaurant_full\", \"action\": \"식당을 바로 이용하기 어렵고 식사 방식이 다르면, {{participant:A}}은/는 바로 식사할 수 있는 곳을 이용하고 {{participant:B}}은/는 다른 식당을 이용한 뒤 다음 약속에 맞춰 합류하는 방식을 추천해요. 헤어지기 전에 이동·식사에 필요한 시간과 재합류 방법을 정해요. {{participant:C}}의 식당 선택과 피하고 싶은 상황은 미확정이므로 함께 이동하거나 따로 식사한다고 전제하지 않아요.\", \"participant_ids\": [\"A\", \"B\"], \"source_response_ids\": [\"H11-A\", \"H11-B\"], \"proposed_conditions\": [\"따로 식사하기 전에 다음 약속을 지킬 수 있도록 이동·식사에 필요한 시간과 다시 만날 장소·연락 방법을 정해요.\"]}], \"positions\": [{\"response_id\": \"H11-A\", \"position\": {\"desired_action\": \"바로 들어갈 수 있는 식당에서 먹고 싶음\", \"condition\": \"배가 고파서\", \"reason\": \"배가 고파서\"}}, {\"response_id\": \"H11-B\", \"position\": {\"desired_action\": \"다른 식당에서 따로 먹어도 괜찮으며 다음 예약에 맞춰 합류하고 싶음\"}}, {\"response_id\": \"H11-C\", \"position\": {\"desired_action\": null}}], \"unresolved_conditions\": [{\"scenario_id\": \"restaurant_full\", \"source_response_ids\": [\"H11-C\"], \"description\": \"{{participant:C}}은/는 이전과 같은 상황을 피하고 싶지만, 피하려는 상황과 원하는 식당·식사 방식은 확인되지 않았어요. 함께 식사하기와 따로 식사하기를 검토해도 어느 방식이 이 바람을 지키는지 판단하기 어려워 조항의 행동 대상으로 정하지 않았어요.\"}]}",
+   "response_status": "completed",
+   "opened_template_ids": [],
+   "usage": null,
+   "latency_s": null
+  }
+ ]
+}

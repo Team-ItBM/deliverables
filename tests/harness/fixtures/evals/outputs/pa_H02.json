@@ -1,0 +1,12 @@
+{
+ "source": "docs/spikes/grounded_pact_eval.jsonl#H02 (v11 출력)",
+ "attempts": [
+  {
+   "raw_output": "{\"status\": \"proposed\", \"clauses\": [{\"scenario_id\": \"separate_menu\", \"action\": \"식당 취향이 다르면 함께 먹고 싶은 사람끼리 식사하고 다시 만나는 걸 추천해요. {{participant:A}}은/는 원하는 생선 식당에서 따로 먹을 수 있고, {{participant:B}}은/는 생선 요리를 피하면서 원하는 면 식당에서 함께 먹을 수 있도록 {{participant:C}}과/와 동행 여부를 정해요. 식사 뒤 다시 만나고 싶은 {{participant:C}}의 바람을 반영해 헤어지기 전에 재합류 시간과 장소를 함께 정해요.\", \"participant_ids\": [\"A\", \"B\", \"C\"], \"source_response_ids\": [\"H02-A\", \"H02-B\", \"H02-C\"], \"proposed_conditions\": [\"{{participant:B}}과/와 {{participant:C}}은/는 함께 식사할지 정해요.\", \"따로 식사하기 전에 다시 만날 시간과 장소를 함께 정해요.\"]}], \"positions\": [{\"response_id\": \"H02-A\", \"position\": {\"desired_action\": \"생선 식당에서 먹고 싶으며 따로 먹어도 괜찮음\"}}, {\"response_id\": \"H02-B\", \"position\": {\"desired_action\": \"면 요리 식당에서 함께 먹고 싶으며 생선 요리는 먹고 싶지 않음\"}}, {\"response_id\": \"H02-C\", \"position\": {\"desired_action\": \"어느 식당이든 괜찮으며 식사 뒤 다시 만나고 싶음\"}}]}",
+   "response_status": "completed",
+   "opened_template_ids": [],
+   "usage": null,
+   "latency_s": null
+  }
+ ]
+}
