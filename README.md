@@ -334,14 +334,15 @@ API 키가 없으면 `LLM_MODE=live OPENAI_API_KEY=<API 키>` 대신 `LLM_MODE=r
 
 ### 검증
 
+| 대상 | 골든 케이스 | 테스트 코드 | 결함 주입·검증 기록 |
+| --- | --- | --- | --- |
+| 추천 | [golden_cases.yaml](tests/harness/golden_cases.yaml) | [test_pact_golden.py](tests/test_pact_golden.py) | [결함 주입](docs/prompts/강의05_위임대상_골든케이스.md#c-테스트-하니스-위임) · [위임·수용](docs/prompts/delegation_pact_validation.md) |
+| 문항 | [scenario_cases.yaml](tests/harness/scenario_cases.yaml) | [test_scenario_golden.py](tests/test_scenario_golden.py) | [결함 주입·수용](docs/prompts/delegation_scenarios.md#2-1-골든-케이스테스트-하니스-위임-2026-11-04-1회차) |
+| 서버 | [server_cases.yaml](tests/harness/server_cases.yaml) | [test_server_harness.py](tests/test_server_harness.py) · [test_server_*.py](tests/) | [결함 주입·수용](docs/prompts/delegation_server.md#2-4-판정-수용-결함-주입-d0d28-c2c7-2026-11-05-검증-에이전트-claude) · [보완 후 재검사](docs/prompts/delegation_server.md#2-5-하니스-약점-수정과-결함-재주입-2026-11-05-에이전트-claude-pr-16-리뷰-13번) |
 
-| 확인 내용     | 위치                                                                                                                                                                                                          |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 골든 케이스    | [추천](tests/harness/golden_cases.yaml), [문항](tests/harness/scenario_cases.yaml), [서버](tests/harness/server_cases.yaml)                                                                                       |
-| 테스트 코드    | [tests/](tests/)                                                                                                                                                                                            |
-| 위임과 검증 기록 | [서버](docs/prompts/delegation_server.md), [서비스](docs/prompts/delegation_service.md), [문항](docs/prompts/delegation_scenarios.md), [추천 검증](docs/prompts/delegation_pact_validation.md), [전체 목록](docs/prompts/) |
-| 에이전트 하니스  | [AGENTS.md](AGENTS.md), [CLAUDE.md](CLAUDE.md), [`.claude/`](.claude/), [PR 검사 워크플로](.github/workflows/pr-check.yml)                                                                                        |
+서버는 케이스의 `case_id`에 따라 `tests/test_server_<case_id>.py`에서 검사합니다. 전체 실행 명령은 [테스트](#테스트)에 있습니다.
 
+서비스 구현·검증은 [서비스 위임 기록](docs/prompts/delegation_service.md)에, 나머지 위임 기록은 [docs/prompts/](docs/prompts/)에 있습니다. 에이전트 하니스는 [AGENTS.md](AGENTS.md), [CLAUDE.md](CLAUDE.md), [`.claude/`](.claude/), [PR 검사 워크플로](.github/workflows/pr-check.yml)에서 확인할 수 있습니다.
 
 ### 품질 측정(evals)
 
@@ -368,14 +369,29 @@ python evals/run_evals.py --mode live --judge-only <출력 실행ID> --change "<
 python evals/run_evals.py --validate-judge evals/judge_labels.jsonl --run <judge 실행ID>
 ```
 
-2026-11-17 첫 측정 결과입니다(문항 프롬프트 v9, 추천 프롬프트 v12, `gpt-6.1-sol`). 출력 실행은 `2026-11-17T1530`, judge 판정은 `2026-11-17T1722`입니다.
+2026-11-17 초기 측정 결과입니다. 출력은 [`2026-11-17T1530`](evals/results/2026-11-17T1530.json), 검증 후 judge 판정은 [`2026-11-17T1731`](evals/results/2026-11-17T1731.json)을 기준으로 합니다.
 
-- 문항 21건: 형식·상태 기대 21/21, 기간 부적합 문항 0, 도구 계약 17/17, 프로필 노출 0, 각색 의미 보존 17/17(judge).
-- 추천 25건: 최초 출력 형식 24/25(E01 이름 조사 오류, 재요청 1회로 통과), 상태 라우팅 6/6, 조율 품질 16/22(목표 80% 미달), 금지 오류 2건(H04, H08: 명시적 한계의 숫자가 공유 문장에서 흐려짐), 공개 문장 개인정보 2건(H03 멀미, P7 무릎). 두 절대 규칙 지표는 목표 0건을 넘었습니다.
-- 운영: 지연 p95 문항 27.6초, 추천 31.6초. 방당 추정 비용 평균 $0.066, 최대 $0.108. 실행 비용 $1.00(judge 별도 $0.37).
-- judge 검증: judge_v1은 사람 라벨과의 일치율이 j1 0.7, j2 0.5, j5 0.6으로 미달이었습니다. 원인을 고친 judge_v2는 기준별 일치율 0.9 이상, 금지 기준 재현율 1.0으로 합격했습니다. 경과는 [설계서 3절 judge 검증 기록](evals/EVAL_DESIGN.md#judge-검증-기록)에 있습니다.
+| 평가 조건 | 값 |
+| --- | --- |
+| 모델·버전 | `gpt-6.1-sol`, 추론 `low`, 문항 v9·추천 v12·pool v3 |
+| 데이터셋 | 46건(문항 21, 추천 25), `46 cases, 819e830`. 출력 생성 시 데이터셋은 `46 cases, dad8ff7` |
+| 기대 조건 | 초안이 포함된 케이스 26건, `baseline_eligible=false` |
+| 추천 judge 검증 | `judge_v2`, 사람 1인이 라벨한 추천 10건. 기준별 일치율 90~100%, 금지 기준 재현율 100% |
 
-한계: 사람 라벨은 추천 10건, 1인입니다. 설계서의 정식 라벨(추천 22건과 문항 요청, 2인 독립 후 합의)은 최종 평가 전에 채웁니다. 데이터셋 46건 중 26건은 기대 조건에 초안이 섞여 있어 이번 실행은 베이스라인 자격(`baseline_eligible`)이 없습니다. 같은 커밋 3회 실행으로 정하는 허용 오차, 오류 분석과 개선 기록도 최종 평가 전에 합니다.
+| 측정 항목 | 결과 |
+| --- | --- |
+| 문항 형식·상태 | 각각 21/21 통과 |
+| 문항 기간·프로필 | 기간 부적합 0건, 프로필 노출 0건 |
+| 문항 도구·각색 | 도구 계약 17/17, 각색 의미 보존 17/17(judge 판정) |
+| 추천 최초 형식·상태 | 최초 형식 24/25, 상태 라우팅 6/6. E01의 이름 조사 오류는 재요청 1회로 통과 |
+| 추천 조율 품질 | 16/22(72.73%), 목표 80% |
+| 추천 금지 오류 | 2건(H04·H08), 목표 0건 |
+| 추천 공개 문장 개인정보 | 2건(H03·P7), 목표 0건 |
+| 호출 지연 p95 | 문항 27.641초, 추천 31.640초(출력 실행) |
+| 방당 추정 비용 | 평균 $0.066371, 최대 $0.108093(출력 실행) |
+| 실행 비용 | 출력 생성 $1.004333, 검증 후 judge 판정 $0.295311. 각 실행의 비용이며 누적 비용은 [실행 이력](evals/results/history.csv)에서 확인 |
+
+판정 기준과 검증 경과는 [evals 설계서](evals/EVAL_DESIGN.md#judge-검증-기록)에 정리했습니다.
 
 ### 강의별 산출물
 

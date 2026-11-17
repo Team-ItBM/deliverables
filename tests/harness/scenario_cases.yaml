@@ -60,63 +60,63 @@
 error_codes: [json_invalid, schema_violation, status_combination, count_mismatch, unknown_template, duplicate_template, duplicate_decision, option_mismatch, unknown_profile_token, scene_line_mismatch]
 
 cases:
-  # 근거: §0-1 V01, §0 #5
+  # 근거: §0-1 V01, §0 #5, AC1
   - name: V01_ex1_ready_valid
     fixture: ex1_ready
     expect_valid: true
     note: >-
       정상. 문항 프롬프트 v8 예시 1 출력. 6문항이 요청 수와 같고 ID·판단·선택지·scene 줄 수가 원본과 맞다.
 
-  # 근거: §0-1 V02, §0 #5
+  # 근거: §0-1 V02, §0 #5, AC1
   - name: V02_s1_ready_valid
     fixture: s1_ready
     expect_valid: true
     note: >-
       정상. v6 회귀 점검 S1의 실제 모델 출력. 입력 pool의 scene이 한 줄이라 출력 scene도 한 줄이다.
 
-  # 근거: §0-1 V03, B절 needs_information 행
+  # 근거: §0-1 V03, B절 needs_information 행, AC2
   - name: V03_ex2_needs_information_valid
     fixture: ex2_needs_information
     expect_valid: true
     note: >-
       정상. destination이 null인 예시 2. scenarios=null, clarification_questions와 message가 있는 정보 부족 조합이다.
 
-  # 근거: §0-1 V04, B절 needs_information 행
+  # 근거: §0-1 V04, B절 needs_information 행, AC2
   - name: V04_s2_needs_information_valid
     fixture: s2
     expect_valid: true
     note: >-
       정상. S2(목적지 키 누락)의 실제 출력. 정보 부족 조합이다.
 
-  # 근거: §0-1 V05, B절 needs_information 행
+  # 근거: §0-1 V05, B절 needs_information 행, AC2
   - name: V05_s3_needs_information_valid
     fixture: s3
     expect_valid: true
     note: >-
       정상. S3(모호한 기간)의 실제 출력. 정보 부족 조합이다.
 
-  # 근거: §0-1 V06, B절 unsupported·invalid_input 행
+  # 근거: §0-1 V06, B절 unsupported·invalid_input 행, AC2
   - name: V06_s4_invalid_input_valid
     fixture: s4
     expect_valid: true
     note: >-
       정상. S4(requested_count 9)의 실제 출력. scenarios=null과 message가 있는 invalid_input 조합이다.
 
-  # 근거: §0-1 V07, B절 unsupported·invalid_input 행
+  # 근거: §0-1 V07, B절 unsupported·invalid_input 행, AC2
   - name: V07_s5_unsupported_valid
     fixture: s5
     expect_valid: true
     note: >-
       정상. S5(궁합 점수 요청)의 실제 출력. scenarios=null과 message가 있는 unsupported 조합이다.
 
-  # 근거: §0-1 V08, B절 needs_information 행
+  # 근거: §0-1 V08, B절 needs_information 행, AC2
   - name: V08_s6_needs_information_valid
     fixture: s6
     expect_valid: true
     note: >-
       정상. S6(당일 여행·숙박 문항만 제공)의 실제 출력. 조합만 검사하며 적합성 판단은 의미 판정이라 검사하지 않는다.
 
-  # 근거: §0-1 V09, §0 결정 3, B절 인물 토큰
+  # 근거: §0-1 V09, §0 결정 3, B절 인물 토큰, AC15
   - name: V09_registered_token_in_scene
     fixture: ex1_ready
     patch:
@@ -126,7 +126,7 @@ cases:
     note: >-
       정상. scenarios/0 scene 첫 줄 맨 앞에 등록 ID 토큰 {{profile:p1}}을 붙였다. 줄 수는 그대로이고 unknown_profile_token이 없어야 한다.
 
-  # 근거: §0-1 V10, §0 결정 3
+  # 근거: §0-1 V10, §0 결정 3, AC15
   - name: V10_registered_token_in_label
     fixture: ex1_ready
     patch:
@@ -144,7 +144,7 @@ cases:
     note: >-
       금지 행동 검증의 정상 쪽. 입력 request를 판정을 바꾸려는 지시문으로 바꿨다. 출력은 정상이므로 그대로 통과해야 한다. 같은 지시문이 있는 실패 출력은 N27이 검사한다.
 
-  # 근거: §0-1 V12, §0-1 결정 1
+  # 근거: §0-1 V12, §0-1 결정 1, AC10
   - name: V12_ready_with_message
     fixture: ex1_ready
     patch:
@@ -154,7 +154,7 @@ cases:
     note: >-
       경계. ready에 message가 있다. B절에 message 금지 문장이 없으므로 허용하고 status_combination이 없어야 한다.
 
-  # 근거: §0-1 N01, D절 '추가' 행(JSON 절단)
+  # 근거: §0-1 N01, D절 '추가' 행(JSON 절단), AC10
   - name: N01_truncated_json
     fixture: ex1_ready
     raw_output: "{\"status\":"
@@ -163,7 +163,7 @@ cases:
     note: >-
       금지 행동. 출력이 {"status":에서 끊겼다. 파싱 실패를 결과로 쓰지 않아야 한다.
 
-  # 근거: §0-1 N02, D절 '추가' 행
+  # 근거: §0-1 N02, D절 '추가' 행, AC10
   - name: N02_plain_text_output
     fixture: ex1_ready
     raw_output: "문항을 만들었어요"
@@ -172,7 +172,7 @@ cases:
     note: >-
       금지 행동. JSON 대신 평문이 왔다.
 
-  # 근거: §0-1 N03, D절 '추가' 행(추가 키)
+  # 근거: §0-1 N03, D절 '추가' 행(추가 키), AC10
   - name: N03_extra_root_key
     fixture: ex1_ready
     patch:
@@ -182,7 +182,7 @@ cases:
     note: >-
       금지 행동. 루트에 스키마 밖 키 invented가 붙었다.
 
-  # 근거: §0-1 N04, B절 status enum
+  # 근거: §0-1 N04, B절 status enum, AC10
   - name: N04_status_out_of_enum
     fixture: ex1_ready
     patch:
@@ -192,7 +192,7 @@ cases:
     note: >-
       금지 행동. status가 enum 밖 값 done이다.
 
-  # 근거: §0-1 N05, 스키마 v2 minItems 6, §0 결정 4
+  # 근거: §0-1 N05, 스키마 v2 minItems 6, §0 결정 4, AC1, AC10
   - name: N05_five_scenarios
     fixture: ex1_ready
     patch:
@@ -203,7 +203,7 @@ cases:
     note: >-
       금지 행동. scenarios/5를 지워 5개가 됐다. 6~8개 범위 밖이라 스키마 단계에서 멈추므로 count_mismatch가 나오면 안 된다.
 
-  # 근거: §0-1 N06, 스키마 v2 ScenarioOption required
+  # 근거: §0-1 N06, 스키마 v2 ScenarioOption required, AC1, AC10
   - name: N06_option_label_missing
     fixture: ex1_ready
     patch:
@@ -213,7 +213,7 @@ cases:
     note: >-
       금지 행동. scenarios/0 options/0의 필수 키 label이 없다.
 
-  # 근거: §0-1 N07, B절 needs_information 행
+  # 근거: §0-1 N07, B절 needs_information 행, AC2, AC10
   - name: N07_needs_information_without_message
     fixture: ex2_needs_information
     patch:
@@ -223,7 +223,7 @@ cases:
     note: >-
       금지 행동. needs_information인데 message가 없다.
 
-  # 근거: §0-1 N08, B절 needs_information 행
+  # 근거: §0-1 N08, B절 needs_information 행, AC2, AC10
   - name: N08_needs_information_without_questions
     fixture: ex2_needs_information
     patch:
@@ -233,7 +233,7 @@ cases:
     note: >-
       금지 행동. needs_information인데 clarification_questions가 없다.
 
-  # 근거: §0-1 N09, B절 unsupported·invalid_input 행
+  # 근거: §0-1 N09, B절 unsupported·invalid_input 행, AC2, AC10
   - name: N09_invalid_input_with_scenarios
     fixture: s4
     patch:
@@ -243,7 +243,7 @@ cases:
     note: >-
       금지 행동. invalid_input인데 scenarios에 ex1_ready 출력의 6문항이 들어 있다.
 
-  # 근거: §0-1 N10, B절 ready 행
+  # 근거: §0-1 N10, B절 ready 행, AC1, AC10
   - name: N10_ready_with_null_scenarios
     fixture: ex1_ready
     patch:
@@ -263,7 +263,7 @@ cases:
     note: >-
       금지 행동. 입력 requested_count를 7로 바꿨고 출력은 6개다.
 
-  # 근거: §0-1 N12, B절 template_id 대조, 절대 규칙 5, §0-1 결정 4
+  # 근거: §0-1 N12, B절 template_id 대조, 절대 규칙 5, §0-1 결정 4, AC1
   - name: N12_unknown_template
     fixture: ex1_ready
     patch:
@@ -274,7 +274,7 @@ cases:
     note: >-
       금지 행동. scenarios/0 template_id가 pool에 없는 no_such_template이다. 그 항목의 option_mismatch·scene_line_mismatch 검사는 건너뛰어야 한다.
 
-  # 근거: §0-1 N13, 절대 규칙 5
+  # 근거: §0-1 N13, 절대 규칙 5, AC1
   - name: N13_template_case_not_normalized
     fixture: ex1_ready
     patch:
@@ -284,7 +284,7 @@ cases:
     note: >-
       금지 행동. template_id를 FREE_TIME으로 바꿨다. 대소문자를 정규화해 free_time으로 받아들이면 안 된다.
 
-  # 근거: §0-1 N14, '필드와 함수 인자' 표 template_id 행
+  # 근거: §0-1 N14, '필드와 함수 인자' 표 template_id 행, AC1
   - name: N14_duplicate_template
     fixture: ex1_ready
     patch:
@@ -304,7 +304,7 @@ cases:
     note: >-
       금지 행동. 입력 pool에서 rest의 decision_key를 free_time과 같은 unexpected_free_time_use로 바꿨다. ID는 다르지만 같은 판단이 두 번 선정됐다.
 
-  # 근거: §0-1 N16, §0 결정 2(순서)
+  # 근거: §0-1 N16, §0 결정 2(순서), AC1
   - name: N16_option_order_swapped
     fixture: ex1_ready
     patch:
@@ -315,7 +315,7 @@ cases:
     note: >-
       금지 행동. scenarios/0 options의 0·1번 순서를 바꿨다. ID 집합은 같아도 순서가 다르면 위반이다.
 
-  # 근거: §0-1 N17, §0 결정 2(개수)
+  # 근거: §0-1 N17, §0 결정 2(개수), AC1
   - name: N17_option_removed
     fixture: ex1_ready
     patch:
@@ -325,7 +325,7 @@ cases:
     note: >-
       금지 행동. scenarios/0 options/5(free_time_info)를 지웠다. 정보 필요 선택지를 삭제하면 개수가 원본과 다르다.
 
-  # 근거: §0-1 N18, 절대 규칙 5
+  # 근거: §0-1 N18, 절대 규칙 5, AC1
   - name: N18_option_id_changed
     fixture: ex1_ready
     patch:
@@ -335,7 +335,7 @@ cases:
     note: >-
       금지 행동. scenarios/0 options/0 option_id를 원본에 없는 free_time_9로 바꿨다.
 
-  # 근거: §0-1 N19, 절대 규칙 5
+  # 근거: §0-1 N19, 절대 규칙 5, AC1
   - name: N19_option_added
     fixture: ex1_ready
     patch:
@@ -345,7 +345,7 @@ cases:
     note: >-
       금지 행동. scenarios/0 options 끝에 원본에 없는 선택지 free_time_x를 추가했다.
 
-  # 근거: §0-1 N20, B절 인물 토큰, §0 결정 3
+  # 근거: §0-1 N20, B절 인물 토큰, §0 결정 3, AC15
   - name: N20_unknown_token_in_scene
     fixture: ex1_ready
     patch:
@@ -355,7 +355,7 @@ cases:
     note: >-
       금지 행동. scenarios/0 scene 첫 줄 맨 앞에 등록되지 않은 {{profile:p9}}를 붙였다.
 
-  # 근거: §0-1 N21, §0 결정 3
+  # 근거: §0-1 N21, §0 결정 3, AC15
   - name: N21_unknown_token_in_question
     fixture: ex1_ready
     patch:
@@ -365,7 +365,7 @@ cases:
     note: >-
       금지 행동. scenarios/0 question 맨 앞에 등록되지 않은 {{profile:p9}}를 붙였다.
 
-  # 근거: §0-1 N22, §0 결정 3
+  # 근거: §0-1 N22, §0 결정 3, AC15
   - name: N22_unknown_token_in_label
     fixture: ex1_ready
     patch:
@@ -375,7 +375,7 @@ cases:
     note: >-
       금지 행동. scenarios/0 options/0 label 맨 앞에 등록되지 않은 {{profile:p9}}를 붙였다. label도 토큰 검사 대상이다.
 
-  # 근거: §0-1 N23, B절 scene 줄 수
+  # 근거: §0-1 N23, B절 scene 줄 수, AC1, AC10
   - name: N23_scene_line_removed
     fixture: ex1_ready
     patch:
@@ -385,7 +385,7 @@ cases:
     note: >-
       금지 행동. 3줄인 scenarios/0 scene의 마지막 줄을 지워 2줄이 됐다.
 
-  # 근거: §0-1 N24, B절 scene 빈 줄
+  # 근거: §0-1 N24, B절 scene 빈 줄, AC1, AC10
   - name: N24_scene_blank_line
     fixture: ex1_ready
     patch:
@@ -395,7 +395,7 @@ cases:
     note: >-
       금지 행동. scenarios/0 scene 1·2줄 사이에 빈 줄을 넣었다. 빈 줄이 생기고 줄 수도 4줄로 달라진다.
 
-  # 근거: §0-1 N25, §0 결정 4(모두 모음)
+  # 근거: §0-1 N25, §0 결정 4(모두 모음), AC1, AC10
   - name: N25_collect_all_errors
     fixture: ex1_ready
     patch:
@@ -407,7 +407,7 @@ cases:
     note: >-
       금지 행동. scenarios/1을 scenarios/0 사본으로 바꾸고 scenarios/2 options의 0·1번 순서를 바꿨다. 첫 오류에서 멈추지 않고 두 코드를 모두 내야 한다.
 
-  # 근거: §0-1 N26, §0 결정 4(스키마 실패 시 멈춤)
+  # 근거: §0-1 N26, §0 결정 4(스키마 실패 시 멈춤), AC10
   - name: N26_schema_failure_stops
     fixture: ex1_ready
     patch:
@@ -419,7 +419,7 @@ cases:
     note: >-
       금지 행동. 루트에 invented를 붙이고 scenarios/1을 scenarios/0 사본으로 바꿨다. 스키마 단계에서 멈추므로 duplicate_template이 나오면 안 된다.
 
-  # 근거: §0-1 N27, AC11, AGENTS 절대 규칙 4
+  # 근거: §0-1 N27, AC11, AGENTS 절대 규칙 4, AC1
   - name: N27_request_instruction_with_duplicate
     fixture: ex1_ready
     patch:
@@ -430,7 +430,7 @@ cases:
     note: >-
       금지 행동. V11의 지시문 request에 N14의 중복 문항을 더했다. 입력 속 지시문이 있어도 실패를 그대로 내야 한다.
 
-  # 근거: §0-1 N28, §0-1 결정 1
+  # 근거: §0-1 N28, §0-1 결정 1, AC2, AC10
   - name: N28_ready_with_clarification_questions
     fixture: ex1_ready
     patch:
@@ -440,7 +440,7 @@ cases:
     note: >-
       금지 행동. ready에 clarification_questions가 붙었다.
 
-  # 근거: §0-1 N29, §0-1 결정 2
+  # 근거: §0-1 N29, §0-1 결정 2, AC1, AC10
   - name: N29_scene_trailing_newline
     fixture: ex1_ready
     patch:
@@ -450,7 +450,7 @@ cases:
     note: >-
       경계. 2줄인 scenarios/1 scene 끝에 \n 하나를 붙였다. 끝 줄바꿈 하나도 빈 줄로 본다.
 
-  # 근거: §0-1 N30, §0-1 결정 3(빈 ID)
+  # 근거: §0-1 N30, §0-1 결정 3(빈 ID), AC15
   - name: N30_empty_token_id
     fixture: ex1_ready
     patch:
@@ -460,7 +460,7 @@ cases:
     note: >-
       경계. scenarios/0 scene 첫 줄 맨 앞에 ID가 빈 {{profile:}}를 붙였다.
 
-  # 근거: §0-1 N31, §0-1 결정 3(공백이 섞인 ID)
+  # 근거: §0-1 N31, §0-1 결정 3(공백이 섞인 ID), AC15
   - name: N31_token_id_with_spaces
     fixture: ex1_ready
     patch:
@@ -470,7 +470,7 @@ cases:
     note: >-
       경계. scenarios/0 scene 첫 줄 맨 앞에 {{ profile:p1 }}를 붙였다. profile 앞 공백은 허용해 찾지만 :와 }} 사이가 "p1 "이라 등록 ID p1과 정확히 같지 않다.
 
-  # 근거: §0-1 N32, §0-1 결정 5(공백만 있는 줄)
+  # 근거: §0-1 N32, §0-1 결정 5(공백만 있는 줄), AC1, AC10
   - name: N32_scene_space_only_line
     fixture: ex1_ready
     patch:
@@ -480,7 +480,7 @@ cases:
     note: >-
       경계. 3줄인 scenarios/0 scene의 둘째 조건 줄을 공백 한 칸으로 바꿨다. 줄 수는 원본과 같지만 공백만 있는 줄도 빈 줄이다.
 
-  # 근거: §0-1 N33, §0-1 결정 5(공백만 있는 줄)
+  # 근거: §0-1 N33, §0-1 결정 5(공백만 있는 줄), AC1, AC10
   - name: N33_scene_tab_only_line
     fixture: ex1_ready
     patch:
@@ -490,7 +490,7 @@ cases:
     note: >-
       경계. 3줄인 scenarios/0 scene의 둘째 조건 줄을 탭 하나로 바꿨다. 줄 수는 원본과 같다.
 
-  # 근거: §0-1 N34, §0-1 결정 5(공백만 있는 줄)
+  # 근거: §0-1 N34, §0-1 결정 5(공백만 있는 줄), AC1, AC10
   - name: N34_scene_carriage_return_only_line
     fixture: ex1_ready
     patch:

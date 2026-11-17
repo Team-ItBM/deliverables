@@ -3,7 +3,7 @@
 | 항목 | 값 |
 |---|---|
 | judge_version | judge_v2 |
-| 상태 | 미검증. judge_v1은 사람 라벨 10건과의 일치율 미달(2026-11-17)로 고쳤다. [설계서 3절](EVAL_DESIGN.md#3-llm-as-judge-설계)의 사람 라벨 검증을 통과하기 전에는 점수를 근거로 쓰지 않는다 |
+| 상태 | 추천 10건의 사람 라벨 기준, 일치율 90~100%, 금지 기준 재현율 100%로 검증 통과(2026-11-17). [검증 기록](EVAL_DESIGN.md#judge-검증-기록) |
 | 대상 | 추천 judge(`pact`, 케이스마다 1회), 문항 judge(`scenarios`, 요청마다 1회) |
 | 모델 설정 | `gpt-6.1-sol`, 추론 `low`, `store: false`, 출력 스키마 `strict: false`. 설정을 바꾸면 `judge_version`을 올린다 |
 | 근거 | SPEC 6절 AC1·AC3·AC6~AC9·AC11·AC15, [grounded_pact.md 공통 판정 규칙 1~7](../docs/spikes/grounded_pact.md#핵심-조율-품질의-별도-평가), [scenario_adaptation.md 공통 판정 규칙 1~4](../docs/spikes/scenario_adaptation.md#문항-의미-평가), [scenario_tool_call.md H1~H3](../docs/spikes/scenario_tool_call.md) |

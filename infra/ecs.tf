@@ -46,7 +46,6 @@ data "aws_iam_policy_document" "ecs_execution_secrets" {
       aws_secretsmanager_secret.openai.arn,
       aws_secretsmanager_secret.vapid.arn,
       aws_secretsmanager_secret.db.arn,
-      aws_secretsmanager_secret.origin_verify.arn,
     ]
   }
 }
