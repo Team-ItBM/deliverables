@@ -10,9 +10,9 @@ const COUNT_KEY = "dowon.mock.count";
 export function MockBar() {
   const [v, setV] = useState(() => {
     try {
-      return localStorage.getItem(VARIANT_KEY) ?? "proposed";
+      return localStorage.getItem(VARIANT_KEY) ?? "ready";
     } catch {
-      return "proposed";
+      return "ready";
     }
   });
   const [count, setCount] = useState(() => {
@@ -39,8 +39,8 @@ export function MockBar() {
             }
           }}
         >
-          <option value="proposed">조항 있는 결과</option>
-          <option value="unresolved">미해결 결과</option>
+          <option value="ready">협약서 결과</option>
+          <option value="discussion">협의 사항이 많은 결과</option>
           <option value="fail">생성 실패</option>
         </select>
       </label>

@@ -95,11 +95,11 @@ def product():
         src = str(ROOT / "src")
         if src not in sys.path:
             sys.path.insert(0, src)
-        from travel import pact, pool, scenarios
+        from travel import pact_v12, pool, scenarios
         from travel.server import app, jobs, llm, llm_openai
 
         _PRODUCT = SimpleNamespace(
-            validate_pact_output=pact.validate_pact_output,
+            validate_pact_output=pact_v12.validate_pact_output,
             validate_scenario_output=scenarios.validate_scenario_output,
             load_pool=pool.load_pool,
             build_scenario_index=pool.build_scenario_index,
@@ -1058,6 +1058,8 @@ async def run_main(args):
     else:
         cases = select_cases(all_cases, args.cases)
         mode = args.mode
+    if mode == "live" and any(c["stage"] == "pact" for c in cases):
+        raise EvalError("pact_live_retired", "추천 v14(챌린지 방식)에 맞춘 평가셋이 아직 없다. pact 케이스는 stored 모드로만 돈다")
     run_id = new_run_id(args.results_dir, args.run_id)
     judge_enabled = not args.skip_judge
     ctx = make_context(args, mode, judge_enabled, config, judge)

@@ -9,7 +9,7 @@ import { HostPanel } from "../components/HostPanel";
 import { PushOptIn } from "../components/PushOptIn";
 import { ShowdownRules } from "../components/ShowdownRules";
 import { PetalDrift } from "../components/PactBranch";
-import { hasPaper, issueItemCount, ResultSheet } from "../components/PactSheet";
+import { hasPaper, issueItemCount, ProcessToggle, ResultSheet } from "../components/PactSheet";
 import { BottomBar, ErrorMessage, ICON, RoomNotFound, ShareButton } from "../components/ui";
 import { useHeaderBack } from "../lib/back";
 import { displaySegments, setAtPointer } from "../lib/editable";
@@ -147,6 +147,7 @@ export function SheetWithSave({
   return (
     <div className="stack-lg">
       <ResultSheet ref={paperRef} result={result} phase={phase} edited={edited} />
+      <ProcessToggle result={result} />
       <div className="capture-host" aria-hidden="true">
         <ResultSheet ref={captureRef} result={result} capture edited={edited} />
       </div>

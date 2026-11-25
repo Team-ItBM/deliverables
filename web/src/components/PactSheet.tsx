@@ -1,6 +1,6 @@
-import { PencilLine } from "lucide-react";
-import { forwardRef, useId, type CSSProperties } from "react";
-import type { Clause, ConditionalAlternative, SharedResult, UnresolvedCondition } from "../api/types";
+import { ChevronDown, PencilLine } from "lucide-react";
+import { forwardRef, useId, useState, type CSSProperties } from "react";
+import type { Clause, ProcessItem, SharedResult, TallyItem } from "../api/types";
 import { tripMetaText } from "../lib/trip";
 import type { IssuePhase } from "../lib/issue";
 import { PactBranch } from "./PactBranch";
@@ -25,8 +25,10 @@ export interface SheetProps {
 const HOST_EDITED = "방장 수정";
 
 export function hasPaper(status: SharedResult["pact_status"] | undefined): boolean {
-  return status === "proposed" || status === "conditional_only";
+  return status === "ready";
 }
+
+export const PACT_DISCLAIMER = "본 협약서는 일행의 응답과 챌린지 결과를 정리한 것이다.";
 
 function InclusionNote({ result }: { result: Partial<SharedResult> }) {
   const excluded = result.excluded_names ?? [];
@@ -40,7 +42,7 @@ function InclusionNote({ result }: { result: Partial<SharedResult> }) {
       {excluded.length > 0 && (
         <p>아직 응답이 반영되지 않은 이름: {excluded.join(", ")}. 이 사람들의 의견은 들어 있지 않아요.</p>
       )}
-      <p className="pact-disclaimer">AI가 각자의 응답을 바탕으로 만든 추천안이에요. 동행 모두가 정한 약속은 아니에요.</p>
+      <p className="pact-disclaimer">{PACT_DISCLAIMER}</p>
       <p>dowonpact.com</p>
     </>
   );
@@ -68,30 +70,11 @@ function Labels({ result, edited, sample }: { result: Partial<SharedResult>; edi
   );
 }
 
-function SubList({ label, items }: { label: string; items: string[] | undefined | null }) {
-  if (!items || items.length === 0) return null;
-  return (
-    <div className="pact-sub">
-      <p className="pact-sub-label">{label}</p>
-      <ul>
-        {items.map((t, i) => (
-          <li key={i}>{t}</li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function Names({ names }: { names: string[] | undefined }) {
-  if (!names || names.length === 0) return null;
-  return <p className="pact-names">적용 대상: {names.join(", ")}</p>;
-}
-
-function UnresolvedList({ items }: { items: UnresolvedCondition[] }) {
+function DiscussionList({ items }: { items: SharedResult["discussion_items"] }) {
   return (
     <ul className="stack-sm">
-      {items.map((u, i) => (
-        <li key={`${u.scenario_id}-${i}`}>{u.description}</li>
+      {items.map((d, i) => (
+        <li key={`${d.scenario_id}-${i}`}>{d.text}</li>
       ))}
     </ul>
   );
@@ -148,21 +131,7 @@ function ClauseItem({ clause, index }: { clause: Clause; index: number }) {
   return (
     <li className="pact-clause" style={{ "--i": index } as CSSProperties}>
       <p className="pact-clause-number">제{index + 1}조</p>
-      <p>{clause.action}</p>
-      <Names names={clause.participant_names} />
-      <SubList label="제안 조건" items={clause.proposed_conditions} />
-    </li>
-  );
-}
-
-function AlternativeItem({ alt, index }: { alt: ConditionalAlternative; index: number }) {
-  return (
-    <li className="pact-clause">
-      <p className="pact-sub-label">대안 {index + 1}</p>
-      <p>{alt.action}</p>
-      <Names names={alt.participant_names} />
-      <SubList label="제안 조건" items={alt.proposed_conditions} />
-      <SubList label="필요한 변경" items={alt.proposed_changes} />
+      <p>{clause.text}</p>
     </li>
   );
 }
@@ -171,9 +140,8 @@ export const PactPaper = forwardRef<HTMLDivElement, SheetProps>(function PactPap
   { result, phase, capture, edited, sample },
   ref
 ) {
-  const clauses = result.pact_status === "conditional_only" ? [] : (result.clauses ?? []);
-  const alts = result.conditional_alternatives ?? [];
-  const unresolved = result.unresolved_conditions ?? [];
+  const clauses = result.clauses ?? [];
+  const discussion = result.discussion_items ?? [];
   const tripMeta = result.trip ? tripMetaText(result.trip) : null;
   return (
     <article
@@ -199,25 +167,14 @@ export const PactPaper = forwardRef<HTMLDivElement, SheetProps>(function PactPap
           ))}
         </ol>
       )}
-      {alts.length > 0 && (
+      {discussion.length > 0 && (
         <section className="pact-block" style={{ "--i": clauses.length } as CSSProperties}>
-          <h3 className="pact-block-title">조건부 대안</h3>
-          <ol className="pact-clauses">
-            {alts.map((a, i) => (
-              <AlternativeItem key={`${a.scenario_id}-${i}`} alt={a} index={i} />
-            ))}
-          </ol>
+          <h3 className="pact-block-title">협의 사항</h3>
+          <DiscussionList items={discussion} />
         </section>
       )}
-      {unresolved.length > 0 && (
-        <section className="pact-block" style={{ "--i": clauses.length + (alts.length > 0 ? 1 : 0) } as CSSProperties}>
-          <h3 className="pact-block-title">아직 풀지 못한 조건</h3>
-          <UnresolvedList items={unresolved} />
-        </section>
-      )}
-      {result.message && <p className="pact-message">{result.message}</p>}
       <footer className="pact-footer">
-        <p className="pact-issued">추천안 발급</p>
+        <p className="pact-issued">협약 체결</p>
         <InclusionNote result={result} />
         <Stamp />
       </footer>
@@ -225,45 +182,78 @@ export const PactPaper = forwardRef<HTMLDivElement, SheetProps>(function PactPap
   );
 });
 
-/** pact_status가 unresolved일 때만. 도장이 없다(DESIGN.md unresolved-panel). */
-export const UnresolvedPanel = forwardRef<HTMLDivElement, SheetProps>(function UnresolvedPanel(
-  { result, capture, edited },
-  ref
-) {
-  const unresolved = result.unresolved_conditions ?? [];
-  const humor = result.pact_status === "unresolved" ? result.humor : null;
+function Tally({ title, items }: { title: string; items: TallyItem[] | undefined }) {
+  if (!items || items.length === 0) return null;
   return (
-    <section ref={ref} className={`unresolved-panel${capture ? " capture" : ""}`} aria-label="추천 결과">
-      <Labels result={result} edited={edited} />
-      {humor && <h2 className="t-headline-md">{humor.text}</h2>}
-      {humor && <p>{humor.explanation}</p>}
-      {unresolved.length > 0 && <UnresolvedList items={unresolved} />}
-      {result.message && <p className="pact-message">{result.message}</p>}
-      <div className="pact-meta" style={{ textAlign: "left" }}>
-        <InclusionNote result={result} />
-      </div>
-    </section>
+    <div className="pact-basis-tally">
+      <p className="pact-basis-round">{title}</p>
+      <ul>
+        {items.map((t, i) => (
+          <li key={i}>
+            <span>{t.label}</span>
+            <span className="t-numeral">{t.count}명</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
-});
+}
 
-/** 정보 부족·지원 밖·입력 오류 결과. 유머 문구와 도장을 쓰지 않는다. */
+function ProcessEntry({ item }: { item: ProcessItem }) {
+  return (
+    <div className="pact-basis-item">
+      <p className="pact-basis-title">
+        {item.label} · {item.title}
+      </p>
+      <Tally title="1차" items={item.first_tally} />
+      <Tally title="챌린지" items={item.challenge_tally} />
+      <p className="pact-basis-result">{item.decision}</p>
+    </div>
+  );
+}
+
+export function ProcessToggle({ result }: { result: Partial<SharedResult> }) {
+  const [open, setOpen] = useState(false);
+  const items = result.process ?? [];
+  if (!hasPaper(result.pact_status) || items.length === 0) return null;
+  return (
+    <div className="pact-more">
+      <button
+        type="button"
+        className="pact-more-button"
+        aria-expanded={open}
+        aria-label={open ? "정해진 과정 접기" : "정해진 과정 더보기"}
+        onClick={() => setOpen(!open)}
+      >
+        <ChevronDown size={24} strokeWidth={1.5} aria-hidden className={open ? "pact-more-icon open" : "pact-more-icon"} />
+      </button>
+      {open && (
+        <section className="pact-basis" aria-label="조항이 정해진 과정">
+          {items.map((item) => (
+            <ProcessEntry key={`${item.label}-${item.scenario_id}`} item={item} />
+          ))}
+        </section>
+      )}
+    </div>
+  );
+}
+
+/** 정보 부족·지원 밖·입력 오류 결과. 도장을 쓰지 않는다. */
 export const StatusPanel = forwardRef<HTMLDivElement, SheetProps>(function StatusPanel(
   { result, capture, edited },
   ref
 ) {
-  const unresolved = result.unresolved_conditions ?? [];
   const heading =
     result.pact_status === "needs_information"
-      ? "추천을 만들 정보가 부족했어요"
+      ? "협약서를 만들 응답이 부족했어요"
       : result.pact_status === "unsupported"
         ? "도원결의가 다루지 않는 상황이에요"
-        : "입력에 문제가 있어 추천을 만들지 못했어요";
+        : "입력에 문제가 있어 협약서를 만들지 못했어요";
   return (
-    <section ref={ref} className={`unresolved-panel${capture ? " capture" : ""}`} aria-label="추천 결과">
+    <section ref={ref} className={`unresolved-panel${capture ? " capture" : ""}`} aria-label="협약서 결과">
       <Labels result={result} edited={edited} />
       <h2 className="t-headline-md">{heading}</h2>
       {result.message && <p>{result.message}</p>}
-      {unresolved.length > 0 && <UnresolvedList items={unresolved} />}
       <div className="pact-meta" style={{ textAlign: "left" }}>
         <InclusionNote result={result} />
       </div>
@@ -273,16 +263,11 @@ export const StatusPanel = forwardRef<HTMLDivElement, SheetProps>(function Statu
 
 /** 나타날 묶음 수. 발급 연출의 시간표가 쓴다. */
 export function issueItemCount(result: Partial<SharedResult>): number {
-  const clauses = result.pact_status === "conditional_only" ? 0 : (result.clauses?.length ?? 0);
-  const alts = result.conditional_alternatives?.length ? 1 : 0;
-  const unresolved = result.unresolved_conditions?.length ? 1 : 0;
-  return clauses + alts + unresolved;
+  return (result.clauses?.length ?? 0) + (result.discussion_items?.length ? 1 : 0);
 }
 
 export const ResultSheet = forwardRef<HTMLDivElement, SheetProps>(function ResultSheet(props, ref) {
-  const s = props.result.pact_status;
-  if (hasPaper(s)) return <PactPaper ref={ref} {...props} />;
-  if (s === "unresolved") return <UnresolvedPanel ref={ref} {...props} />;
+  if (hasPaper(props.result.pact_status)) return <PactPaper ref={ref} {...props} />;
   return <StatusPanel ref={ref} {...props} />;
 });
 

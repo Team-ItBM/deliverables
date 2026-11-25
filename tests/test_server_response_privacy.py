@@ -59,7 +59,7 @@ def _ready_and_scan(srv, targets, closed):
     _, room = app.create_room()
     payloads = _visible_payloads(app, room, closed)
     srv.collect_original_conditions()
-    assert srv.ctx.memos and srv.ctx.original_conditions, "메모 표지와 original_condition이 준비되지 않았다"
+    assert srv.ctx.memos, "메모 표지가 준비되지 않았다"
     problems = []
     for where, payload, is_result in payloads:
         problems += scan_private(payload, targets, srv.ctx, where, result_payload=is_result)

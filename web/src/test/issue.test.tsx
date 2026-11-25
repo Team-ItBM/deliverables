@@ -11,13 +11,13 @@ const result: SharedResult = {
   kind: "ai_original",
   label: null,
   draft: false,
-  pact_status: "proposed",
+  pact_status: "ready",
   included_count: 2,
   excluded_names: [],
   trip: { destination: "제주", duration_days: 3, party_size: 2 },
-  clauses: [{ scenario_id: "a", participant_names: ["민준"], action: "조항", proposed_conditions: [] }],
-  conditional_alternatives: null,
-  unresolved_conditions: null,
+  clauses: [{ article: 1, scenario_id: "a", text: "조항" }],
+  discussion_items: [],
+  process: [],
 };
 
 function Sheet({ sound }: { sound: IssueSound }) {
@@ -86,8 +86,8 @@ describe("협약서 종이", () => {
     expect(container.querySelectorAll(".pact-branch").length).toBe(2);
     expect(container.querySelector(".stamp")).toBeTruthy();
     const footer = container.querySelector(".pact-footer")!.textContent ?? "";
-    expect(footer).toContain("추천안 발급");
-    expect(footer).toContain("동행 모두가 정한 약속은 아니에요");
+    expect(footer).toContain("협약 체결");
+    expect(footer).toContain("본 협약서는 일행의 응답과 챌린지 결과를 정리한 것이다.");
   });
 });
 

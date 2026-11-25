@@ -54,7 +54,7 @@ def _list_entry(app, room, result_id):
 @case("EDT-P01")
 def test_edt_p01_edit_creates_new_row(srv, expect):
     app, room, original, editable, _ = _prepared(srv)
-    path = "/clauses/0/action"
+    path = "/clauses/0/text"
     srv.collect_original_conditions()
     problems = editable_problems(editable, original)
     # 검사 범위: 편집 전후 방장 결과 목록 AI 원본 항목의 editable
@@ -71,7 +71,7 @@ def test_edt_p01_edit_creates_new_row(srv, expect):
     assert edited["source_result_id"] == sources[expect["source_result"]]
     # note: "다시 조회한 참여자 결과의 그 문장과 editable 조각을 이은 문자열에 바뀐 문구가 있다"
     shown = app.result(room).json()
-    assert shown["clauses"][0]["action"] == segments_display(changed), "다시 조회한 참여자 결과에 수정 문구가 없다"
+    assert shown["clauses"][0]["text"] == segments_display(changed), "다시 조회한 참여자 결과에 수정 문구가 없다"
     after_editable = app.editable(room, original["result_id"])
     assert NEW_PHRASE in segments_display(after_editable[path]), "다시 조회한 editable에 수정 문구가 없다"
     problems += editable_problems(after_editable, shown)
@@ -87,7 +87,7 @@ def test_edt_p01_edit_creates_new_row(srv, expect):
 @case("EDT-P02")
 def test_edt_p02_edited_result_label_and_fields(srv, expect):
     app, room, original, editable, _ = _prepared(srv)
-    resp = app.edit(room, original["result_id"], [{"path": "/clauses/0/action", "text": _edited(editable, "/clauses/0/action")}])
+    resp = app.edit(room, original["result_id"], [{"path": "/clauses/0/text", "text": _edited(editable, "/clauses/0/text")}])
     assert resp.status_code == 201, resp.text[:300]
     for host in (False, True):
         shown = app.result(room, host=host)
@@ -104,21 +104,21 @@ def test_edt_p02_edited_result_label_and_fields(srv, expect):
 @case("EDT-P03")
 def test_edt_p03_second_edit_starts_from_latest(srv, expect):
     app, room, original, editable, _ = _prepared(srv)
-    first = app.edit(room, original["result_id"], [{"path": "/clauses/0/action", "text": _edited(editable, "/clauses/0/action")}])
+    first = app.edit(room, original["result_id"], [{"path": "/clauses/0/text", "text": _edited(editable, "/clauses/0/text")}])
     assert first.status_code == 201, first.text[:300]
     first_body = first.json()
     before = {"original_result": _row(srv, original["result_id"]), "previous_edit": _row(srv, first_body["result_id"])}
-    # note: "다시 조회한 editable의 /clauses/0/action에 EDT-P01 수정 문구가 있다"
+    # note: "다시 조회한 editable의 /clauses/0/text에 EDT-P01 수정 문구가 있다"
     again = app.editable(room, original["result_id"])
-    assert NEW_PHRASE in segments_display(again["/clauses/0/action"]), "다시 조회한 editable이 가장 최근 수정본이 아니다"
-    resp = app.edit(room, original["result_id"], [{"path": "/clauses/1/action", "text": _edited(again, "/clauses/1/action")}])
+    assert NEW_PHRASE in segments_display(again["/clauses/0/text"]), "다시 조회한 editable이 가장 최근 수정본이 아니다"
+    resp = app.edit(room, original["result_id"], [{"path": "/clauses/1/text", "text": _edited(again, "/clauses/1/text")}])
     assert_status(resp, expect["http_status"])
     second = resp.json()
     sources = {"ai_original": original["result_id"], "latest_edit": first_body["result_id"]}
     assert second["source_result_id"] == sources[expect["source_result"]]
-    # note: "새 수정본에 EDT-P01의 /clauses/0/action 변경이 남아 있다"
-    assert second["clauses"][0]["action"] == first_body["clauses"][0]["action"]
-    assert second["clauses"][1]["action"] != first_body["clauses"][1]["action"]
+    # note: "새 수정본에 EDT-P01의 /clauses/0/text 변경이 남아 있다"
+    assert second["clauses"][0]["text"] == first_body["clauses"][0]["text"]
+    assert second["clauses"][1]["text"] != first_body["clauses"][1]["text"]
     after = {"original_result": _row(srv, original["result_id"]), "previous_edit": _row(srv, first_body["result_id"])}
     for name in expect["unchanged"]:
         assert after[name] == before[name], f"{name} 행이 바뀌었다"
@@ -145,7 +145,7 @@ def test_edt_n01_host_routes_need_token(srv, expect):
         "results": lambda: app.results(room, headers=no_token),
         "select": lambda: app.select(room, original["result_id"], headers=no_token),
         "edits": lambda: app.edit(room, original["result_id"],
-                                  [{"path": "/clauses/0/action", "text": _edited(editable, "/clauses/0/action")}],
+                                  [{"path": "/clauses/0/text", "text": _edited(editable, "/clauses/0/text")}],
                                   headers=no_token),
         "host subscription": lambda: app.subscribe(room, "host", session_id=session["session_id"], headers=no_token),
     }
@@ -164,7 +164,7 @@ def test_edt_n02_other_room_token(srv, expect):
     app, room, original, editable, _ = _prepared(srv)
     _, other = app.create_room()
     resp = app.edit(room, original["result_id"],
-                    [{"path": "/clauses/0/action", "text": _edited(editable, "/clauses/0/action")}], headers=other.host)
+                    [{"path": "/clauses/0/text", "text": _edited(editable, "/clauses/0/text")}], headers=other.host)
     assert_error(resp, expect["http_status"], expect["error_code"])
 
 
@@ -172,7 +172,8 @@ def test_edt_n02_other_room_token(srv, expect):
 def test_edt_n03_add_clause_rejected(srv, expect):
     app, room, original, editable, _ = _prepared(srv)
     rows = _row_count(srv)
-    resp = app.edit(room, original["result_id"], [{"path": "/clauses/2/action", "text": _edited(editable, "/clauses/0/action")}])
+    extra = f"/clauses/{len(original['clauses'])}/text"
+    resp = app.edit(room, original["result_id"], [{"path": extra, "text": _edited(editable, "/clauses/0/text")}])
     assert_error(resp, expect["http_status"], expect["error_code"])
     assert _row_count(srv) - rows == expect["new_result_rows"]
 
@@ -180,17 +181,16 @@ def test_edt_n03_add_clause_rejected(srv, expect):
 @case("EDT-N04")
 def test_edt_n04_delete_clause_text_rejected(srv, expect):
     app, room, original, _, _ = _prepared(srv)
-    resp = app.edit(room, original["result_id"], [{"path": "/clauses/1/action", "text": ""}])
+    resp = app.edit(room, original["result_id"], [{"path": "/clauses/1/text", "text": ""}])
     assert_error(resp, expect["http_status"], expect["error_code"])
 
 
 @case("EDT-N05")
 def test_edt_n05_non_text_paths_rejected(srv, expect):
     app, room, original, _, _ = _prepared(srv)
-    paths = ("/clauses/0/participant_names", "/clauses/0/scenario_id", "/positions/0",
-             "/conditional_alternatives/0/required_changes/0/original_condition")
+    paths = ("/clauses/0/article", "/clauses/0/scenario_id", "/clauses/0/basis", "/process/0/decision")
     for path in paths:
-        resp = app.edit(room, original["result_id"], [{"path": path, "text": "방장이 바꾼 문장이에요"}])
+        resp = app.edit(room, original["result_id"], [{"path": path, "text": "방장이 바꾼 문장이다."}])
         assert resp.status_code == expect["http_status"], f"{path}: HTTP {resp.status_code}"
         assert_error(resp, expect["http_status"], expect["error_code"])
 
@@ -198,14 +198,14 @@ def test_edt_n05_non_text_paths_rejected(srv, expect):
 @case("EDT-N06")
 def test_edt_n06_token_change_rejected(srv, expect):
     app, room, original, editable, _ = _prepared(srv)
-    changed = replace_in_text_segments(editable["/clauses/0/action"], OLD_PHRASE, NEW_PHRASE)
+    changed = replace_in_text_segments(editable["/clauses/0/text"], OLD_PHRASE, NEW_PHRASE)
     chips = [seg["participant_id"] for seg in changed if "participant_id" in seg]
-    assert len(chips) >= 2, f"/clauses/0/action의 참여자 조각이 {len(chips)}개"
+    assert len(chips) >= 2, f"/clauses/0/text의 참여자 조각이 {len(chips)}개"
     # 둘째 참여자 조각의 토큰만 지우고 조사 쌍은 남긴다
     removed = segments_template(changed, drop_participant=chips[1])
     added = segments_template(changed) + f" {po.token('participant-not-in-room')}은/는 함께해요."
     for text in (removed, added):
-        resp = app.edit(room, original["result_id"], [{"path": "/clauses/0/action", "text": text}])
+        resp = app.edit(room, original["result_id"], [{"path": "/clauses/0/text", "text": text}])
         assert_error(resp, expect["http_status"], expect["error_code"])
 
 
@@ -214,8 +214,8 @@ def test_edt_n07_memo_quote_in_edit(srv, expect):
     app, room, original, editable, _ = _prepared(srv)
     rows = _row_count(srv)
     quote = srv.ctx.memos[0][:po.QUOTE_LENGTH]
-    text = _edited(editable, "/clauses/0/action") + " " + quote
-    resp = app.edit(room, original["result_id"], [{"path": "/clauses/0/action", "text": text}])
+    text = _edited(editable, "/clauses/0/text") + " " + quote
+    resp = app.edit(room, original["result_id"], [{"path": "/clauses/0/text", "text": text}])
     assert_error(resp, expect["http_status"], expect["error_code"])
     assert _row_count(srv) - rows == expect["new_result_rows"]
 
@@ -223,5 +223,5 @@ def test_edt_n07_memo_quote_in_edit(srv, expect):
 @case("EDT-N08")
 def test_edt_n08_unknown_result(srv, expect):
     app, room, _, editable, _ = _prepared(srv)
-    resp = app.edit(room, str(uuid.uuid4()), [{"path": "/clauses/0/action", "text": _edited(editable, "/clauses/0/action")}])
+    resp = app.edit(room, str(uuid.uuid4()), [{"path": "/clauses/0/text", "text": _edited(editable, "/clauses/0/text")}])
     assert_error(resp, expect["http_status"], expect["error_code"])

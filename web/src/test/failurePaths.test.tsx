@@ -291,12 +291,12 @@ describe("방장 결과 화면(리뷰 6번)", () => {
     source_result_id: null,
     label: null,
     draft: true,
-    pact_status: "proposed",
+    pact_status: "ready",
     included_count: 1,
     excluded_names: [],
-    clauses: [{ scenario_id: "q1", participant_names: ["민준"], action: "조항 문장", proposed_conditions: [] }],
-    conditional_alternatives: [],
-    unresolved_conditions: [],
+    clauses: [{ article: 1, scenario_id: "q1", text: "조항 문장" }],
+    discussion_items: [],
+    process: [],
   };
 
   it.each(["failed", "generating"] as const)("방 상태가 %s여도 기존 결과를 고르고 이미지 저장 버튼을 쓴다", async (status) => {

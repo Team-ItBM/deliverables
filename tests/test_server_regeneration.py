@@ -163,8 +163,8 @@ def test_reg_p04_regenerated_hidden_until_selected(srv, expect):
     # note: "재생성 결과의 result_id가 없다"
     assert regenerated not in resp.text, "참여자 결과에 재생성 결과의 result_id가 있다"
 
-    text = app.edited_text(room, regenerated, "/clauses/0/action", OLD_PHRASE, NEW_PHRASE)
-    edit = app.edit(room, regenerated, [{"path": "/clauses/0/action", "text": text}])
+    text = app.edited_text(room, regenerated, "/clauses/0/text", OLD_PHRASE, NEW_PHRASE)
+    edit = app.edit(room, regenerated, [{"path": "/clauses/0/text", "text": text}])
     assert edit.status_code == 201, edit.text[:300]
     checkpoint = expect.at("after_edit")
     resp = participant_view()
