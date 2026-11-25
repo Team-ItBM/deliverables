@@ -1,4 +1,4 @@
-"""result_export (AC13): 공유 결과의 참여자 토큰 치환, 제외 안내, 수정 표시, 유머 문구 조건.
+"""result_export (AC13): 공유 결과의 참여자 토큰 치환, 제외 안내, 수정 표시, 정해진 과정.
 
 함수 단위 케이스는 travel.server.render.render_participant_tokens(text, roster)를 직접 부른다.
 roster는 제출 순서대로 놓은 [{participant_id, display_name}]이다.
@@ -16,7 +16,6 @@ from harness.server.privacy import scan_private
 case = pytest.mark.server_case
 NAMES = ("민준", "지수", "하늘", "Alex", "7")
 PAIRS = ("은/는", "이/가", "을/를", "과/와", "으로/로")
-STATUS_VARIANTS = ("unresolved", "proposed", "conditional_only", "needs_information")
 
 
 def _render(srv, text, roster):
@@ -31,13 +30,7 @@ def _early_result(app, room, *pact_items):
 
 
 def _sentences(result):
-    texts = []
-    for kind in ("clauses", "conditional_alternatives"):
-        for item in result.get(kind) or []:
-            texts.append(item["action"])
-            texts.extend(item.get("proposed_conditions") or [])
-            texts.extend(item.get("proposed_changes") or [])
-    texts.extend(u["description"] for u in result.get("unresolved_conditions") or [])
+    texts = [item["text"] for kind in ("clauses", "discussion_items") for item in result.get(kind) or []]
     if result.get("message"):
         texts.append(result["message"])
     return texts
@@ -63,8 +56,8 @@ def test_exp_p02_same_name_numbered_by_submission(srv, expect):
     app.replay.push("pact", po.pact_item())
     assert app.generate(room).status_code == 202
     app.join()
-    template = srv.pact_outputs()[0]["clauses"][0]["action"]
-    shown = app.result(room).json()["clauses"][0]["action"]
+    template = srv.pact_outputs()[0]["clauses"][0]["text"]
+    shown = app.result(room).json()["clauses"][0]["text"]
     groups = template_groups(template, shown, "participant")
     assert groups is not None, f"토큰 밖 문자열이 원문과 다르다: {shown!r}"
     by_id = {tid: text for tid, _, text in groups}
@@ -88,8 +81,8 @@ def test_exp_p04_shared_result_after_edit(srv, expect):
     _early_result(app, room, po.pact_item())
     original = app.result(room).json()
     # 방장이 고르기 전의 수정본이다(결정 31). 편집 문장은 editable만으로 만든다(결정 29).
-    text = app.edited_text(room, original["result_id"], "/clauses/0/action", "비슷한 상황이 오면", "같은 상황이 다시 오면")
-    edit = app.edit(room, original["result_id"], [{"path": "/clauses/0/action", "text": text}])
+    text = app.edited_text(room, original["result_id"], "/clauses/0/text", "비슷한 상황이 오면", "같은 상황이 다시 오면")
+    edit = app.edit(room, original["result_id"], [{"path": "/clauses/0/text", "text": text}])
     assert edit.status_code == 201, edit.text[:300]
     participant = app.result(room).json()
     host = app.result(room, host=True).json()
@@ -98,7 +91,7 @@ def test_exp_p04_shared_result_after_edit(srv, expect):
     # note: "included_count, excluded_names, proposed_changes, label: 방장 수정이 있다"
     assert "included_count" in participant and "excluded_names" in participant
     assert participant["excluded_names"], "조기 생성인데 excluded_names가 비어 있다"
-    assert participant["conditional_alternatives"][0]["proposed_changes"], "proposed_changes가 없다"
+    assert participant["clauses"], "조항이 없다"
     assert participant["label"] == expect["result_label"]
     assert participant["draft"] is expect["draft"]
     srv.collect_original_conditions()
@@ -109,29 +102,32 @@ def test_exp_p04_shared_result_after_edit(srv, expect):
 
 
 @case("EXP-P05")
-def test_exp_p05_humor_only_for_unresolved(srv, expect):
+def test_exp_p05_process_panel(srv, expect):
     app = srv.app
-    for status in STATUS_VARIANTS:
-        checkpoint = expect.at(status)
-        _, room = app.create_room()
-        _early_result(app, room, po.pact_item(status))
-        result = app.result(room)
-        assert result.status_code == 200, f"{status}: {result.text[:300]}"
-        body = result.json()
-        assert body["pact_status"] == status
-        assert ("humor" in body) is checkpoint["has_humor"], f"{status}: humor 유무"
-        if checkpoint["has_humor"]:
-            assert body["humor"]["text"] == checkpoint["humor_text"]
-            assert body["humor"]["explanation"] == checkpoint["humor_explanation"]
-            # note: "unresolved_conditions가 함께 있다"
-            assert body["unresolved_conditions"], "unresolved인데 unresolved_conditions가 없다"
+    ready = expect.at("ready")
+    _, room = app.create_room()
+    _early_result(app, room, po.pact_item("limit_first"))
+    result = app.result(room)
+    assert result.status_code == 200, result.text[:300]
+    body = result.json()
+    assert body["pact_status"] == "ready"
+    process = body["process"]
+    assert bool(process) is ready["has_process"]
+    assert len(process) == len(body["clauses"]) + len(body["discussion_items"])
+    for item in process:
+        assert {"label", "scenario_id", "title", "decision"} <= set(item), item
+    assert process[0]["label"] == "제1조"
+    assert process[0]["decision"] == ready["limit_decision"]
+    assert "first_tally" not in process[0] and "challenge_tally" not in process[0], "한계 반영 조항에 인원이 보인다"
+    assert "humor" not in json.dumps(body, ensure_ascii=False)
     failed = expect.at("failed")
     _, room = app.create_room()
     _early_result(app, room, po.pact_item("extra_key"), po.pact_item("extra_key"))
     assert app.room(room)["room_status"] == "failed"
-    payloads = [app.result(room).json(), app.results_body(room)]
-    for payload in payloads:
-        assert ("humor" in json.dumps(payload, ensure_ascii=False)) is failed["has_humor"], "failed 결과에 humor가 있다"
+    for payload in (app.result(room).json(), app.results_body(room)):
+        text = json.dumps(payload, ensure_ascii=False)
+        assert "humor" not in text
+        assert ('"process": [{' in text) is failed["has_process"]
 
 
 @case("EXP-N01")
@@ -160,7 +156,7 @@ def test_exp_n03_stored_unknown_token_blocks_result(srv, expect):
     assert len(rows) == 1
     stored = rows[0]["output"]
     output = json.loads(stored) if isinstance(stored, str) else stored
-    output["clauses"][0]["action"] += " " + po.token("participant-not-in-room") + "은/는 함께해요."
+    output["clauses"][0]["text"] += " " + po.token("participant-not-in-room") + "은/는 함께해요."
     if isinstance(stored, str):
         value = json.dumps(output, ensure_ascii=False)
     else:

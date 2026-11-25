@@ -24,7 +24,7 @@ import json
 import random
 from dataclasses import dataclass, field
 
-from travel.pact import validate_pact_output
+from travel.pact import model_input_for_pact, validate_pact_output
 from travel.scenarios import validate_scenario_output
 
 from . import db
@@ -35,7 +35,7 @@ PLACEHOLDER_NAME = "친구"
 # llm_calls.output_status에는 스키마의 값만 쓴다. 모델이 낸 임의 문자열을 표에 옮기지 않는다.
 OUTPUT_STATUSES = {
     "scenarios": ("ready", "needs_information", "unsupported", "invalid_input"),
-    "pact": ("proposed", "conditional_only", "needs_information", "unresolved", "unsupported", "invalid_input"),
+    "pact": ("ready", "needs_information", "unsupported", "invalid_input"),
 }
 
 
@@ -423,7 +423,7 @@ class JobManager:
             async with self.db.connection() as conn:
                 room = await db.fetch_room_by_id(conn, job.room_id)
             frozen = room["frozen_input"]
-            model_input = frozen["model_input"]
+            model_input = model_input_for_pact(frozen["model_input"])
             outcome = await self._generate(job, "pact", model_input,
                                            lambda raw: validate_pact_output(model_input, raw))
         except JobStopped:

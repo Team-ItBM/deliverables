@@ -70,7 +70,7 @@
 #   repair_error_codes : 두 번째 추천 호출의 repair_errors에 있어야 하는 code.
 #   waits              : 가짜 대기 함수가 기록한 초 목록과 정확히 같다.
 #   backoff_waits      : 가짜 대기 함수 기록의 기준값. 각 기록은 기준값 이상, 기준값 + settings.retry_jitter_seconds 이하다.
-#   has_humor, humor_text, humor_explanation: 공유 결과의 humor 유무와 text·explanation.
+#   has_process, limit_decision: 공유 결과에 정해진 과정(process)이 있는지, 한계 반영 조항의 결정 문구.
 #   push_sent          : 그 시점에 늘어난 발송 수. host(방장 구독), participant_each(참여자 구독마다), total(전체).
 #   host_push_text     : 방장 구독 발송 본문의 text에 들어 있어야 하는 문자열.
 #   push_payload_keys  : 발송 본문(JSON 객체)의 키 집합과 정확히 같아야 하는 목록(결정 25).
@@ -467,7 +467,7 @@ cases:
     source_result: "latest_edit"
     unchanged: ["original_result", "previous_edit"]
     shared_result: "latest_edit"
-    note: "201, 새 수정본의 `source_result_id`는 EDT-P01 수정본이다. 다시 조회한 `editable`의 `/clauses/0/action`에 EDT-P01 수정 문구가 있다. 새 수정본에 EDT-P01의 `/clauses/0/action` 변경이 남아 있다. AI 원본과 EDT-P01 수정본 행은 그대로다. 참여자 결과 조회는 새 수정본을 보여준다"
+    note: "201, 새 수정본의 `source_result_id`는 EDT-P01 수정본이다. 다시 조회한 `editable`의 `/clauses/0/text`에 EDT-P01 수정 문구가 있다. 새 수정본에 EDT-P01의 `/clauses/0/text` 변경이 남아 있다. AI 원본과 EDT-P01 수정본 행은 그대로다. 참여자 결과 조회는 새 수정본을 보여준다"
   - id: EDT-N01
     case_id: host_edit
     kind: fail
@@ -759,20 +759,17 @@ cases:
     basis: "AC13 판정 방법(초안·수정 표시), 처리 정책 \"조기 생성·마감\", 결정 31"
     result_label: "방장 수정"
     draft: true
-    privacy_scan: ["original_conditions"]
-    note: "공유 결과에 `included_count`, `excluded_names`, `proposed_changes`, `label: \"방장 수정\"`, `draft: true`가 있고 `original_condition` 값이 없다. 참여자 응답과 방장 응답의 공유 결과가 같다"
+    privacy_scan: ["memo_markers"]
+    note: "공유 결과에 `included_count`, `excluded_names`, `clauses`, `label: \"방장 수정\"`, `draft: true`가 있고 메모 표지가 없다. 참여자 응답과 방장 응답의 공유 결과가 같다"
   - id: EXP-P05
     case_id: result_export
     kind: pass
-    ac: ["AC13", "AC7"]
-    basis: "SPEC 상태별 처리 마지막 문단. AC7 범위의 서버 표시 부분이라 결정 19"
+    ac: ["AC13", "AC3"]
+    basis: "협약서 재설계안 4.1.1절(정해진 과정 더보기). 2026-11-25 팀 결정"
     checkpoints:
-      - {"at": "unresolved", "has_humor": true, "humor_text": "너네 조합 꽝이니 여행 가지 마세요!", "humor_explanation": "이번 응답 조건에서는 추천안을 찾지 못했습니다."}
-      - {"at": "proposed", "has_humor": false}
-      - {"at": "conditional_only", "has_humor": false}
-      - {"at": "needs_information", "has_humor": false}
-      - {"at": "failed", "has_humor": false}
-    note: "`unresolved`만 `humor.text`(\"너네 조합 꽝이니 여행 가지 마세요!\"), `humor.explanation`(\"이번 응답 조건에서는 추천안을 찾지 못했습니다.\"), `unresolved_conditions`가 함께 있다. 나머지와 `failed`에는 `humor`가 없다"
+      - {"at": "ready", "has_process": true, "limit_decision": "일행의 조건을 반영해 정함"}
+      - {"at": "failed", "has_process": false}
+    note: "ready 공유 결과에는 조항·협의 사항마다 `process` 항목(label, title, decision)이 있다. 한계 반영 조항은 선택 인원(first_tally)을 숨기고 decision만 있다. 나머지 항목에는 선택지별 인원이 있다. 이름·메모는 없다. 유머 필드(humor)는 어떤 결과에도 없다. `failed`에는 process가 비어 있다"
   - id: EXP-N01
     case_id: result_export
     kind: fail

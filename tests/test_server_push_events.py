@@ -125,8 +125,8 @@ def _selection_flow(srv, app, expect=None):
     assert app.select(pr.room, regenerated).status_code == 200
     check("reselect", mark)
     mark = srv.push.count()
-    text = app.edited_text(pr.room, regenerated, "/clauses/0/action", OLD_PHRASE, NEW_PHRASE)
-    assert app.edit(pr.room, regenerated, [{"path": "/clauses/0/action", "text": text}]).status_code == 201
+    text = app.edited_text(pr.room, regenerated, "/clauses/0/text", OLD_PHRASE, NEW_PHRASE)
+    assert app.edit(pr.room, regenerated, [{"path": "/clauses/0/text", "text": text}]).status_code == 201
     check("edit", mark)
     return pr
 

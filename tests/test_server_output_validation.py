@@ -78,7 +78,7 @@ def test_out_p01_truncated_json_then_valid(srv, expect):
 @case("OUT-P02")
 def test_out_p02_unknown_reference_then_valid(srv, expect):
     app = srv.app
-    room = _generated(app, po.pact_item("unknown_response"), po.pact_item())
+    room = _generated(app, po.pact_item("unknown_scenario"), po.pact_item())
     assert _status(app, room)[0] == expect["room_status"]
     assert_calls(app.replay, expect["calls"])
     repair = app.replay.calls_for("pact")[1].repair_errors

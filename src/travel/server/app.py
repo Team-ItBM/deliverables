@@ -344,7 +344,7 @@ def _register_routes(app, settings, jobs, notifier, clock, pool_source):
         subs = await db.fetch_submissions(conn, room["room_id"])
         responses = await db.fetch_responses(conn, room["room_id"])
         participant_ids = [str(s["participant_id"]) for s in subs]
-        # 추천 프롬프트 v12는 scenarios[].template_id를 읽고, SPEC 5절은 scenario_id=template_id로 연결한다. 둘 다 보낸다.
+        # 추천 프롬프트는 scenarios[].template_id를 읽고, SPEC 5절은 scenario_id=template_id로 연결한다. 둘 다 보낸다.
         scenarios = []
         for s in room["scenario_set"]["scenarios"]:
             item = {"scenario_id": s["template_id"], "template_id": s["template_id"], "scene": s["scene"],
@@ -599,7 +599,7 @@ def _register_routes(app, settings, jobs, notifier, clock, pool_source):
             db.as_json(row["output"]), roster, result_id=row["result_id"], kind=row["kind"],
             source_result_id=row["source_result_id"], draft=draft,
             included_count=frozen.get("included_count", 0), excluded_names=frozen.get("excluded_names", []),
-            trip=db.as_json(room["trip"]))
+            trip=db.as_json(room["trip"]), model_input=frozen.get("model_input"))
 
     async def shown_origin(conn, room):
         rows = await ai_results(conn, room["room_id"])
@@ -714,7 +714,7 @@ def _register_routes(app, settings, jobs, notifier, clock, pool_source):
                 new_texts.append((path, text))
             frozen = room["frozen_input"] or {}
             index = InputIndex(frozen.get("model_input"))
-            probe = {"clauses": [{"action": text, "proposed_conditions": []} for _, text in new_texts]}
+            probe = {"clauses": [{"text": text} for _, text in new_texts], "discussion_items": []}
             if check_memo_quotes(index, probe):
                 raise ApiError("memo_quote")
             for path, text in new_texts:

@@ -13,14 +13,14 @@
 
 import re
 
+from travel import pool
+
 PAIRS = (("은", "는"), ("이", "가"), ("을", "를"), ("과", "와"), ("으로", "로"))
 PAIR_PATTERN = r"(?:은/는|이/가|을/를|과/와|으로/로)"
 PROFILE_TOKEN = re.compile(r"\{\{profile:([^{}]*)\}\}(" + PAIR_PATTERN + ")?")
 PARTICIPANT_TOKEN = re.compile(r"\{\{participant:([^{}]*)\}\}(" + PAIR_PATTERN + ")?")
 SELF_NAME = "당신"
 HONORIFIC = "님"
-HUMOR_TEXT = "너네 조합 꽝이니 여행 가지 마세요!"
-HUMOR_EXPLANATION = "이번 응답 조건에서는 추천안을 찾지 못했습니다."
 HOST_EDIT_LABEL = "방장 수정"
 
 
@@ -154,48 +154,93 @@ def participant_name(participant_id, roster):
 
 # ---- 공유 결과(§0-C)
 
-EDITABLE_KINDS = ("clauses", "conditional_alternatives")
-
-
+EDITABLE_KINDS = ("clauses", "discussion_items")
 PUBLIC_TRIP_KEYS = ("destination", "duration_days", "party_size")
+GROUP_NAME = "일행"
+DECISIONS = {
+    "agreed": "의견이 같아 정함",
+    "majority": "다수결로 정함",
+    "challenge": "챌린지로 정함",
+    "limit": "일행의 조건을 반영해 정함",
+}
+DISCUSSION_CHALLENGED = "챌린지에서도 갈려 직접 논의"
+DISCUSSION_PLAIN = "의견이 갈려 직접 논의"
+DISCUSSION_LIMIT = "일행의 조건이 서로 달라 직접 논의"
 
 
 def public_trip(trip):
-    """참여자에게 보여 주는 여행 정보. 동행 관계는 넣지 않는다(서버 위임 기록 결정 47)."""
     return {key: trip[key] for key in PUBLIC_TRIP_KEYS}
 
 
-def shared_result(output, roster, *, result_id, kind, source_result_id, draft, included_count, excluded_names, trip):
-    """검증을 통과한 PactRecommendation(토큰 그대로)을 §0-C 공유 결과로 바꾼다. 치환 실패는 RenderError다.
+def _generic_profile_text(text):
+    if not isinstance(text, str):
+        return text
+    return PROFILE_TOKEN.sub(lambda m: display_with_particle(GROUP_NAME, m.group(2)), text)
 
-    positions, original_condition, source_response_ids, response_id는 넣지 않는다(§0-A 6).
-    """
+
+def _scenario_title(scenario_id, scenario):
+    try:
+        title = pool.lookup_template(scenario_id).get("title")
+    except (KeyError, TypeError):
+        title = None
+    if isinstance(title, str) and title:
+        return title
+    return _generic_profile_text((scenario or {}).get("question") or scenario_id)
+
+
+def _public_tally(items):
+    if not items:
+        return None
+    return [{"label": _generic_profile_text(t["label"]), "count": t["count"]} for t in items]
+
+
+def process_items(output, model_input):
+    if not isinstance(model_input, dict):
+        return []
+    records = {
+        r["scenario_id"]: r for r in model_input.get("judgments") or [] if isinstance(r, dict) and "scenario_id" in r
+    }
+    scenarios = {s.get("scenario_id", s.get("template_id")): s for s in model_input.get("scenarios") or []}
+    items = []
+
+    def entry(label, scenario_id, decision, show_counts):
+        record = records.get(scenario_id) or {}
+        item = {"label": label, "scenario_id": scenario_id, "title": _scenario_title(scenario_id, scenarios.get(scenario_id)),
+                "decision": decision}
+        if show_counts:
+            first = _public_tally(record.get("first_tally"))
+            if first:
+                item["first_tally"] = first
+            challenge = _public_tally(record.get("challenge_tally"))
+            if challenge:
+                item["challenge_tally"] = challenge
+        return item
+
+    for i, clause in enumerate(output.get("clauses") or []):
+        basis = clause.get("basis")
+        items.append(entry(f"제{i + 1}조", clause["scenario_id"], DECISIONS.get(basis, ""), basis != "limit"))
+    for item in output.get("discussion_items") or []:
+        record = records.get(item["scenario_id"]) or {}
+        if record.get("outcome") != "discussion":
+            items.append(entry("협의 사항", item["scenario_id"], DISCUSSION_LIMIT, False))
+        else:
+            decision = DISCUSSION_CHALLENGED if record.get("challenged") else DISCUSSION_PLAIN
+            items.append(entry("협의 사항", item["scenario_id"], decision, True))
+    return items
+
+
+def shared_result(output, roster, *, result_id, kind, source_result_id, draft, included_count, excluded_names, trip,
+                  model_input=None):
     def text(value):
         return render_participant_tokens(value, roster)
 
-    def names(ids):
-        return [participant_name(pid, roster) for pid in ids]
-
-    clauses = []
-    for item in output.get("clauses") or []:
-        clauses.append({
-            "scenario_id": item["scenario_id"],
-            "participant_names": names(item.get("participant_ids") or []),
-            "action": text(item["action"]),
-            "proposed_conditions": [text(t) for t in item.get("proposed_conditions") or []],
-        })
-    alternatives = []
-    for item in output.get("conditional_alternatives") or []:
-        alternatives.append({
-            "scenario_id": item["scenario_id"],
-            "participant_names": names(item.get("participant_ids") or []),
-            "action": text(item["action"]),
-            "proposed_conditions": [text(t) for t in item.get("proposed_conditions") or []],
-            "proposed_changes": [text(c["proposed_change"]) for c in item.get("required_changes") or []],
-        })
-    unresolved = [
-        {"scenario_id": item["scenario_id"], "description": text(item["description"])}
-        for item in output.get("unresolved_conditions") or []
+    clauses = [
+        {"article": i + 1, "scenario_id": item["scenario_id"], "text": text(item["text"])}
+        for i, item in enumerate(output.get("clauses") or [])
+    ]
+    discussion = [
+        {"scenario_id": item["scenario_id"], "text": text(item["text"])}
+        for item in output.get("discussion_items") or []
     ]
     result = {
         "result_id": str(result_id),
@@ -208,41 +253,25 @@ def shared_result(output, roster, *, result_id, kind, source_result_id, draft, i
         "excluded_names": list(excluded_names),
         "trip": public_trip(trip),
         "clauses": clauses,
-        "conditional_alternatives": alternatives,
-        "unresolved_conditions": unresolved,
+        "discussion_items": discussion,
+        "process": process_items(output, model_input) if output["status"] == "ready" else [],
     }
     if isinstance(output.get("message"), str):
         result["message"] = text(output["message"])
-    if output["status"] == "unresolved":
-        result["humor"] = {"text": HUMOR_TEXT, "explanation": HUMOR_EXPLANATION}
     return result
 
 
 def editable_paths(output):
-    """결정 4의 편집 가능한 위치. (공유 결과 기준 JSON Pointer, 출력 안의 문장) 쌍을 순서대로 낸다."""
     for kind in EDITABLE_KINDS:
         for i, item in enumerate(output.get(kind) or []):
-            yield f"/{kind}/{i}/action", item["action"]
-            for j, sentence in enumerate(item.get("proposed_conditions") or []):
-                yield f"/{kind}/{i}/proposed_conditions/{j}", sentence
-            if kind == "conditional_alternatives":
-                for j, change in enumerate(item.get("required_changes") or []):
-                    yield f"/{kind}/{i}/proposed_changes/{j}", change["proposed_change"]
+            yield f"/{kind}/{i}/text", item["text"]
 
 
 def set_sentence(output, path, text):
-    """편집 가능한 위치의 문장을 바꾼다. 위치가 없으면 KeyError다."""
     parts = path.strip("/").split("/")
-    kind, i, field = parts[0], int(parts[1]), parts[2]
-    item = output[kind][i]
-    if field == "action":
-        item["action"] = text
-    elif field == "proposed_conditions":
-        item["proposed_conditions"][int(parts[3])] = text
-    elif field == "proposed_changes":
-        item["required_changes"][int(parts[3])]["proposed_change"] = text
-    else:
+    if len(parts) != 3 or parts[0] not in EDITABLE_KINDS or parts[2] != "text":
         raise KeyError(path)
+    output[parts[0]][int(parts[1])]["text"] = text
 
 
 def editable_segments(output, roster):

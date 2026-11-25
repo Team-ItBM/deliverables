@@ -47,9 +47,9 @@ describe("공개 결과 polling", () => {
 
 const paper = {
   result_id: "r1", kind: "ai_original", source_result_id: null, label: null, draft: true,
-  pact_status: "proposed", included_count: 1, excluded_names: [],
-  clauses: [{ scenario_id: "q1", participant_names: ["민준"], action: "처음 문구", proposed_conditions: [] }],
-  conditional_alternatives: [], unresolved_conditions: [],
+  pact_status: "ready", included_count: 1, excluded_names: [],
+  clauses: [{ article: 1, scenario_id: "q1", text: "처음 문구" }],
+  discussion_items: [], process: [],
 };
 const app = () => <MemoryRouter initialEntries={["/r/c/result"]}><Routes><Route path="/r/:code/result" element={<Result />} /></Routes></MemoryRouter>;
 
@@ -69,7 +69,7 @@ describe("참여자 결과 화면", () => {
     current = { ...paper, result_id: "r2", draft: false };
     await act(async () => vi.advanceTimersByTimeAsync(3500));
     expect(screen.queryByText("선택되지 않은 결과예요")).toBeNull();
-    current = { ...current, clauses: [{ ...paper.clauses[0]!, action: "방장이 고친 문구" }] };
+    current = { ...current, clauses: [{ ...paper.clauses[0]!, text: "방장이 고친 문구" }] };
     const beforeEdit = requests;
     await act(async () => vi.advanceTimersByTimeAsync(29_999));
     expect(requests).toBe(beforeEdit);

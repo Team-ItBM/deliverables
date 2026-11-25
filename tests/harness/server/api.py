@@ -70,7 +70,7 @@ def assert_status(resp, status):
 # §0-C 공유 결과의 키. 결과 목록 항목은 여기에 RESULT_LIST_EXTRA를 더한다.
 SHARED_RESULT_KEYS = {
     "result_id", "kind", "source_result_id", "label", "draft", "pact_status", "included_count", "excluded_names",
-    "clauses", "conditional_alternatives", "unresolved_conditions", "message", "humor", "trip",
+    "clauses", "discussion_items", "process", "message", "trip",
 }
 RESULT_LIST_EXTRA = {"attempt", "state", "created_at", "editable"}
 # §0-B "편집용 응답"(결정 29·34)의 조각 키. 글 조각과 참여자 조각 두 가지다.
@@ -120,14 +120,9 @@ def template_groups(template, rendered, kind):
 def editable_paths(shared):
     """결정 4의 편집 가능한 위치 전부를 공유 결과 기준 JSON Pointer로 돌려준다."""
     paths = []
-    for kind in ("clauses", "conditional_alternatives"):
-        for i, item in enumerate(shared.get(kind) or []):
-            paths.append(f"/{kind}/{i}/action")
-            for j, _ in enumerate(item.get("proposed_conditions") or []):
-                paths.append(f"/{kind}/{i}/proposed_conditions/{j}")
-            if kind == "conditional_alternatives":
-                for j, _ in enumerate(item.get("proposed_changes") or []):
-                    paths.append(f"/{kind}/{i}/proposed_changes/{j}")
+    for kind in ("clauses", "discussion_items"):
+        for i, _ in enumerate(shared.get(kind) or []):
+            paths.append(f"/{kind}/{i}/text")
     return paths
 
 

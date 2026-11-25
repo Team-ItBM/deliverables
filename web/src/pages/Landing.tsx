@@ -43,16 +43,16 @@ function useHostRooms(): { code: string; room: RoomView }[] {
 
 /** 예시 협약서. 실제 종이를 그대로 쓴다. 지어낸 이름과 문장만 넣고 선택·메모·선택 프로필은 넣지 않는다. */
 const SAMPLE: Partial<SharedResult> = {
-  pact_status: "proposed",
+  pact_status: "ready",
   trip: { destination: "제주", duration_days: 3, party_size: 3 },
   clauses: [
-    {
-      scenario_id: "sample",
-      participant_names: ["민지", "서준", "하늘"],
-      action: "오후에 일정이 비면 시간을 나눠 각자 가고 싶은 곳에 다녀와요.",
-      proposed_conditions: ["저녁 식사 시간에는 다시 모여요."],
-    },
+    { article: 1, scenario_id: "sample_meal", text: "여행 중 식사 메뉴에는 고기국수를 반드시 포함한다." },
+    { article: 2, scenario_id: "sample_cost", text: "공동 비용은 여행이 끝난 뒤 한 번에 정산한다." },
   ],
+  discussion_items: [
+    { scenario_id: "sample_time", text: "노을 감상과 소품숍 구경 중 무엇을 우선할지는 당사자 간 직접 논의하여 정한다." },
+  ],
+  process: [],
 };
 
 export function Landing() {
@@ -66,7 +66,7 @@ export function Landing() {
           <br />
           서로의 마음을 한 장에.
         </h1>
-        <p className="secondary">말 못 한 바람도 각자 답하면 추천 협약서에 담겨요.</p>
+        <p className="secondary">각자 답하고 갈린 것만 한 번 더 고르면, 협약서에 담겨요.</p>
       </div>
 
       <figure className="sample" aria-label="예시 협약서">

@@ -80,8 +80,8 @@ def test_room_delete_cascades_private_and_derived_records(srv):
                          endpoint=ENDPOINT).status_code == 201
     initial = app.results_body(room)["results"][0]["result_id"]
     assert app.select(room, initial).status_code == 200
-    text = app.edited_text(room, initial, "/clauses/0/action", "비슷한 상황이 오면", "같은 상황이 다시 오면")
-    assert app.edit(room, initial, [{"path": "/clauses/0/action", "text": text}]).status_code == 201
+    text = app.edited_text(room, initial, "/clauses/0/text", "비슷한 상황이 오면", "같은 상황이 다시 오면")
+    assert app.edit(room, initial, [{"path": "/clauses/0/text", "text": text}]).status_code == 201
     enqueue(app, room)
     room_id = srv.sql("SELECT room_id FROM rooms WHERE room_code = %s", (room.code,))[0]["room_id"]
     calls = srv.sql("SELECT * FROM llm_calls WHERE room_id = %s ORDER BY call_id", (room_id,))
@@ -290,8 +290,8 @@ def test_edited_candidate_draft_matches_its_original_selection(srv):
     assert app.select(room, selected_id).status_code == 200
     for entry in entries:
         origin_id = entry["result_id"]
-        text = app.edited_text(room, origin_id, "/clauses/0/action", "비슷한 상황이 오면", "같은 상황이 다시 오면")
-        response = app.edit(room, origin_id, [{"path": "/clauses/0/action", "text": text}])
+        text = app.edited_text(room, origin_id, "/clauses/0/text", "비슷한 상황이 오면", "같은 상황이 다시 오면")
+        response = app.edit(room, origin_id, [{"path": "/clauses/0/text", "text": text}])
         assert response.status_code == 201
         edited = response.json()
         assert edited["result_id"] != origin_id
