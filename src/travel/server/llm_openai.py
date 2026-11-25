@@ -59,7 +59,7 @@ class LLMConfig:
             digest = sha256_text(body)
             if digest != spec["body_sha256"]:
                 raise ValueError(f"{stage} 프롬프트 전송부 해시가 설정과 다르다: {digest[:12]}… (설정 {spec['body_sha256'][:12]}…). "
-                                 f"프롬프트를 바꿨으면 prompt_version과 해시를 함께 올린다")
+                                 f"프롬프트 전송부를 바꿨으면 설정의 body_sha256을 갱신한다")
             schema = json.loads((self.root / spec["schema_path"]).read_text(encoding="utf-8"))
             self.prompts[stage] = {"model": spec.get("model", self.model), "web_search": spec.get("web_search", False),
                                    "body": body, "version": str(spec["version"]), "schema": schema,

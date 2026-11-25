@@ -1,5 +1,5 @@
 # 모델 호출 설정(ARCHITECTURE 2·5절). 코드에 값을 넣지 않고 여기서 바꾼다.
-# 전송부 해시가 다르면 서버가 시작할 때 멈춘다. 프롬프트 전송부를 바꾸면 prompt_version과 해시를 함께 올린다(AGENTS 5절).
+# 전송부 해시가 다르면 서버가 시작할 때 멈춘다. 전송부 수정마다 해시를 갱신하고 후보 버전은 직전 공개 배포 버전 + 1로 유지한다(AGENTS 5절).
 model: gpt-6.2-sol
 reasoning_effort: low           # 스파이크·회귀 점검과 같은 값
 store: false                    # 응답을 OpenAI 서버에 저장하지 않는다(처리방침 제6조)
@@ -10,8 +10,8 @@ prompts:
   scenarios:
     web_search: true
     path: src/travel/prompts/prepare_scenarios.md
-    version: 15
-    body_sha256: 9e82e3fc09e02b02db2673dc0d6784c841338c3abbcf44a3127c9e938567b77d
+    version: 10
+    body_sha256: 94b321a82218fede54339b719db4de470a4b0dc1eb3538b71640b7513fad301b
     schema_path: src/travel/schemas/scenario_set.schema.json
     schema_name: ScenarioSet
     schema_version: 2
