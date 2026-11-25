@@ -1246,3 +1246,108 @@ body.result-bg {
   white-space: nowrap;
   border: 0;
 }
+
+/* 승부처와 한 줄 협약서(docs/SHOWDOWN.md) */
+.showdown-headline {
+  font-family: var(--f-serif);
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.showdown-headline .num {
+  color: var(--c-tertiary);
+  font-feature-settings: "tnum" 1;
+}
+.showdown-card {
+  gap: var(--s-lg);
+}
+.showdown-vs {
+  font-family: var(--f-serif);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 0;
+}
+.showdown-stage {
+  font-weight: 500;
+  color: var(--c-tertiary);
+}
+.showdown-badge {
+  align-self: flex-start;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--c-stamp);
+  border: 1px solid var(--c-stamp);
+  border-radius: var(--r-sm);
+  padding: 2px var(--s-sm);
+}
+.showdown-card .option-card {
+  background: var(--c-paper);
+}
+.showdown-card .option-card:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+.rule-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-lg);
+}
+.rule-row {
+  display: flex;
+  gap: var(--s-md);
+  padding-bottom: var(--s-lg);
+  border-bottom: 1px solid var(--c-hairline);
+}
+.rule-number {
+  flex: none;
+  width: 24px;
+  font-family: var(--f-serif);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--c-tertiary);
+  font-feature-settings: "tnum" 1;
+}
+.rule-text {
+  font-family: var(--f-serif);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+.rps-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s-sm);
+}
+.rps-hand {
+  appearance: none;
+  font: inherit;
+  min-height: 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-xs);
+  background: var(--c-paper);
+  color: var(--c-primary);
+  border: 1px solid var(--c-outline);
+  border-radius: var(--r-lg);
+  cursor: pointer;
+  transition: transform var(--m-feedback) var(--m-easing);
+}
+.rps-hand:active:not(:disabled) {
+  transform: scale(0.96);
+}
+.rps-hand:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.rps-mark {
+  font-size: 32px;
+  line-height: 1;
+}

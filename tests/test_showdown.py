@@ -240,3 +240,214 @@ def test_room_with_no_conflict_has_no_showdown():
     ]
     results = showdown.classify_room(scenarios)
     assert [r["outcome"] for r in results] == ["agreed", "agreed"]
+
+
+# ---- 승부처 진행 ----
+
+
+class FixedChoice:
+    """제비뽑기에서 정해 둔 순번의 사람을 뽑는 가짜 난수."""
+
+    def __init__(self, index):
+        self.index = index
+
+    def choice(self, seq):
+        return seq[self.index]
+
+
+def _model_input(participants, rows):
+    """rows: [(template_id, [option_id per participant])]"""
+    return {
+        "participant_ids": list(participants),
+        "scenarios": [{"template_id": tid} for tid, _ in rows],
+        "responses": [
+            {"participant_id": pid, "scenario_id": tid, "option_id": option_id}
+            for tid, option_ids in rows
+            for pid, option_id in zip(participants, option_ids)
+        ],
+    }
+
+
+def _two_person_board():
+    # 3문항이라 승부처 상한은 1개다. 메뉴 문항이 승부처다.
+    return showdown.build_board(_model_input(["a", "b"], [
+        ("separate_menu", ["separate_menu_1", "separate_menu_2"]),
+        ("route_depth", ["route_depth_3", "route_depth_3"]),
+        ("drink_bill", ["drink_bill_any", "drink_bill_2"]),
+    ]))
+
+
+def _three_person_board():
+    return showdown.build_board(_model_input(["a", "b", "c"], [
+        ("paid_activity", ["paid_activity_2", "paid_activity_1", "paid_activity_3"]),
+        ("route_depth", ["route_depth_2", "route_depth_1", "route_depth_3"]),
+        ("separate_menu", ["separate_menu_2", "separate_menu_2", "separate_menu_any"]),
+    ]))
+
+
+def _card(view, template_id):
+    return next(row for row in view["items"] if row["scenario_id"] == template_id)
+
+
+def test_board_matches_classification_and_keeps_answers():
+    board = _two_person_board()
+    assert [item["outcome"] for item in board["items"]] == ["showdown", "agreed", "agreed"]
+    assert board["answers"]["separate_menu"] == {"a": "separate_menu_1", "b": "separate_menu_2"}
+    assert showdown.duelists(board, "separate_menu") == ["a", "b"]
+
+
+def test_board_rejects_unknown_template():
+    with pytest.raises(KeyError):
+        showdown.build_board(_model_input(["a"], [("free_time", ["free_time_1"])]))
+
+
+def test_initial_view_hides_votes_and_people():
+    view = showdown.build_view(_two_person_board(), {}, viewer_id="a", titles={"separate_menu": "먹고 싶은 메뉴가 다를 때"})
+    assert view["summary"] == {"total": 3, "settled": 2, "showdown": 1, "showdown_open": 1}
+    card = _card(view, "separate_menu")
+    assert card["title"] == "먹고 싶은 메뉴가 다를 때"
+    assert card["rule"] is None
+    assert card["showdown"] == {
+        "sides": ["생선 요리", "면 요리"],
+        "compromises": [c["rule"] for c in _rules()["templates"]["separate_menu"]["compromises"]],
+        "phase": "voting", "mode": "rps", "voter_count": 2, "picked_count": 0, "can_pick": True, "my_pick": None,
+    }
+    text = json.dumps(view, ensure_ascii=False)
+    assert "separate_menu_1" not in text and "separate_menu_2" not in text
+
+
+def test_same_compromise_from_everyone_is_adopted():
+    board, state = _two_person_board(), {}
+    showdown.pick(board, state, "separate_menu", "a", "c1")
+    view = showdown.build_view(board, state, viewer_id="b")
+    assert _card(view, "separate_menu")["showdown"]["picked_count"] == 1
+    assert _card(view, "separate_menu")["showdown"]["my_pick"] is None
+    showdown.pick(board, state, "separate_menu", "b", "c1")
+    card = _card(showdown.build_view(board, state, viewer_id="b"), "separate_menu")
+    expected = _rules()["templates"]["separate_menu"]["compromises"][1]["rule"]
+    assert card["rule"] == expected
+    assert card["showdown"]["result"] == {"how": "compromise", "rule": expected}
+    assert card["showdown"]["phase"] == "done"
+
+
+def test_pick_can_change_until_everyone_has_picked():
+    board, state = _two_person_board(), {}
+    showdown.pick(board, state, "separate_menu", "a", "duel")
+    showdown.pick(board, state, "separate_menu", "a", "c0")
+    showdown.pick(board, state, "separate_menu", "b", "c0")
+    assert state["separate_menu"]["result"]["how"] == "compromise"
+    with pytest.raises(showdown.ShowdownError) as excinfo:
+        showdown.pick(board, state, "separate_menu", "a", "c1")
+    assert excinfo.value.code == "invalid_state"
+
+
+def test_one_talk_vote_leaves_it_to_the_group():
+    board, state = _two_person_board(), {}
+    showdown.pick(board, state, "separate_menu", "a", "duel")
+    showdown.pick(board, state, "separate_menu", "b", "talk")
+    card = _card(showdown.build_view(board, state, viewer_id="a"), "separate_menu")
+    assert card["showdown"]["result"] == {"how": "talk", "rule": None}
+    assert card["rule"] is None
+    assert showdown.build_view(board, state)["summary"]["showdown_open"] == 0
+
+
+def test_two_people_go_to_rock_paper_scissors_and_winner_side_is_adopted():
+    board, state = _two_person_board(), {}
+    showdown.pick(board, state, "separate_menu", "a", "c0")
+    showdown.pick(board, state, "separate_menu", "b", "c1")  # 절충 후보가 엇갈리면 승부다
+    assert state["separate_menu"]["phase"] == "duel"
+    showdown.move(board, state, "separate_menu", "a", "rock")
+    waiting = _card(showdown.build_view(board, state, viewer_id="b"), "separate_menu")["showdown"]["duel"]
+    assert waiting == {"is_player": True, "round": 1, "moved_count": 1, "my_move": None, "last_tie": None}
+    showdown.move(board, state, "separate_menu", "b", "scissors")
+    winner = _card(showdown.build_view(board, state, viewer_id="a"), "separate_menu")
+    loser = _card(showdown.build_view(board, state, viewer_id="b"), "separate_menu")
+    rule = _rule("separate_menu", "separate_menu_1")
+    assert winner["rule"] == rule and loser["rule"] == rule
+    assert winner["showdown"]["result"] == {"how": "duel", "rule": rule, "won": True, "my_move": "rock", "other_move": "scissors"}
+    assert loser["showdown"]["result"] == {"how": "duel", "rule": rule, "won": False, "my_move": "scissors", "other_move": "rock"}
+
+
+def test_tie_starts_another_round():
+    board, state = _two_person_board(), {}
+    showdown.pick(board, state, "separate_menu", "a", "duel")
+    showdown.pick(board, state, "separate_menu", "b", "duel")
+    showdown.move(board, state, "separate_menu", "a", "paper")
+    showdown.move(board, state, "separate_menu", "b", "paper")
+    duel = _card(showdown.build_view(board, state, viewer_id="a"), "separate_menu")["showdown"]["duel"]
+    assert duel == {"is_player": True, "round": 2, "moved_count": 0, "my_move": None, "last_tie": "paper"}
+    showdown.move(board, state, "separate_menu", "b", "rock")
+    showdown.move(board, state, "separate_menu", "a", "scissors")
+    assert state["separate_menu"]["result"]["winner"] == "b"
+
+
+def test_move_is_rejected_outside_duel_or_twice():
+    board, state = _two_person_board(), {}
+    with pytest.raises(showdown.ShowdownError) as excinfo:
+        showdown.move(board, state, "separate_menu", "a", "rock")
+    assert excinfo.value.code == "invalid_state"
+    showdown.pick(board, state, "separate_menu", "a", "duel")
+    showdown.pick(board, state, "separate_menu", "b", "duel")
+    showdown.move(board, state, "separate_menu", "a", "rock")
+    with pytest.raises(showdown.ShowdownError) as excinfo:
+        showdown.move(board, state, "separate_menu", "a", "paper")
+    assert excinfo.value.code == "invalid_state"
+    with pytest.raises(showdown.ShowdownError) as excinfo:
+        showdown.move(board, state, "separate_menu", "b", "lizard")
+    assert excinfo.value.code == "invalid_input"
+
+
+def test_three_people_draw_lots_and_only_players_learn_if_they_won():
+    board, state = _three_person_board(), {}
+    assert [item["outcome"] for item in board["items"]] == ["showdown", "middle", "agreed"]
+    for pid in ("a", "b"):
+        showdown.pick(board, state, "paid_activity", pid, "duel")
+    assert state["paid_activity"]["phase"] == "voting"
+    showdown.pick(board, state, "paid_activity", "c", "c0", rng=FixedChoice(1))
+    rule = _rule("paid_activity", "paid_activity_1")
+    assert state["paid_activity"]["result"] == {"how": "lottery", "winner": "b", "option_id": "paid_activity_1", "rule": rule}
+    assert _card(showdown.build_view(board, state, viewer_id="b"), "paid_activity")["showdown"]["result"] == {
+        "how": "lottery", "rule": rule, "won": True}
+    assert _card(showdown.build_view(board, state, viewer_id="a"), "paid_activity")["showdown"]["result"]["won"] is False
+    outsider = _card(showdown.build_view(board, state), "paid_activity")["showdown"]
+    assert outsider["result"] == {"how": "lottery", "rule": rule}
+    assert outsider["mode"] == "lottery" and outsider["can_pick"] is False
+
+
+def test_host_can_close_voting_with_picks_so_far():
+    board, state = _three_person_board(), {}
+    with pytest.raises(showdown.ShowdownError) as excinfo:
+        showdown.close_voting(board, state, "paid_activity")
+    assert excinfo.value.code == "invalid_state"
+    showdown.pick(board, state, "paid_activity", "a", "c0")
+    showdown.pick(board, state, "paid_activity", "c", "c0")
+    showdown.close_voting(board, state, "paid_activity")
+    assert state["paid_activity"]["result"] == {
+        "how": "compromise", "rule": _rules()["templates"]["paid_activity"]["compromises"][0]["rule"]}
+
+
+def test_only_showdown_questions_and_participants_are_accepted():
+    board, state = _two_person_board(), {}
+    for template_id in ("route_depth", "no_such_template"):
+        with pytest.raises(showdown.ShowdownError) as excinfo:
+            showdown.pick(board, state, template_id, "a", "duel")
+        assert excinfo.value.code == "not_found"
+    with pytest.raises(showdown.ShowdownError) as excinfo:
+        showdown.pick(board, state, "separate_menu", "stranger", "duel")
+    assert excinfo.value.code == "forbidden"
+    with pytest.raises(showdown.ShowdownError) as excinfo:
+        showdown.pick(board, state, "separate_menu", "a", "c2")
+    assert excinfo.value.code == "invalid_input"
+    assert state == {} or state["separate_menu"]["picks"] == {}
+
+
+def test_state_survives_json_round_trip():
+    board, state = _two_person_board(), {}
+    showdown.pick(board, state, "separate_menu", "a", "duel")
+    state = json.loads(json.dumps(state))
+    showdown.pick(board, state, "separate_menu", "b", "duel")
+    state = json.loads(json.dumps(state))
+    showdown.move(board, state, "separate_menu", "a", "scissors")
+    state = json.loads(json.dumps(state))
+    showdown.move(board, state, "separate_menu", "b", "paper")
+    assert json.loads(json.dumps(state))["separate_menu"]["result"]["winner"] == "a"

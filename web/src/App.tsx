@@ -10,6 +10,7 @@ import { Landing } from "./pages/Landing";
 import { Privacy } from "./pages/Privacy";
 import { Result } from "./pages/Result";
 import { RoomEntry } from "./pages/RoomEntry";
+import { Showdown } from "./pages/Showdown";
 import { Wait } from "./pages/Wait";
 
 const MOCK = import.meta.env.VITE_MOCK === "1";
@@ -42,6 +43,7 @@ export function App() {
         <Route path="/r/:code/answer" element={<Answer />} />
         <Route path="/r/:code/wait" element={<Wait />} />
         <Route path="/r/:code/result" element={<Result />} />
+        <Route path="/r/:code/showdown" element={<Showdown />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BackProvider>

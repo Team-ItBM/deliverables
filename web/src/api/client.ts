@@ -9,6 +9,9 @@ import type {
   RoomView,
   SessionResponse,
   SharedResult,
+  ShowdownChoice,
+  ShowdownMove,
+  ShowdownView,
   SubmissionBody,
   SubmissionResponse,
   Trip,
@@ -102,6 +105,21 @@ export const api = {
     call<SharedResult>("POST", `${room(code)}/results/${encodeURIComponent(resultId)}/edits`, {
       body: { edits },
       hostToken,
+    }),
+  getShowdown: (code: string, sessionId?: string | null) =>
+    call<ShowdownView>("GET", `${room(code)}/showdown`, { headers: sessionId ? { "X-Session-Id": sessionId } : {} }),
+  showdownPick: (code: string, scenarioId: string, session_id: string, choice: ShowdownChoice) =>
+    call<ShowdownView>("POST", `${room(code)}/showdown/${encodeURIComponent(scenarioId)}/pick`, {
+      body: { session_id, choice },
+    }),
+  showdownMove: (code: string, scenarioId: string, session_id: string, move: ShowdownMove) =>
+    call<ShowdownView>("POST", `${room(code)}/showdown/${encodeURIComponent(scenarioId)}/move`, {
+      body: { session_id, move },
+    }),
+  showdownClose: (code: string, scenarioId: string, hostToken: string, sessionId?: string | null) =>
+    call<ShowdownView>("POST", `${room(code)}/showdown/${encodeURIComponent(scenarioId)}/close`, {
+      hostToken,
+      headers: sessionId ? { "X-Session-Id": sessionId } : {},
     }),
   // 응답 형태가 계약에 없다. {public_key}로 가정한다(README "계약에서 정하지 않은 것").
   vapidKey: () => call<{ public_key: string }>("GET", "/push/vapid-public-key"),

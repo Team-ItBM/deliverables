@@ -445,6 +445,9 @@ export function Result() {
   return (
     <main className="page">
       <h1 className="t-headline-lg">추천 협약서</h1>
+      <Link className="btn btn-outline" to={`/r/${encodeURIComponent(code)}/showdown`}>
+        한 줄 협약서와 승부처 보기
+      </Link>
       {notReady && (
         <section className="status-block">
           <p>아직 공개된 협약서가 없어요.</p>

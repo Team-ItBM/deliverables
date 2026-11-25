@@ -21,6 +21,7 @@ export function pageMetaFor(pathname: string): PageMeta {
     if (sub === "/answer") return { title: "답하기 · 도원결의" };
     if (sub === "/wait") return { title: "진행 상황 · 도원결의" };
     if (sub === "/result") return { title: "추천 협약서 · 도원결의" };
+    if (sub === "/showdown") return { title: "한 줄 협약서 · 도원결의" };
     if (sub === "/created") return { title: "초대 링크 · 도원결의" };
     return { title: "여행 방 · 도원결의" };
   }

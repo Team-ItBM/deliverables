@@ -1,4 +1,4 @@
-import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { isNotFound } from "../api/errors";
 import type { RoomView } from "../api/types";
@@ -46,6 +46,11 @@ export function Wait() {
             </div>
           )}
         </section>
+      )}
+      {room && room.room_status !== "open" && (
+        <Link className="btn btn-outline" to={`${roomPath}/showdown`}>
+          한 줄 협약서와 승부처 보기
+        </Link>
       )}
       {room && token && <CopyButton text={inviteUrl(code)} label="초대 링크 복사" />}
       {error !== null && <ErrorMessage error={error} onRetry={reload} />}

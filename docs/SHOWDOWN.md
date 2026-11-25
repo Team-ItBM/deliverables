@@ -2,10 +2,10 @@
 
 | 항목 | 값 |
 |---|---|
-| 상태 | 제안. 1단계(규칙 데이터·분류 함수)만 구현했다. SPEC·AC에는 아직 반영하지 않았다 |
+| 상태 | 제안. 분류·승부처 API·화면을 구현했다. SPEC·AC에는 아직 반영하지 않았다 |
 | 작성일 | 2026-11-25 |
 | 근거 | [MVP 사용 피드백 7건](#5-피드백과의-대응), 2026-11-25 실제 서비스 3인 방 사용 결과 |
-| 구현 | [`src/travel/showdown.py`](../src/travel/showdown.py), [`src/travel/data/showdown_rules.json`](../src/travel/data/showdown_rules.json), [`tests/test_showdown.py`](../tests/test_showdown.py) |
+| 구현 | [`src/travel/showdown.py`](../src/travel/showdown.py), [`src/travel/data/showdown_rules.json`](../src/travel/data/showdown_rules.json), [`src/travel/server/app.py`](../src/travel/server/app.py), [`web/src/pages/Showdown.tsx`](../web/src/pages/Showdown.tsx) |
 
 이 문서는 팀 검토를 위한 설계안이다. [SPEC](SPEC.md)의 AC와 절대 규칙을 바꾸는 내용은 팀이 확정한 뒤 SPEC에 옮긴다.
 
@@ -99,11 +99,28 @@ MVP 피드백에서 가장 많이 나온 문제는 협약서가 조율 결과가
 | 협약서가 길다 | 조항이 한 줄이다 |
 | 방장만 다 한다 | 승부처는 각자 기기에서 참여한다 |
 
-## 6. 구현 단계
+## 6. 서버와 화면
+
+상태는 `rooms.showdown`(jsonb) 한 칸에 둔다. 응답이 고정된 뒤(`frozen_input`)부터 쓸 수 있고, AI 추천 생성과는 독립이다.
+
+| 요청 | 누가 | 내용 |
+|---|---|---|
+| `GET /api/rooms/{code}/showdown` | 누구나. `X-Session-Id`가 제출한 세션이면 본인 선택이 함께 온다 | 한 줄 규칙 목록과 승부처 상태. 규칙 데이터에 없는 문항이 있으면 `{"available": false}` |
+| `POST .../showdown/{scenario_id}/pick` | 제출한 세션(`session_id`) | `choice`: `c0`·`c1`(절충 후보), `duel`(승부), `talk`(토론). 전원이 고르기 전에는 바꿀 수 있다 |
+| `POST .../showdown/{scenario_id}/move` | 승부에 참여한 두 사람 | `move`: `rock`·`paper`·`scissors`. 비기면 다음 판으로 넘어간다 |
+| `POST .../showdown/{scenario_id}/close` | 방장 | 지금까지 모인 선택으로 마감한다. 한 명 이상 골라야 한다 |
+
+- 응답에는 누가 무엇을 골랐는지, 입장별 인원수, 참여자 ID가 없다. 승패(`won`)와 낸 패는 승부에 참여한 본인에게만 간다.
+- 화면은 `/r/{code}/showdown`이다. 결과 화면과 진행 상황 화면에 들어가는 버튼이 있다. 3~5초마다 다시 조회해 다른 기기의 선택을 반영한다.
+- 모의 모드(`npm run dev:mock`)는 승부처를 지원하지 않는다. 로컬 확인은 `LLM_MODE=replay` 서버로 한다.
+- 배포할 때 DB에 `rooms.showdown` 칸이 필요하다. `init_schema`가 `ADD COLUMN IF NOT EXISTS`로 더한다.
+
+## 7. 구현 단계
 
 | 단계 | 내용 | 상태 |
 |---|---|---|
-| 1 | 규칙 데이터, 분류 함수, 계약 테스트 | 완료(로컬 테스트 통과) |
-| 2 | 승부처 투표·가위바위보·제비뽑기 서버 API와 DB | 예정 |
-| 3 | 통한 약속·승부처·최종 협약서 화면, 이미지 저장 | 예정 |
-| 4 | SPEC·AC·골든 케이스·evals 반영 | 팀 결정 후 |
+| 1 | 규칙 데이터, 분류 함수, 계약 테스트 | 완료 |
+| 2 | 승부처 선택·가위바위보·제비뽑기 로직과 서버 API | 구현. 서버 테스트는 PR 검사로 확인 |
+| 3 | 한 줄 협약서·승부처 화면 | 구현. 실제 기기 확인 전 |
+| 4 | 최종 협약서 이미지 저장, 승부처 알림 | 예정 |
+| 5 | SPEC·AC·골든 케이스·evals 반영 | 팀 결정 후 |

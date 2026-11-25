@@ -518,6 +518,10 @@ function handle(req: TransportRequest, db: DB): TransportResponse {
     o.edits.push(version);
     return ok(201, shared(room, o, version));
   }
+  // 승부처는 모의 서버에서 지원하지 않는다. 화면은 "볼 수 없어요"로 처리한다.
+  if (req.method === "GET" && sub === "/showdown") return ok(200, { available: false });
+  if (req.method === "POST" && sub.startsWith("/showdown/")) return err(409, "invalid_state");
+
   const registering = req.method === "POST" && sub === "/push-subscriptions";
   const checking = req.method === "POST" && sub === "/push-subscriptions/status";
   const removing = req.method === "DELETE" && sub === "/push-subscriptions";
