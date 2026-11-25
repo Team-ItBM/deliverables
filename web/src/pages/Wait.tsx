@@ -8,7 +8,7 @@ import { OpenPact } from "../components/OpenPact";
 import { CopyButton, ErrorMessage, RoomNotFound, StatusLine } from "../components/ui";
 import { loadSubmitted } from "../lib/answerSession";
 import { useHeaderBack } from "../lib/back";
-import { useHostToken, usePolling, useResultCheck } from "../lib/hooks";
+import { useHostToken, usePolling, useResultCheck, useShowdownGate } from "../lib/hooks";
 import { inviteUrl } from "../lib/hostToken";
 import { FAILURE_TEXT } from "../lib/status";
 
@@ -26,6 +26,10 @@ export function Wait() {
   );
   const resultCheck = useResultCheck(code, room?.room_status);
   const hasResult = resultCheck.has;
+  // 응답이 마감되면 협약서가 준비되기 전에도 승부처를 먼저 정할 수 있다. 협약서가 준비된 뒤에는 아래 주 버튼이 승부처로 보낸다.
+  const closed = room !== null && room.room_status !== "open";
+  const showdownGate = useShowdownGate(code, closed);
+  const showdownFirst = closed && (showdownGate.open ?? 0) > 0 && hasResult !== true;
 
   if (!room && isNotFound(error)) return <RoomNotFound />;
   // 제출한 기기와 방장은 진행 상황을 먼저 보고 직접 협약서를 연다. 그 밖의 사람은 결과로 바로 간다.
@@ -47,10 +51,13 @@ export function Wait() {
           )}
         </section>
       )}
-      {room && room.room_status !== "open" && (
-        <Link className="btn btn-outline" to={`${roomPath}/showdown`}>
-          한 줄 협약서와 승부처 보기
-        </Link>
+      {showdownFirst && (
+        <section className="status-block">
+          <p>의견이 갈린 문항이 있어요. 협약서를 보기 전에 승부처에서 먼저 정해 주세요.</p>
+          <Link className="btn btn-primary" to={`${roomPath}/showdown`}>
+            승부처 확인하기
+          </Link>
+        </section>
       )}
       {room && token && <CopyButton text={inviteUrl(code)} label="초대 링크 복사" />}
       {error !== null && <ErrorMessage error={error} onRetry={reload} />}

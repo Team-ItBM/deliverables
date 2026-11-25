@@ -39,7 +39,7 @@ const app = () => (
 );
 
 describe("승부처 화면", () => {
-  it("통한 약속과 승부처를 보여 주고, 고른 선택을 세션과 함께 보낸다", async () => {
+  it("안내 뒤에 승부처 카드를 보여 주고, 고른 선택을 세션과 함께 보낸다", async () => {
     writeJSON("local", keys.submitted("c"), { session_id: "ses-1", participant_id: "p1" });
     const requests: TransportRequest[] = [];
     setTransport(async (req) => {
@@ -48,8 +48,11 @@ describe("승부처 화면", () => {
       return { status: 200, body: board(votingCard) };
     });
     render(app());
-    expect(await screen.findByText("생선 요리 vs 면 요리")).toBeTruthy();
-    expect(screen.getByText("오후엔 두 곳만, 남는 시간은 자유!")).toBeTruthy();
+    // 먼저 안내를 보여 주고, 시작하면 승부처 카드가 나온다.
+    fireEvent.click(await screen.findByRole("button", { name: "승부처 시작하기" }));
+    expect(screen.getByText("생선 요리 vs 면 요리")).toBeTruthy();
+    expect(screen.queryByText("오후엔 두 곳만, 남는 시간은 자유!")).toBeNull();
+    expect(screen.queryByRole("link", { name: "전체 협약서 보기" })).toBeNull();
     expect(requests[0]!.headers["X-Session-Id"]).toBe("ses-1");
 
     fireEvent.click(screen.getByRole("radio", { name: "가위바위보로 정하기" }));
@@ -59,7 +62,7 @@ describe("승부처 화면", () => {
     expect(post.body).toEqual({ session_id: "ses-1", choice: "duel" });
   });
 
-  it("가위바위보에서 패를 내면 보내고, 끝나면 결과와 정해진 규칙을 보여 준다", async () => {
+  it("가위바위보에서 패를 내면 보내고, 끝나면 결과와 전체 협약서 보기를 보여 준다", async () => {
     writeJSON("local", keys.submitted("c"), { session_id: "ses-1", participant_id: "p1" });
     const duel: ShowdownCard = {
       ...votingCard, phase: "duel", can_pick: false, picked_count: 2, my_pick: "duel",
@@ -78,7 +81,8 @@ describe("승부처 화면", () => {
     render(app());
     fireEvent.click(await screen.findByRole("button", { name: /바위/ }));
     expect(await screen.findByText("이겼어요!")).toBeTruthy();
-    expect(screen.getAllByText(rule).length).toBeGreaterThan(0);
+    expect(screen.getByText(rule)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "전체 협약서 보기" }).getAttribute("href")).toBe("/r/c/result");
     const post = requests.find((r) => r.method === "POST")!;
     expect(post.path).toBe("/api/rooms/c/showdown/separate_menu/move");
     expect(post.body).toEqual({ session_id: "ses-1", move: "rock" });
@@ -87,12 +91,14 @@ describe("승부처 화면", () => {
   it("제출하지 않은 기기는 고를 수 없고, 지원하지 않는 방은 안내만 보여 준다", async () => {
     setTransport(async () => ({ status: 200, body: board({ ...votingCard, can_pick: false }) }));
     const first = render(app());
-    expect(await screen.findByText("이 방에 답을 제출한 기기에서 고를 수 있어요.")).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: "승부처 시작하기" }));
+    expect(screen.getByText("이 방에 답을 제출한 기기에서 고를 수 있어요.")).toBeTruthy();
     expect(screen.queryByRole("radio")).toBeNull();
     first.unmount();
 
     setTransport(async () => ({ status: 200, body: { available: false } }));
     render(app());
-    expect(await screen.findByText("이 방에서는 한 줄 협약서를 볼 수 없어요.")).toBeTruthy();
+    expect(await screen.findByText("이 방에는 승부처가 없어요.")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "전체 협약서 보기" })).toBeTruthy();
   });
 });

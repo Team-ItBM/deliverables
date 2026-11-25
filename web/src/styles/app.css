@@ -1351,3 +1351,15 @@ body.result-bg {
   font-size: 32px;
   line-height: 1;
 }
+.showdown-rules {
+  border-top: 1px solid var(--c-hairline);
+  padding-top: var(--s-2xl);
+}
+.showdown-steps {
+  margin: 0;
+  padding-left: var(--s-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-sm);
+  color: var(--c-secondary);
+}

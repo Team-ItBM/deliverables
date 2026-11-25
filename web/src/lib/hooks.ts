@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import { ApiError } from "../api/errors";
-import type { RoomStatus } from "../api/types";
-import { loadPending, type PendingSubmission } from "./answerSession";
+import type { RoomStatus, ShowdownBoard } from "../api/types";
+import { loadPending, loadSubmitted, type PendingSubmission } from "./answerSession";
 import { getHostToken } from "./hostToken";
 import { keys } from "./storage";
 
@@ -189,4 +189,43 @@ export function usePrefersReducedMotion(): boolean {
     return () => mq.removeEventListener?.("change", on);
   }, []);
   return reduced;
+}
+
+export interface ShowdownGate {
+  /** 아직 정하지 않은 승부처 수. 확인 전이면 null이다. 조회하지 못했거나 승부처를 쓰지 않는 방이면 0이다. */
+  open: number | null;
+  /** 한 줄 약속과 승부처 결과. 쓸 수 없으면 null이다. */
+  board: ShowdownBoard | null;
+}
+
+function asShowdownBoard(value: unknown): ShowdownBoard | null {
+  const v = value as Partial<ShowdownBoard> | null;
+  if (!v || v.available !== true || !Array.isArray(v.items) || typeof v.summary?.showdown_open !== "number") return null;
+  return v as ShowdownBoard;
+}
+
+/**
+ * 협약서를 열기 전에 정할 승부처가 남았는지 한 번 확인한다(docs/SHOWDOWN.md 흐름).
+ * 실패하면 승부처가 없는 것으로 보고 기존 흐름을 그대로 둔다. enabled가 false면 조회하지 않는다.
+ */
+export function useShowdownGate(code: string, enabled = true, refreshKey: unknown = null): ShowdownGate {
+  const [gate, setGate] = useState<ShowdownGate>({ open: null, board: null });
+  useEffect(() => {
+    if (!enabled) return;
+    let cancelled = false;
+    api
+      .getShowdown(code, loadSubmitted(code)?.session_id ?? null)
+      .then((view) => {
+        if (cancelled) return;
+        const board = asShowdownBoard(view);
+        setGate({ open: board ? board.summary.showdown_open : 0, board });
+      })
+      .catch(() => {
+        if (!cancelled) setGate({ open: 0, board: null });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [code, enabled, refreshKey]);
+  return gate;
 }

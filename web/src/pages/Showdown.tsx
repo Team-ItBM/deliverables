@@ -3,7 +3,8 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { ApiError, isNotFound } from "../api/errors";
 import type { ShowdownBoard, ShowdownCard, ShowdownChoice, ShowdownItem, ShowdownMove, ShowdownView } from "../api/types";
-import { ErrorMessage, RoomNotFound } from "../components/ui";
+import { HOW_LABEL, TALK_RULE } from "../components/ShowdownRules";
+import { BottomBar, ErrorMessage, RoomNotFound } from "../components/ui";
 import { loadSubmitted } from "../lib/answerSession";
 import { useHeaderBack } from "../lib/back";
 import { useHostToken, usePolling } from "../lib/hooks";
@@ -14,14 +15,6 @@ const HANDS: { move: ShowdownMove; label: string; mark: string }[] = [
   { move: "paper", label: "보", mark: "🖐️" },
 ];
 const HAND_LABEL: Record<ShowdownMove, string> = { scissors: "가위", rock: "바위", paper: "보" };
-const HOW_LABEL: Record<"compromise" | "duel" | "lottery" | "talk", string> = {
-  compromise: "절충",
-  duel: "가위바위보",
-  lottery: "제비뽑기",
-  talk: "직접 정하기",
-};
-const OPEN_RULE = "이건 그때 편한 쪽으로 정해요";
-const TALK_RULE = "승부 없이 직접 이야기해서 정하기로 했어요";
 
 function contestLine(card: ShowdownCard): string {
   return card.sides.join(" vs ");
@@ -136,20 +129,6 @@ function ShowdownCardView({
   );
 }
 
-function RuleRow({ item, index }: { item: ShowdownItem; index: number }) {
-  const how = item.showdown?.result?.how;
-  return (
-    <li className="rule-row">
-      <span className="rule-number" aria-hidden="true">{index + 1}</span>
-      <div className="stack-sm">
-        {item.title && <p className="t-caption muted">{item.title}</p>}
-        <p className="rule-text">{item.rule ?? (how === "talk" ? TALK_RULE : OPEN_RULE)}</p>
-        {how && <p className="showdown-badge">{HOW_LABEL[how]}</p>}
-      </div>
-    </li>
-  );
-}
-
 function Board({
   board,
   busy,
@@ -164,71 +143,99 @@ function Board({
   const { code = "" } = useParams();
   const token = useHostToken(code);
   const sessionId = loadSubmitted(code)?.session_id ?? null;
-  const open = board.items.filter((item) => item.showdown && item.showdown.phase !== "done");
-  const settled = board.items.filter((item) => !item.showdown || item.showdown.phase === "done");
-  const { summary } = board;
+  const cards = board.items.filter((item) => item.showdown);
+  const open = cards.filter((item) => item.showdown!.phase !== "done");
+  const done = cards.filter((item) => item.showdown!.phase === "done");
+  // 이미 고르기 시작했으면 안내를 건너뛴다.
+  const touched = cards.some((item) => item.showdown!.my_pick !== null || item.showdown!.phase !== "voting");
+  const [started, setStarted] = useState(false);
+  const resultPath = `/r/${encodeURIComponent(code)}/result`;
+
+  if (cards.length === 0) {
+    return (
+      <>
+        <section className="status-block">
+          <p>의견이 크게 갈린 문항이 없어요. 바로 협약서를 볼 수 있어요.</p>
+        </section>
+        <BottomBar>
+          <Link className="btn btn-primary" to={resultPath}>
+            전체 협약서 보기
+          </Link>
+        </BottomBar>
+      </>
+    );
+  }
+
+  if (open.length > 0 && !started && !touched) {
+    return (
+      <>
+        <section className="status-block" aria-live="polite">
+          <p className="showdown-headline">
+            의견이 갈린 문항 <span className="num">{open.length}</span>개를 찾았어요
+          </p>
+          <p className="secondary">협약서를 보기 전에 이 문항만 먼저 정해요.</p>
+        </section>
+        <ol className="showdown-steps">
+          <li>각자 기기에서 절충안, 승부, 토론 중 하나를 골라요.</li>
+          <li>모두 같은 절충안을 고르면 그대로 약속이 돼요.</li>
+          <li>갈리면 가위바위보나 제비뽑기로 정해요.</li>
+          <li>누가 무엇을 골랐는지는 보이지 않아요.</li>
+        </ol>
+        <BottomBar>
+          <button type="button" className="btn btn-primary" onClick={() => setStarted(true)}>
+            승부처 시작하기
+          </button>
+        </BottomBar>
+      </>
+    );
+  }
+
+  const renderCard = (item: ShowdownItem, locked: boolean) => (
+    <ShowdownCardView
+      key={item.scenario_id}
+      item={item}
+      card={item.showdown!}
+      busy={busy || locked}
+      isHost={isHost && !locked}
+      onPick={(choice) => {
+        if (sessionId) act(() => api.showdownPick(code, item.scenario_id, sessionId, choice));
+      }}
+      onMove={(move) => {
+        if (sessionId) act(() => api.showdownMove(code, item.scenario_id, sessionId, move));
+      }}
+      onClose={() => {
+        if (token) act(() => api.showdownClose(code, item.scenario_id, token, sessionId));
+      }}
+    />
+  );
+
   return (
     <>
       <section className="status-block" aria-live="polite">
-        <p className="showdown-headline">
-          <span className="num">{summary.total}</span>개 중 <span className="num">{summary.settled}</span>개가 통했어요
-        </p>
-        {summary.showdown_open > 0 ? (
-          <p className="secondary">의견이 갈린 승부처가 {summary.showdown_open}개 남았어요. 각자 기기에서 골라 주세요.</p>
+        {open.length > 0 ? (
+          <p>승부처가 {open.length}개 남았어요. 각자 기기에서 골라 주세요.</p>
         ) : (
-          <p className="secondary">승부처까지 모두 정리됐어요.</p>
+          <p>승부처를 모두 정했어요. 이제 전체 협약서를 볼 수 있어요.</p>
         )}
       </section>
-
       {open.length > 0 && (
-        <section className="stack-lg" aria-label="승부처">
-          <h2 className="t-headline-md">승부처</h2>
-          {open.map((item) => (
-            <ShowdownCardView
-              key={item.scenario_id}
-              item={item}
-              card={item.showdown!}
-              busy={busy}
-              isHost={isHost}
-              onPick={(choice) => {
-                if (sessionId) act(() => api.showdownPick(code, item.scenario_id, sessionId, choice));
-              }}
-              onMove={(move) => {
-                if (sessionId) act(() => api.showdownMove(code, item.scenario_id, sessionId, move));
-              }}
-              onClose={() => {
-                if (token) act(() => api.showdownClose(code, item.scenario_id, token, sessionId));
-              }}
-            />
-          ))}
+        <section className="stack-lg" aria-label="정할 승부처">
+          {open.map((item) => renderCard(item, false))}
         </section>
       )}
-
-      <section className="stack-lg" aria-label="한 줄 협약서">
-        <h2 className="t-headline-md">우리의 약속</h2>
-        <ol className="rule-list">
-          {settled.map((item, index) => (
-            <RuleRow key={item.scenario_id} item={item} index={index} />
-          ))}
-        </ol>
-        {settled
-          .filter((item) => item.showdown?.result?.how === "duel" || item.showdown?.result?.how === "lottery")
-          .map((item) => (
-            <ShowdownCardView
-              key={item.scenario_id}
-              item={item}
-              card={item.showdown!}
-              busy
-              isHost={false}
-              onPick={() => undefined}
-              onMove={() => undefined}
-              onClose={() => undefined}
-            />
-          ))}
-        <p className="t-body-sm secondary">
-          각자의 답을 규칙에 따라 정리한 결과예요. 누가 무엇을 골랐는지는 보이지 않아요. 여행 전에 함께 읽고 고쳐 써도 돼요.
-        </p>
-      </section>
+      {done.length > 0 && (
+        <section className="stack-lg" aria-label="정한 승부처">
+          <h2 className="t-headline-md">정한 승부처</h2>
+          {done.map((item) => renderCard(item, true))}
+        </section>
+      )}
+      {open.length === 0 && (
+        <BottomBar>
+          <Link className="btn btn-primary" to={resultPath}>
+            전체 협약서 보기
+          </Link>
+        </BottomBar>
+      )}
     </>
   );
 }
@@ -239,7 +246,7 @@ export function Showdown() {
   const token = useHostToken(code);
   const sessionId = loadSubmitted(code)?.session_id ?? null;
   const roomPath = `/r/${encodeURIComponent(code)}`;
-  useHeaderBack(() => navigate(`${roomPath}/result`));
+  useHeaderBack(() => navigate(`${roomPath}/wait`));
 
   const polled = usePolling<ShowdownView>(
     () => api.getShowdown(code, sessionId),
@@ -271,7 +278,7 @@ export function Showdown() {
 
   return (
     <main className="page">
-      <h1 className="t-headline-lg">한 줄 협약서</h1>
+      <h1 className="t-headline-lg">승부처</h1>
       {notReady && !view && (
         <section className="status-block">
           <p>아직 답을 모으고 있어요. 모두 답하면 볼 수 있어요.</p>
@@ -282,11 +289,17 @@ export function Showdown() {
       )}
       {polled.error !== null && !notReady && !view && <ErrorMessage error={polled.error} onRetry={polled.reload} />}
       {actionError !== null && <ErrorMessage error={actionError} />}
-      {view && !view.available && <p className="secondary">이 방에서는 한 줄 협약서를 볼 수 없어요.</p>}
+      {view && !view.available && (
+        <>
+          <p className="secondary">이 방에는 승부처가 없어요.</p>
+          <BottomBar>
+            <Link className="btn btn-primary" to={`${roomPath}/result`}>
+              전체 협약서 보기
+            </Link>
+          </BottomBar>
+        </>
+      )}
       {view && view.available && <Board board={view} busy={busy} isHost={token !== null} act={act} />}
-      <Link className="btn-text" to={`${roomPath}/result`}>
-        AI 추천 협약서 보기
-      </Link>
     </main>
   );
 }
