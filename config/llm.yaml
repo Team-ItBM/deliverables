@@ -10,8 +10,8 @@ prompts:
   scenarios:
     web_search: true
     path: src/travel/prompts/prepare_scenarios.md
-    version: 9
-    body_sha256: 26219ab99fadf0ce4d1de7f6e558884b8abe1346e526694d4a971ad7c7d3af2e
+    version: 15
+    body_sha256: 9e82e3fc09e02b02db2673dc0d6784c841338c3abbcf44a3127c9e938567b77d
     schema_path: src/travel/schemas/scenario_set.schema.json
     schema_name: ScenarioSet
     schema_version: 2
@@ -24,8 +24,8 @@ prompts:
     schema_version: 4
 pool:
   path: src/travel/data/scenario_pool.json
-  version: 3
-  sha256: 5b7c2ad7750d74eac04698b994f1aa50d2387c18ed59d361c99807ed1f0c2047
+  version: 4
+  sha256: abaa380262582d69b08cc8f0ecea036efe0a83edeadc12e31a3cda806c67d3da
 tools:
   call_limit: 12                # 도구 호출 상한. 12번째 요청은 실행하지 않고 도구를 끈 뒤 최종 출력 1회를 요청한다
 retry:

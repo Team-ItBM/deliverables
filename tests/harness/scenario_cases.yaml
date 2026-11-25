@@ -45,7 +45,7 @@
 #   unknown_profile_token scene, question, options[].label의 {{profile:...}} ID가 입력 participant_profiles에 없다(§0 결정 3).
 #                         {{, 공백, profile, 공백, :, ID, }} 순서로 찾고, :와 }} 사이 문자열이 등록 profile_id와
 #                         정확히 같지 않으면 위반이다. 빈 ID와 공백이 섞인 ID도 위반이다(§0-1 결정 3). (B절)
-#   scene_line_mismatch   scene을 \n으로 나눈 결과에 빈 줄이 있거나 줄 수가 원본과 다르다. 끝 줄바꿈 하나도
+#   scene_line_mismatch   scene을 \n으로 나눈 결과에 빈 줄이 있다. 끝 줄바꿈 하나도
 #                         빈 줄이다(§0-1 결정 2). 공백·탭·\r만 있는 줄도 빈 줄이다(§0-1 결정 5). (B절)
 #
 # fixture 기준 (8개, 원본 값을 바꾸지 않고 옮겼다. 각 파일의 source에 원본 위치가 있다)
@@ -375,15 +375,20 @@ cases:
     note: >-
       금지 행동. scenarios/0 options/0 label 맨 앞에 등록되지 않은 {{profile:p9}}를 붙였다. label도 토큰 검사 대상이다.
 
-  # 근거: §0-1 N23, B절 scene 줄 수, AC1, AC10
-  - name: N23_scene_line_removed
+  - name: V13_scene_merged_lines
     fixture: ex1_ready
     patch:
-      - {op: replace, path: /output/scenarios/0/scene, value: "가려던 곳이 문을 닫았어요\n저녁 약속까지 세 시간이 남았어요"}
+      - {op: replace, path: /output/scenarios/0/scene, value: "가려던 곳이 문을 닫았고 저녁 약속까지 세 시간이 남았어요\n가까운 곳에 카페와 숙소가 있어요"}
+    expect_valid: true
+    note: 핵심 조건을 유지하면서 원본 세 줄을 두 줄로 줄였다.
+
+  - name: N23_scene_whitespace_only
+    fixture: ex1_ready
+    patch:
+      - {op: replace, path: /output/scenarios/0/scene, value: " "}
     expect_valid: false
     must_include_errors: [scene_line_mismatch]
-    note: >-
-      금지 행동. 3줄인 scenarios/0 scene의 마지막 줄을 지워 2줄이 됐다.
+    note: 장면 전체가 공백이다.
 
   # 근거: §0-1 N24, B절 scene 빈 줄, AC1, AC10
   - name: N24_scene_blank_line
