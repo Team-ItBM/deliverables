@@ -121,7 +121,12 @@ function ShowdownCardView({
             </p>
           )}
           {result.won === true && <p className="showdown-stage">이겼어요!</p>}
-          {result.won === false && <p className="showdown-stage">졌어요. 이번엔 양보예요.</p>}
+          {result.won === false && (
+            <p className="showdown-stage">
+              졌어요. {result.winner_name ? `${result.winner_name}님이 이겼어요. ` : ""}이번엔 양보해요.
+            </p>
+          )}
+          {result.won === undefined && result.winner_name && <p className="showdown-stage">{result.winner_name}님이 이겼어요.</p>}
           <p className="rule-text">{result.rule ?? TALK_RULE}</p>
         </div>
       )}

@@ -114,7 +114,7 @@ MVP 피드백에서 가장 많이 나온 문제는 협약서가 조율 결과가
 | `POST .../showdown/{scenario_id}/move` | 승부에 참여한 두 사람 | `move`: `rock`·`paper`·`scissors`. 비기면 다음 판으로 넘어간다 |
 | `POST .../showdown/{scenario_id}/close` | 방장 | 지금까지 모인 선택으로 마감한다. 한 명 이상 골라야 한다 |
 
-- 응답에는 누가 무엇을 골랐는지, 입장별 인원수, 참여자 ID가 없다. 승패(`won`)와 낸 패는 승부에 참여한 본인에게만 간다.
+- 응답에는 진행 중인 선택, 입장별 인원수, 참여자 ID가 없다. 승부가 끝나면 이긴 사람의 이름(`winner_name`)은 모두에게 보인다(2026-11-25 팀 결정). 본인의 승패(`won`)와 낸 패는 승부에 참여한 본인에게만 간다.
 - 화면은 `/r/{code}/showdown`이다. 진행 상황 화면과 "협약서 보기" 자리의 버튼이 승부처가 남은 동안 이곳으로 보낸다. 3~5초마다 다시 조회해 다른 기기의 선택을 반영한다.
 - 모의 모드(`npm run dev:mock`)는 승부처를 지원하지 않는다. 로컬 확인은 `LLM_MODE=replay` 서버로 한다.
 - 배포할 때 DB에 `rooms.showdown` 칸이 필요하다. `init_schema`가 `ADD COLUMN IF NOT EXISTS`로 더한다.

@@ -451,3 +451,27 @@ def test_state_survives_json_round_trip():
     state = json.loads(json.dumps(state))
     showdown.move(board, state, "separate_menu", "b", "paper")
     assert json.loads(json.dumps(state))["separate_menu"]["result"]["winner"] == "a"
+
+
+def test_winner_name_is_shown_to_everyone_when_names_are_given():
+    board, state = _two_person_board(), {}
+    showdown.pick(board, state, "separate_menu", "a", "duel")
+    showdown.pick(board, state, "separate_menu", "b", "duel")
+    showdown.move(board, state, "separate_menu", "a", "rock")
+    showdown.move(board, state, "separate_menu", "b", "scissors")
+    names = {"a": "민지", "b": "서준"}
+    for viewer in ("a", "b", None):
+        result = _card(showdown.build_view(board, state, viewer_id=viewer, names=names), "separate_menu")["showdown"]["result"]
+        assert result["winner_name"] == "민지"
+    assert "won" not in _card(showdown.build_view(board, state, names=names), "separate_menu")["showdown"]["result"]
+    # 고르는 중에는 이름이 나오지 않는다.
+    fresh = showdown.build_view(_two_person_board(), {}, viewer_id="a", names=names)
+    assert "민지" not in json.dumps(fresh, ensure_ascii=False)
+
+
+def test_talk_and_compromise_results_have_no_winner_name():
+    board, state = _two_person_board(), {}
+    showdown.pick(board, state, "separate_menu", "a", "c0")
+    showdown.pick(board, state, "separate_menu", "b", "c0")
+    result = _card(showdown.build_view(board, state, viewer_id="a", names={"a": "민지", "b": "서준"}), "separate_menu")["showdown"]["result"]
+    assert "winner_name" not in result

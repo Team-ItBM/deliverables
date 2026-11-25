@@ -147,12 +147,13 @@ def test_two_people_play_rock_paper_scissors(srv, monkeypatch):
     rule = templates[sid]["options"][submitted[1].answers[0]["option_id"]]["rule"]
     assert submitted[1].answers[0]["scenario_id"] == sid
     assert done["items"][0]["rule"] == rule
+    winner_name = room.names[submitted[1].profile_id]
     assert done["items"][0]["showdown"]["result"] == {
-        "how": "duel", "rule": rule, "won": True, "my_move": "rock", "other_move": "scissors"}
+        "how": "duel", "rule": rule, "winner_name": winner_name, "won": True, "my_move": "rock", "other_move": "scissors"}
     loser = _get(app, room, submitted[0])["items"][0]["showdown"]["result"]
-    assert loser["won"] is False and loser["my_move"] == "scissors"
+    assert loser["won"] is False and loser["my_move"] == "scissors" and loser["winner_name"] == winner_name
     watcher = _get(app, room)["items"][0]["showdown"]["result"]
-    assert watcher == {"how": "duel", "rule": rule}
+    assert watcher == {"how": "duel", "rule": rule, "winner_name": winner_name}
 
 
 def test_three_people_draw_lots_once(srv, monkeypatch):
@@ -166,8 +167,11 @@ def test_three_people_draw_lots_once(srv, monkeypatch):
     assert card["showdown"]["mode"] == "lottery" and card["showdown"]["phase"] == "done"
     assert card["showdown"]["result"]["how"] == "lottery"
     assert card["rule"] in {o["rule"] for o in templates[sid]["options"].values()}
-    winners = [_get(app, room, s)["items"][0]["showdown"]["result"]["won"] for s in submitted]
-    assert sorted(winners) == [False, False, True]
+    results = [_get(app, room, s)["items"][0]["showdown"]["result"] for s in submitted]
+    assert sorted(r["won"] for r in results) == [False, False, True]
+    # 이긴 사람의 이름은 모두에게 같게 보인다.
+    winner = next(s for s, r in zip(submitted, results) if r["won"])
+    assert {r["winner_name"] for r in results} == {room.names[winner.profile_id]}
     # 한 번 정하면 다시 뽑지 않는다.
     assert _get(app, room)["items"][0]["rule"] == card["rule"]
     assert_error(_post(app, room, sid, "pick", submitted[0], choice="duel"), 409, "invalid_state")

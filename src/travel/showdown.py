@@ -283,7 +283,7 @@ def move(board, state, template_id, participant_id, hand):
     return state
 
 
-def _showdown_view(board, item, entry, viewer_id):
+def _showdown_view(board, item, entry, viewer_id, names):
     template_id = item["template_id"]
     players = duelists(board, template_id)
     voters = board["participant_ids"]
@@ -308,7 +308,11 @@ def _showdown_view(board, item, entry, viewer_id):
     result = entry["result"]
     if result is not None:
         shown = {"how": result["how"], "rule": result["rule"]}
-        # 누가 이겼는지는 승부에 참여한 본인에게만 알린다. 이름과 상대의 선택지는 싣지 않는다.
+        # 이긴 사람의 이름은 모두에게 보인다(2026-11-25 팀 결정). 본인의 승패와 낸 패는 승부에 참여한 본인에게만 간다.
+        if result["how"] in ("duel", "lottery"):
+            winner_name = names.get(result["winner"])
+            if winner_name:
+                shown["winner_name"] = winner_name
         if result["how"] in ("duel", "lottery") and viewer_id in players:
             shown["won"] = result["winner"] == viewer_id
         if result["how"] == "duel" and viewer_id in players:
@@ -319,16 +323,20 @@ def _showdown_view(board, item, entry, viewer_id):
     return view
 
 
-def build_view(board, state, viewer_id=None, titles=None):
-    """화면에 줄 응답을 만든다. 누가 무엇을 골랐는지와 입장별 인원수는 싣지 않는다."""
+def build_view(board, state, viewer_id=None, titles=None, names=None):
+    """화면에 줄 응답을 만든다. 입장별 인원수와 진행 중인 선택은 싣지 않는다.
+
+    names는 {participant_id: 표시 이름}이다. 주면 승부가 끝난 뒤 이긴 사람의 이름을 싣는다.
+    """
     titles = titles or {}
+    names = names or {}
     items = []
     for item in board["items"]:
         template_id = item["template_id"]
         row = {"scenario_id": template_id, "title": titles.get(template_id), "outcome": item["outcome"], "rule": item.get("rule")}
         if item["outcome"] == OUTCOME_SHOWDOWN:
             entry = state.get(template_id) or _new_entry()
-            row["showdown"] = _showdown_view(board, item, entry, viewer_id)
+            row["showdown"] = _showdown_view(board, item, entry, viewer_id, names)
             if entry["result"] is not None:
                 row["rule"] = entry["result"]["rule"]
         items.append(row)

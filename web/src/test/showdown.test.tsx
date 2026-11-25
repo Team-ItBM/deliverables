@@ -102,3 +102,28 @@ describe("승부처 화면", () => {
     expect(screen.getByRole("link", { name: "전체 협약서 보기" })).toBeTruthy();
   });
 });
+
+describe("승부 결과 문구", () => {
+  it("진 사람에게는 이긴 사람의 이름과 함께 양보 문구를 보여 준다", async () => {
+    writeJSON("local", keys.submitted("c"), { session_id: "ses-1", participant_id: "p1" });
+    const rule = "3만 원 체험, 다 같이 하기!";
+    const lost: ShowdownCard = {
+      ...votingCard, mode: "lottery", phase: "done", can_pick: false, picked_count: 3, voter_count: 3, my_pick: "duel",
+      result: { how: "lottery", rule, winner_name: "서준", won: false },
+    };
+    setTransport(async () => ({ status: 200, body: board(lost, rule) }));
+    render(app());
+    expect(await screen.findByText("졌어요. 서준님이 이겼어요. 이번엔 양보해요.")).toBeTruthy();
+  });
+
+  it("승부에 참여하지 않은 사람에게는 이긴 사람만 알린다", async () => {
+    const rule = "3만 원 체험, 다 같이 하기!";
+    const watched: ShowdownCard = {
+      ...votingCard, phase: "done", can_pick: false, picked_count: 2,
+      result: { how: "duel", rule, winner_name: "서준" },
+    };
+    setTransport(async () => ({ status: 200, body: board(watched, rule) }));
+    render(app());
+    expect(await screen.findByText("서준님이 이겼어요.")).toBeTruthy();
+  });
+});

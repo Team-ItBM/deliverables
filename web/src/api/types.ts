@@ -194,6 +194,8 @@ export type ShowdownOutcome = "agreed" | "middle" | "open" | "showdown" | "fallb
 export interface ShowdownResult {
   how: "compromise" | "duel" | "lottery" | "talk";
   rule: string | null;
+  /** 가위바위보·제비뽑기에서 이긴 사람의 이름. 모두에게 온다. */
+  winner_name?: string;
   /** 승부에 참여한 본인에게만 온다. */
   won?: boolean;
   my_move?: ShowdownMove;

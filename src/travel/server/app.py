@@ -766,10 +766,11 @@ def _register_routes(app, settings, jobs, notifier, clock, pool_source):
         row = await cur.fetchone()
         return str(row["participant_id"]) if row else None
 
-    def showdown_response(room, board, state, viewer):
+    def showdown_response(board, state, viewer, roster):
         if board is None:
             return {"available": False}
-        return showdown.build_view(board, state, viewer_id=viewer, titles=showdown_titles(board))
+        names = {r["participant_id"]: r["display_name"] for r in roster}
+        return showdown.build_view(board, state, viewer_id=viewer, titles=showdown_titles(board), names=names)
 
     @app.get("/api/rooms/{room_code}/showdown")
     async def get_showdown(room_code: str, request: Request):
@@ -778,7 +779,8 @@ def _register_routes(app, settings, jobs, notifier, clock, pool_source):
             room = await load_room(conn, room_code)
             board = showdown_board(room)
             viewer = await showdown_viewer(conn, room, session_id)
-        return showdown_response(room, board, db.as_json(room["showdown"]) or {}, viewer)
+            roster = await roster_of(conn, room)
+        return showdown_response(board, db.as_json(room["showdown"]) or {}, viewer, roster)
 
     async def showdown_action(room_code, request, scenario_id, act, host_only=False):
         """방 행을 잠그고 승부처 상태를 한 번 고친 뒤 갱신된 화면 응답을 돌려준다."""
@@ -803,7 +805,8 @@ def _register_routes(app, settings, jobs, notifier, clock, pool_source):
             except showdown.ShowdownError as exc:
                 raise ApiError(SHOWDOWN_ERRORS[exc.code])
             await conn.execute("UPDATE rooms SET showdown = %s WHERE room_id = %s", (db.jsonb(state), room["room_id"]))
-        return showdown_response(room, board, state, viewer)
+            roster = await roster_of(conn, room)
+        return showdown_response(board, state, viewer, roster)
 
     @app.post("/api/rooms/{room_code}/showdown/{scenario_id}/pick")
     async def showdown_pick(room_code: str, scenario_id: str, request: Request):
