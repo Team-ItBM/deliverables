@@ -26,7 +26,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from travel import showdown
+from travel import pact, showdown
 from travel.pact import InputIndex, check_memo_quotes
 
 from . import db, render
@@ -468,6 +468,12 @@ def _register_routes(app, settings, jobs, notifier, clock, pool_source):
                 "duplicate_name_notice": any(s["profile_id"] == profile_id for s in subs),
                 "privacy_notice": PRIVACY_NOTICE, "scenarios": scenarios}
 
+    async def freeze(conn, room, frozen, now):
+        if pact.pending_showdowns(pact.showdown_board(frozen["model_input"]), {}) > 0:
+            await db.close_for_showdown(conn, room, frozen, now)
+            return None
+        return await db.close_and_freeze(conn, room, frozen, now)
+
     # 4. 제출
     @app.post("/api/rooms/{room_code}/submissions", status_code=201)
     async def submit(room_code: str, request: Request):
@@ -522,8 +528,7 @@ def _register_routes(app, settings, jobs, notifier, clock, pool_source):
             await conn.execute("UPDATE rooms SET submitted_count = %s WHERE room_id = %s", (new_count, room["room_id"]))
             if new_count >= room["party_size"]:
                 frozen = await build_frozen(conn, room)
-                attempt_id, attempt_no = await db.close_and_freeze(conn, room, frozen, now)
-                started = (attempt_id, attempt_no)
+                started = await freeze(conn, room, frozen, now)
         if started is not None:
             jobs.start_pact(room["room_id"], room_code, started[0], started[1], now)
         log("submitted", room_code=room_code, submitted_count=new_count)
@@ -541,8 +546,10 @@ def _register_routes(app, settings, jobs, notifier, clock, pool_source):
             if room["submitted_count"] == 0:
                 raise ApiError("no_submissions")
             frozen = await build_frozen(conn, room)
-            attempt_id, attempt_no = await db.close_and_freeze(conn, room, frozen, now)
-        jobs.start_pact(room["room_id"], room_code, attempt_id, attempt_no, now)
+            started = await freeze(conn, room, frozen, now)
+        if started is None:
+            return {"room_status": "closed", "included_count": frozen["included_count"]}
+        jobs.start_pact(room["room_id"], room_code, started[0], started[1], now)
         return {"room_status": "generating", "included_count": frozen["included_count"]}
 
     # 6. 재시도
@@ -602,7 +609,9 @@ def _register_routes(app, settings, jobs, notifier, clock, pool_source):
             db.as_json(row["output"]), roster, result_id=row["result_id"], kind=row["kind"],
             source_result_id=row["source_result_id"], draft=draft,
             included_count=frozen.get("included_count", 0), excluded_names=frozen.get("excluded_names", []),
-            trip=db.as_json(room["trip"]), model_input=frozen.get("model_input"))
+            trip=db.as_json(room["trip"]), model_input=frozen.get("model_input"),
+            judgments=pact.judgments_from_showdown(frozen["model_input"], db.as_json(room["showdown"]) or {})
+            if frozen.get("model_input") else None)
 
     async def shown_origin(conn, room):
         rows = await ai_results(conn, room["room_id"])
@@ -806,6 +815,13 @@ def _register_routes(app, settings, jobs, notifier, clock, pool_source):
                 raise ApiError(SHOWDOWN_ERRORS[exc.code])
             await conn.execute("UPDATE rooms SET showdown = %s WHERE room_id = %s", (db.jsonb(state), room["room_id"]))
             roster = await roster_of(conn, room)
+            started = None
+            if room["status"] == "closed" and pact.pending_showdowns(board, state) == 0:
+                now = clock()
+                started = (await db.start_attempt(conn, room, now, ("closed",)), now)
+        if started is not None:
+            (attempt_id, attempt_no), now = started
+            jobs.start_pact(room["room_id"], room_code, attempt_id, attempt_no, now)
         return showdown_response(board, state, viewer, roster)
 
     @app.post("/api/rooms/{room_code}/showdown/{scenario_id}/pick")

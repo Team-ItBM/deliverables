@@ -948,26 +948,8 @@ body.result-bg {
   font-weight: 600;
   color: var(--c-primary);
 }
-.pact-basis-tally {
-  margin-top: var(--s-xs);
-}
-.pact-basis-round {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--c-tertiary);
-}
-.pact-basis-tally ul {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.pact-basis-tally li {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--s-md);
-}
 .pact-basis-result {
-  margin-top: var(--s-xs);
+  margin-top: 2px;
   font-weight: 600;
   color: var(--c-tertiary);
 }

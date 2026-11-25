@@ -2,8 +2,8 @@
 
 - 문항 단계: `config/replay/scenario_set_d01.json`의 실제 Sol 출력(2026-11-05 A'', pool v3)을 그대로 돌려준다.
   여행 정보와 무관하게 같은 문항이 나오므로 시연 장애 대비·로컬 실행용이다. README에 모의 처리임을 밝힌다.
-- 추천 단계: 받은 model_input의 판정(judgments)대로 조항과 협의 사항을 고정 문구로 만든다. 판정이 없으면(챌린지 단계
-  연결 전) 모든 문항을 의견이 같은 조항으로 둔다. 메모를 인용하지 않는다. 흐름 확인용이다.
+- 추천 단계: 받은 model_input의 판정(judgments, 승부처 결과)대로 조항과 협의 사항을 고정 문구로 만든다. 판정이
+  없으면(규칙 데이터에 없는 문항) 모든 문항을 조항으로 둔다. 메모를 인용하지 않는다. 흐름 확인용이다.
 요청에 든 메모·이름은 데이터로만 다루고 로그에 남기지 않는다.
 """
 
@@ -21,13 +21,13 @@ def synthesize_pact(model_input):
     clauses = []
     discussion = []
     judgments = model_input.get("judgments") or [
-        {"scenario_id": s.get("scenario_id", s.get("template_id")), "outcome": "agreed"} for s in model_input["scenarios"]
+        {"scenario_id": s.get("scenario_id", s.get("template_id")), "result": "rule"} for s in model_input["scenarios"]
     ]
     for item in judgments:
-        if item["outcome"] == "discussion":
+        if item["result"] == "talk":
             discussion.append({"scenario_id": item["scenario_id"], "text": DISCUSSION_TEXT})
         else:
-            clauses.append({"scenario_id": item["scenario_id"], "basis": item["outcome"], "text": CLAUSE_TEXT})
+            clauses.append({"scenario_id": item["scenario_id"], "text": CLAUSE_TEXT})
     return {"status": "ready", "clauses": clauses, "discussion_items": discussion}
 
 

@@ -1,3 +1,4 @@
+import json
 import sys
 from pathlib import Path
 
@@ -5,55 +6,79 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
 
-from travel.pact import model_input_for_pact  # noqa: E402
+from travel.pact import (  # noqa: E402
+    judgments_from_showdown,
+    model_input_for_pact,
+    pending_showdowns,
+    showdown_board,
+    validate_pact_output,
+    with_judgments,
+)
 from travel.server.render import process_items  # noqa: E402
 
-TALLY = [{"label": "고기국수", "count": 2}, {"label": "갈치조림", "count": 1}]
-MODEL_INPUT = {
-    "participant_ids": ["A", "B", "C"],
-    "scenarios": [{"scenario_id": "separate_menu", "question": "점심?"}, {"scenario_id": "ride_participation"},
-                  {"scenario_id": "sunset_window"}, {"scenario_id": "unknown_x", "question": "{{profile:p1}}과/와 같이 할까?"}],
-    "responses": [],
-    "judgments": [
-        {"scenario_id": "separate_menu", "outcome": "challenge", "decided_label": "고기국수",
-         "first_tally": [{"label": "고기국수", "count": 1}, {"label": "갈치조림", "count": 1}],
-         "challenge_tally": TALLY, "challenged": True},
-        {"scenario_id": "ride_participation", "outcome": "majority", "decided_label": "빠른 기구", "first_tally": TALLY},
-        {"scenario_id": "sunset_window", "outcome": "discussion", "tied_labels": ["노을", "소품숍"],
-         "first_tally": TALLY, "challenge_tally": TALLY, "challenged": True},
-        {"scenario_id": "unknown_x", "outcome": "agreed", "decided_label": "함께"},
-    ],
-}
-OUTPUT = {
-    "status": "ready",
-    "clauses": [
-        {"scenario_id": "separate_menu", "basis": "challenge", "text": "가."},
-        {"scenario_id": "ride_participation", "basis": "limit", "text": "나."},
-        {"scenario_id": "unknown_x", "basis": "agreed", "text": "라."},
-    ],
-    "discussion_items": [{"scenario_id": "sunset_window", "text": "다."}],
-}
+FIXTURE = json.loads((ROOT / "tests" / "harness" / "fixtures" / "pact" / "ready_full.json").read_text(encoding="utf-8"))
+BASE = {key: value for key, value in FIXTURE["input"].items() if key != "judgments"}
 
 
-def test_process_uses_judgment_tallies_and_hides_limit_counts():
-    items = process_items(OUTPUT, MODEL_INPUT)
-    assert [i["label"] for i in items] == ["제1조", "제2조", "제3조", "협의 사항"]
-    assert items[0]["decision"] == "챌린지로 정함" and items[0]["challenge_tally"] == TALLY
-    assert items[1]["decision"] == "일행의 조건을 반영해 정함"
-    assert "first_tally" not in items[1] and "challenge_tally" not in items[1]
-    assert items[3]["decision"] == "챌린지에서도 갈려 직접 논의" and items[3]["first_tally"] == TALLY
-    assert items[2]["title"] == "일행과 같이 할까?"
+def _done(how, rule=None, winner="A"):
+    result = {"how": how, "rule": rule}
+    if how in ("duel", "lottery"):
+        result.update({"winner": winner, "option_id": "ride_participation_2"})
+    return {"ride_participation": {"phase": "done", "picks": {}, "round": 1, "moves": {}, "last_tie": None,
+                                   "result": result}}
 
 
-def test_process_without_judgments_shows_decision_only():
-    model_input = {k: v for k, v in MODEL_INPUT.items() if k != "judgments"}
-    items = process_items(OUTPUT, model_input)
-    assert all("first_tally" not in i for i in items)
-    assert items[0]["decision"] == "챌린지로 정함"
+def test_board_classifies_example_rooms():
+    board = showdown_board(BASE)
+    outcomes = [(item["template_id"], item["outcome"]) for item in board["items"]]
+    assert outcomes == [("separate_menu", "fallback"), ("private_room", "middle"), ("ride_participation", "showdown"),
+                        ("settlement_timing", "agreed"), ("sunset_window", "open")]
+    assert pending_showdowns(board, {}) == 1
+    assert judgments_from_showdown(BASE, {}) is None
+    assert "judgments" not in with_judgments(BASE, {})
 
 
-def test_model_input_drops_display_fields():
-    payload = model_input_for_pact(MODEL_INPUT)
-    assert payload["judgments"][0] == {"scenario_id": "separate_menu", "outcome": "challenge", "decided_label": "고기국수"}
-    assert "first_tally" in MODEL_INPUT["judgments"][0]
+def test_finished_showdown_becomes_rule_or_talk():
+    talk = judgments_from_showdown(BASE, _done("talk"))
+    assert talk == FIXTURE["input"]["judgments"]
+    lottery = judgments_from_showdown(BASE, _done("lottery", rule="놀이기구는 잔잔한 것만!"))
+    assert lottery[2] == {"scenario_id": "ride_participation", "outcome": "showdown", "how": "lottery",
+                          "result": "rule", "rule": "놀이기구는 잔잔한 것만!"}
+    assert pending_showdowns(showdown_board(BASE), _done("talk")) == 0
+
+
+def test_unknown_template_gives_no_judgments():
+    model_input = json.loads(json.dumps(BASE))
+    model_input["scenarios"][0]["template_id"] = "not_in_rules"
+    assert showdown_board(model_input) is None
+    assert judgments_from_showdown(model_input, {}) is None
+    assert pending_showdowns(None, {}) == 0
+
+
+def test_model_input_drops_memos_and_display_fields():
+    payload = model_input_for_pact(FIXTURE["input"])
+    assert all("memo" not in r for r in payload["responses"])
+    assert any("memo" in r for r in FIXTURE["input"]["responses"])
+    assert payload["judgments"][2] == {"scenario_id": "ride_participation", "result": "talk",
+                                       "sides": ["빠른 기구도 같이", "잔잔한 것만", "안 타고 쉬기"]}
+    assert payload["judgments"][4] == {"scenario_id": "sunset_window", "result": "open"}
     assert "judgments" not in model_input_for_pact({"scenarios": []})
+
+
+def test_process_shows_decision_without_counts():
+    judgments = judgments_from_showdown(BASE, _done("duel", rule="놀이기구는 잔잔한 것만!"))
+    output = {"status": "ready", "discussion_items": [], "clauses": [
+        {"scenario_id": item["scenario_id"], "text": "일행은 정한 대로 한다."} for item in judgments]}
+    assert validate_pact_output({**BASE, "judgments": judgments}, json.dumps(output))["valid"]
+    items = process_items(output, BASE, judgments)
+    assert [i["decision"] for i in items] == ["기본 절충안으로 정함", "중간 안으로 정함", "승부처에서 가위바위보로 정함",
+                                              "의견이 같아 정함", "그때 정하기로 함"]
+    assert all(set(i) == {"label", "scenario_id", "title", "decision"} for i in items)
+
+
+def test_process_without_judgments():
+    items = process_items(FIXTURE["output"], BASE)
+    assert [i["decision"] for i in items] == ["응답을 정리해 정함"] * 4 + ["의견이 갈려 직접 논의"]
+    talk = process_items(FIXTURE["output"], BASE, FIXTURE["input"]["judgments"])
+    assert talk[-1] == {"label": "협의 사항", "scenario_id": "ride_participation", "title": talk[-1]["title"],
+                        "decision": "승부처에서 직접 논의하기로 함"}

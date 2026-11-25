@@ -209,6 +209,6 @@ def test_h_pact_single_call_without_tools():
     assert len(api.requests) == 1
     req = api.requests[0]
     assert "tools" not in req and req["text"]["format"]["name"] == "PactRecommendation"
-    assert req["instructions"].startswith("\n\n너는 여행 전 가상 장면에 답한 일행의 응답과 코드가 정한 판정을")
+    assert req["instructions"].startswith("\n\n너는 여행 전 가상 장면에 답한 일행의 응답과, 일행이 승부처까지 거쳐 정한 결과를")
     assert "json_invalid" in req["input"][1]["content"], "repair_errors를 두 번째 사용자 메시지로 보낸다"
     assert result.raw_output == '{"status":"proposed"}' and result.opened_template_ids == []

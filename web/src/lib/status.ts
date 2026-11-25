@@ -2,7 +2,7 @@ import type { FailureReason, RoomStatus, ScenarioStatus } from "../api/types";
 
 export const ROOM_STATUS_TEXT: Record<RoomStatus, string> = {
   open: "응답을 받고 있어요.",
-  closed: "응답을 마감했어요. 협약서를 만들 준비를 하고 있어요.",
+  closed: "응답을 마감했어요. 승부처를 모두 정하면 협약서를 만들어요.",
   generating: "추천 협약서를 만들고 있어요. 잠시만 기다려 주세요.",
   ready: "추천 협약서가 준비됐어요.",
   failed: "협약서를 만들지 못했어요.",
@@ -11,7 +11,7 @@ export const ROOM_STATUS_TEXT: Record<RoomStatus, string> = {
 /** 제출 수 뒤에 붙는 한 줄 상태 문구. */
 export const STATUS_LINE_TEXT: Record<RoomStatus, string> = {
   open: "다른 동행을 기다리고 있어요",
-  closed: "협약서를 준비하고 있어요",
+  closed: "승부처를 정하고 있어요",
   generating: "추천 협약서를 만들고 있어요",
   ready: "추천 협약서가 준비됐어요",
   failed: "협약서를 만들지 못했어요",

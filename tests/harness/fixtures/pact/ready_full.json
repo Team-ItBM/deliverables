@@ -1,6 +1,6 @@
 {
   "source": {
-    "note": "수기 작성 fixture. 모델 출력이 아니다. 추천 프롬프트 v14 예시 1(일치·다수결·챌린지·한계·협의 사항)을 옮겼다.",
+    "note": "수기 작성 fixture. 모델 출력이 아니다. 추천 프롬프트 v15 예시 1(기본 절충안, 중간 안, 승부처 직접 논의, 의견 일치, 그때 정함)을 옮기고 검증기 입력처럼 메모와 표시용 판정 필드를 더했다.",
     "based_on": "src/travel/prompts/generate_pact.md 예시"
   },
   "input": {
@@ -173,168 +173,133 @@
     ],
     "responses": [
       {
-        "response_id": "mA",
+        "response_id": "seA",
         "participant_id": "A",
         "scenario_id": "separate_menu",
         "option_id": "separate_menu_1",
         "memo": "고기국수는 꼭 먹어 보고 싶어."
       },
       {
-        "response_id": "mB",
+        "response_id": "seB",
         "participant_id": "B",
         "scenario_id": "separate_menu",
         "option_id": "separate_menu_2"
       },
       {
-        "response_id": "mC",
+        "response_id": "seC",
         "participant_id": "C",
         "scenario_id": "separate_menu",
-        "option_id": "separate_menu_any"
+        "option_id": "separate_menu_1"
       },
       {
-        "response_id": "pA",
+        "response_id": "prA",
         "participant_id": "A",
         "scenario_id": "private_room",
         "option_id": "private_room_1"
       },
       {
-        "response_id": "pB",
+        "response_id": "prB",
         "participant_id": "B",
         "scenario_id": "private_room",
-        "option_id": "private_room_1",
-        "memo": "같이 수다 떨고 싶어."
+        "option_id": "private_room_3"
       },
       {
-        "response_id": "pC",
+        "response_id": "prC",
         "participant_id": "C",
         "scenario_id": "private_room",
         "option_id": "private_room_2"
       },
       {
-        "response_id": "rA",
+        "response_id": "riA",
         "participant_id": "A",
         "scenario_id": "ride_participation",
         "option_id": "ride_participation_1"
       },
       {
-        "response_id": "rB",
+        "response_id": "riB",
         "participant_id": "B",
         "scenario_id": "ride_participation",
-        "option_id": "ride_participation_1"
+        "option_id": "ride_participation_2"
       },
       {
-        "response_id": "rC",
+        "response_id": "riC",
         "participant_id": "C",
         "scenario_id": "ride_participation",
-        "option_id": "ride_participation_2",
-        "memo": "어지러워서 빠른 건 못 타."
+        "option_id": "ride_participation_3"
       },
       {
-        "response_id": "sA",
+        "response_id": "seA",
         "participant_id": "A",
+        "scenario_id": "settlement_timing",
+        "option_id": "settlement_timing_3",
+        "memo": "고기국수는 꼭 먹어 보고 싶어."
+      },
+      {
+        "response_id": "seB",
+        "participant_id": "B",
         "scenario_id": "settlement_timing",
         "option_id": "settlement_timing_3"
       },
       {
-        "response_id": "sB",
-        "participant_id": "B",
+        "response_id": "seC",
+        "participant_id": "C",
         "scenario_id": "settlement_timing",
         "option_id": "settlement_timing_3"
       },
       {
-        "response_id": "sC",
-        "participant_id": "C",
-        "scenario_id": "settlement_timing",
-        "option_id": "settlement_timing_any"
-      },
-      {
-        "response_id": "wA",
+        "response_id": "suA",
         "participant_id": "A",
         "scenario_id": "sunset_window",
-        "option_id": "sunset_window_1",
-        "memo": "노을은 꼭 보고 싶어."
+        "option_id": "sunset_window_any"
       },
       {
-        "response_id": "wB",
+        "response_id": "suB",
         "participant_id": "B",
         "scenario_id": "sunset_window",
-        "option_id": "sunset_window_2"
+        "option_id": "sunset_window_any"
       },
       {
-        "response_id": "wC",
+        "response_id": "suC",
         "participant_id": "C",
         "scenario_id": "sunset_window",
-        "option_id": "sunset_window_3"
+        "option_id": "sunset_window_info"
       }
     ],
-    "challenge_responses": [
-      {
-        "response_id": "cmA",
-        "participant_id": "A",
-        "scenario_id": "separate_menu",
-        "option_id": "separate_menu_1"
-      },
-      {
-        "response_id": "cmB",
-        "participant_id": "B",
-        "scenario_id": "separate_menu",
-        "option_id": "separate_menu_2"
-      },
-      {
-        "response_id": "cmC",
-        "participant_id": "C",
-        "scenario_id": "separate_menu",
-        "option_id": "separate_menu_1"
-      },
-      {
-        "response_id": "cwA",
-        "participant_id": "A",
-        "scenario_id": "sunset_window",
-        "option_id": "sunset_window_1"
-      },
-      {
-        "response_id": "cwB",
-        "participant_id": "B",
-        "scenario_id": "sunset_window",
-        "option_id": "sunset_window_2"
-      },
-      {
-        "response_id": "cwC",
-        "participant_id": "C",
-        "scenario_id": "sunset_window",
-        "option_id": "sunset_window_3"
-      }
-    ],
-    "request": "일행의 응답과 판정으로 협약서를 만들어줘.",
+    "request": "일행의 응답과 승부처 결과로 협약서를 만들어줘.",
     "judgments": [
       {
         "scenario_id": "separate_menu",
-        "outcome": "challenge",
-        "decided_label": "고기국수 식당에서 함께 먹고 싶어요"
+        "outcome": "fallback",
+        "result": "rule",
+        "rule": "밥은 무조건 같이! 메뉴는 끼니마다 돌아가며 정하기"
       },
       {
         "scenario_id": "private_room",
-        "outcome": "majority",
-        "decided_label": "같은 객실에서 지내고 싶어요"
+        "outcome": "middle",
+        "result": "rule",
+        "rule": "방은 따로 쓰되 더 싼 숙소 찾기!"
       },
       {
         "scenario_id": "ride_participation",
-        "outcome": "majority",
-        "decided_label": "빠른 놀이기구도 함께 타고 싶어요"
+        "outcome": "showdown",
+        "how": "talk",
+        "result": "talk",
+        "sides": [
+          "빠른 기구도 같이",
+          "잔잔한 것만",
+          "안 타고 쉬기"
+        ]
       },
       {
         "scenario_id": "settlement_timing",
         "outcome": "agreed",
-        "decided_label": "여행이 끝난 뒤 한 번에 정산하고 싶어요"
+        "result": "rule",
+        "rule": "정산은 여행 끝나고 한 번에!"
       },
       {
         "scenario_id": "sunset_window",
-        "outcome": "discussion",
-        "tied_labels": [
-          "바로 해변에 가서 노을을 기다리고 싶어요",
-          "소품숍을 20분 보고 해변으로 가고 싶어요",
-          "오늘은 노을 대신 소품숍을 여유롭게 보고 싶어요"
-        ]
+        "outcome": "open",
+        "result": "open"
       }
     ]
   },
@@ -343,29 +308,25 @@
     "clauses": [
       {
         "scenario_id": "separate_menu",
-        "basis": "challenge",
-        "text": "여행 중 식사 메뉴에는 고기국수를 반드시 포함한다."
+        "text": "식사는 일행이 함께 하며 메뉴는 끼니마다 번갈아 가며 정한다."
       },
       {
         "scenario_id": "private_room",
-        "basis": "majority",
-        "text": "숙소는 일행이 한 객실을 함께 쓰는 곳으로 고른다."
-      },
-      {
-        "scenario_id": "ride_participation",
-        "basis": "limit",
-        "text": "놀이기구는 일행 모두가 탈 수 있는 기구를 우선한다."
+        "text": "객실은 각자 따로 쓰되 비용이 더 낮은 숙소를 우선한다."
       },
       {
         "scenario_id": "settlement_timing",
-        "basis": "agreed",
-        "text": "공동 교통비와 식비는 여행이 끝난 뒤 한 번에 정산한다."
+        "text": "공동 경비는 여행이 끝난 뒤 한 번에 정산한다."
+      },
+      {
+        "scenario_id": "sunset_window",
+        "text": "노을 감상과 주변 구경의 순서는 그때 상황에 맞춰 정한다."
       }
     ],
     "discussion_items": [
       {
-        "scenario_id": "sunset_window",
-        "text": "노을 감상과 소품숍 구경 중 무엇을 우선할지는 당사자 간 직접 논의하여 정한다."
+        "scenario_id": "ride_participation",
+        "text": "놀이기구를 다 함께 탈지, 잔잔한 기구만 탈지, 타지 않고 쉴지는 당사자 간 직접 논의하여 정한다."
       }
     ]
   }

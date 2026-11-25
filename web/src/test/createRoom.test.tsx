@@ -159,7 +159,7 @@ describe("랜딩", () => {
     expect(container.querySelector(".pact-branch")).toBeNull();
     expect(screen.getByText("예시")).toBeTruthy();
     expect(container.textContent).not.toMatch(/메모|MBTI|성별|나이대/);
-    expect(container.textContent).toContain("본 협약서는 일행의 응답과 챌린지 결과를 정리한 것이다.");
+    expect(container.textContent).toContain("본 협약서는 일행의 응답과 승부처 결과를 정리한 것이다.");
     expect(screen.getByRole("button", { name: "방 만들기" })).toBeTruthy();
   });
 });

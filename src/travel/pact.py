@@ -4,6 +4,8 @@ from pathlib import Path
 
 from jsonschema import Draft7Validator
 
+from travel import showdown
+
 SCHEMA_PATH = Path(__file__).resolve().parent / "schemas" / "pact_recommendation.schema.json"
 
 PARTICIPANT_TOKEN = re.compile(r"\{\{participant:([^{}]*)\}\}")
@@ -15,8 +17,11 @@ DISCUSSION_PHRASE = "당사자 간 직접 논의하여 정한다."
 SENTENCE_END = re.compile(r"[.?!]")
 POLITE = re.compile(r"[가-힣]요(?=[.,?!]|$)")
 DIGIT = re.compile(r"[0-9]")
-JUDGED_BASIS = ("agreed", "majority", "challenge")
-MODEL_JUDGMENT_KEYS = ("scenario_id", "outcome", "decided_label", "any_ok", "tied_labels")
+MODEL_JUDGMENT_KEYS = ("scenario_id", "result", "rule", "sides")
+RESULT_RULE = "rule"
+RESULT_OPEN = "open"
+RESULT_TALK = "talk"
+CLAUSE_RESULTS = (RESULT_RULE, RESULT_OPEN)
 
 _validator = None
 
@@ -52,7 +57,6 @@ class InputIndex:
                 self.scenarios[scenario_id] = scenario
                 self.scenario_order.append(scenario_id)
         self.responses = [r for r in pact_input.get("responses") or [] if isinstance(r, dict)]
-        self.challenge_responses = [r for r in pact_input.get("challenge_responses") or [] if isinstance(r, dict)]
         self.response_by_id = {}
         for response in self.responses:
             response_id = response.get("response_id")
@@ -75,16 +79,65 @@ class InputIndex:
             if (participant_id, scenario_id) not in answered
         ]
 
-    def has_memo(self, scenario_id):
-        return any(
-            isinstance(r.get("memo"), str) and r["memo"].strip()
-            for r in self.responses + self.challenge_responses
-            if r.get("scenario_id") == scenario_id
-        )
+
+
+def _showdown_judgment(item, state):
+    template_id = item["template_id"]
+    record = {"scenario_id": template_id, "outcome": item["outcome"]}
+    if item["outcome"] == showdown.OUTCOME_OPEN:
+        return {**record, "result": RESULT_OPEN}
+    if item["outcome"] != showdown.OUTCOME_SHOWDOWN:
+        return {**record, "result": RESULT_RULE, "rule": item["rule"]}
+    entry = state.get(template_id) if isinstance(state, dict) else None
+    result = entry.get("result") if isinstance(entry, dict) else None
+    if not isinstance(result, dict):
+        return None
+    record["how"] = result["how"]
+    if result["how"] == "talk":
+        return {**record, "result": RESULT_TALK, "sides": [side["tag"] for side in item["sides"]]}
+    return {**record, "result": RESULT_RULE, "rule": result["rule"]}
+
+
+def showdown_board(model_input):
+    try:
+        return showdown.build_board(model_input)
+    except (KeyError, ValueError, TypeError):
+        return None
+
+
+def pending_showdowns(board, state):
+    if board is None:
+        return 0
+    return sum(1 for item in board["items"] if _showdown_judgment(item, state or {}) is None)
+
+
+def judgments_from_showdown(model_input, state):
+    board = showdown_board(model_input)
+    if board is None:
+        return None
+    judgments = [_showdown_judgment(item, state or {}) for item in board["items"]]
+    if any(j is None for j in judgments):
+        return None
+    return judgments
+
+
+def with_judgments(model_input, state):
+    payload = dict(model_input)
+    judgments = judgments_from_showdown(model_input, state)
+    if judgments is None:
+        payload.pop("judgments", None)
+    else:
+        payload["judgments"] = judgments
+    return payload
 
 
 def model_input_for_pact(model_input):
     payload = dict(model_input)
+    if isinstance(model_input.get("responses"), list):
+        payload["responses"] = [
+            {key: value for key, value in r.items() if key != "memo"} if isinstance(r, dict) else r
+            for r in model_input["responses"]
+        ]
     if isinstance(model_input.get("judgments"), list):
         payload["judgments"] = [
             {key: item[key] for key in MODEL_JUDGMENT_KEYS if key in item}
@@ -164,29 +217,15 @@ def check_coverage(index, output):
 def check_judgments(index, output):
     errors = []
     for i, item in enumerate(output["clauses"]):
-        scenario_id = item["scenario_id"]
-        judgment = index.judgments.get(scenario_id)
-        if judgment is None:
-            continue
-        outcome = judgment.get("outcome")
-        if item["basis"] == "limit":
-            if not index.has_memo(scenario_id):
-                errors.append(_error("judgment_mismatch", _pointer("clauses", i, "basis"),
-                                     f"문항 {scenario_id}에 메모가 없는데 limit이다"))
-        elif outcome == "discussion":
-            errors.append(_error("judgment_mismatch", _pointer("clauses", i, "basis"),
-                                 f"문항 {scenario_id}은 협의 판정인데 조항으로 썼다"))
-        elif item["basis"] != outcome:
-            errors.append(_error("judgment_mismatch", _pointer("clauses", i, "basis"),
-                                 f"문항 {scenario_id}의 basis {item['basis']}가 판정 {outcome}과 다르다"))
+        judgment = index.judgments.get(item["scenario_id"])
+        if judgment is not None and judgment.get("result") not in CLAUSE_RESULTS:
+            errors.append(_error("judgment_mismatch", _pointer("clauses", i, "scenario_id"),
+                                 f"문항 {item['scenario_id']}은 직접 논의로 정했는데 조항으로 썼다"))
     for i, item in enumerate(output["discussion_items"]):
-        scenario_id = item["scenario_id"]
-        judgment = index.judgments.get(scenario_id)
-        if judgment is None:
-            continue
-        if judgment.get("outcome") != "discussion" and not index.has_memo(scenario_id):
+        judgment = index.judgments.get(item["scenario_id"])
+        if judgment is not None and judgment.get("result") != RESULT_TALK:
             errors.append(_error("judgment_mismatch", _pointer("discussion_items", i, "scenario_id"),
-                                 f"문항 {scenario_id}은 확정 판정인데 협의 사항으로 썼다"))
+                                 f"문항 {item['scenario_id']}은 정해진 문항인데 협의 사항으로 썼다"))
     return errors
 
 
@@ -249,7 +288,7 @@ def check_memo_quotes(index, output, min_length=MEMO_QUOTE_MIN_LENGTH):
     public = _public_texts(index)
     memos = [
         (r.get("response_id"), r["memo"])
-        for r in index.responses + index.challenge_responses
+        for r in index.responses
         if isinstance(r.get("memo"), str) and len(r["memo"]) >= min_length
     ]
     for path, text in _shared_sentences(output):

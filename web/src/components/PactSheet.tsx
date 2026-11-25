@@ -1,6 +1,6 @@
 import { ChevronDown, PencilLine } from "lucide-react";
 import { forwardRef, useId, useState, type CSSProperties } from "react";
-import type { Clause, ProcessItem, SharedResult, TallyItem } from "../api/types";
+import type { Clause, ProcessItem, SharedResult } from "../api/types";
 import { tripMetaText } from "../lib/trip";
 import type { IssuePhase } from "../lib/issue";
 import { PactBranch } from "./PactBranch";
@@ -28,7 +28,7 @@ export function hasPaper(status: SharedResult["pact_status"] | undefined): boole
   return status === "ready";
 }
 
-export const PACT_DISCLAIMER = "본 협약서는 일행의 응답과 챌린지 결과를 정리한 것이다.";
+export const PACT_DISCLAIMER = "본 협약서는 일행의 응답과 승부처 결과를 정리한 것이다.";
 
 function InclusionNote({ result }: { result: Partial<SharedResult> }) {
   const excluded = result.excluded_names ?? [];
@@ -182,31 +182,12 @@ export const PactPaper = forwardRef<HTMLDivElement, SheetProps>(function PactPap
   );
 });
 
-function Tally({ title, items }: { title: string; items: TallyItem[] | undefined }) {
-  if (!items || items.length === 0) return null;
-  return (
-    <div className="pact-basis-tally">
-      <p className="pact-basis-round">{title}</p>
-      <ul>
-        {items.map((t, i) => (
-          <li key={i}>
-            <span>{t.label}</span>
-            <span className="t-numeral">{t.count}명</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 function ProcessEntry({ item }: { item: ProcessItem }) {
   return (
     <div className="pact-basis-item">
       <p className="pact-basis-title">
         {item.label} · {item.title}
       </p>
-      <Tally title="1차" items={item.first_tally} />
-      <Tally title="챌린지" items={item.challenge_tally} />
       <p className="pact-basis-result">{item.decision}</p>
     </div>
   );

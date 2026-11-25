@@ -1,6 +1,7 @@
-"""추천 출력 도우미: 서버가 보낸 추천 단계 model_input(고정 입력, 챌린지 단계가 넣는 judgments)으로 협약서 출력(스키마 v6)을 만든다.
+"""추천 출력 도우미: 서버가 보낸 추천 단계 model_input(고정 입력, 승부처 결과로 만든 judgments)으로 협약서 출력(스키마 v7)을 만든다.
 
-기본 출력(ready)은 판정대로 확정 문항을 조항, 협의 판정 문항을 협의 사항으로 쓴다. 판정이 없으면 모든 문항을 의견이 같은 조항으로 둔다. 문장은 고정 문구이며 메모를 인용하지 않는다.
+기본 출력(ready)은 정해진 문항(result rule·open)을 조항, 직접 논의 문항(result talk)을 협의 사항으로 쓴다.
+판정이 없으면 모든 문항을 조항으로 둔다. 문장은 고정 문구다.
 변형은 검증기가 거부해야 하는 출력을 만든다.
 """
 
@@ -9,14 +10,14 @@ import json
 
 from .replay import Produce, Text
 
-QUOTE_LENGTH = 15
 CLAUSE_TEXT = "응답에서 정해진 방향을 여행 중 원칙으로 한다."
 DISCUSSION_TEXT = "이 상황에서 무엇을 우선할지는 당사자 간 직접 논의하여 정한다."
+QUOTE_LENGTH = 15
 MESSAGES = {"needs_information": "채택된 응답 중 빠진 문항이 있어 협약서를 만들지 않았다."}
 
 VARIANTS = (
     "ready", "needs_information",
-    "json_truncated", "extra_key", "status_combination", "unknown_scenario", "memo_quote", "limit_first",
+    "json_truncated", "extra_key", "status_combination", "unknown_scenario", "talk_as_clause",
 )
 VARIANT_ERRORS = {
     "ready": [],
@@ -25,8 +26,7 @@ VARIANT_ERRORS = {
     "extra_key": ["schema_violation"],
     "status_combination": ["status_combination"],
     "unknown_scenario": ["unknown_reference"],
-    "memo_quote": ["memo_quote"],
-    "limit_first": [],
+    "talk_as_clause": ["judgment_mismatch"],
 }
 TRUNCATED_OUTPUT = '{"status":'
 UNKNOWN_SCENARIO_ID = "scenario-not-in-input"
@@ -50,7 +50,7 @@ def _subject(model_input):
 def _judgments(model_input):
     if model_input.get("judgments"):
         return model_input["judgments"]
-    return [{"scenario_id": sid, "outcome": "agreed"} for sid in scenario_ids(model_input)]
+    return [{"scenario_id": sid, "result": "rule"} for sid in scenario_ids(model_input)]
 
 
 def pact_output(model_input, variant="ready"):
@@ -64,11 +64,10 @@ def pact_output(model_input, variant="ready"):
     clauses = []
     discussion = []
     for item in _judgments(model_input):
-        if item["outcome"] == "discussion":
+        if item["result"] == "talk" and variant != "talk_as_clause":
             discussion.append({"scenario_id": item["scenario_id"], "text": DISCUSSION_TEXT})
         else:
-            clauses.append({"scenario_id": item["scenario_id"], "basis": item["outcome"],
-                            "text": _subject(model_input) + CLAUSE_TEXT})
+            clauses.append({"scenario_id": item["scenario_id"], "text": _subject(model_input) + CLAUSE_TEXT})
     output = {"status": "ready", "clauses": clauses, "discussion_items": discussion}
     if variant == "extra_key":
         output["invented"] = True
@@ -77,21 +76,7 @@ def pact_output(model_input, variant="ready"):
     elif variant == "unknown_scenario":
         target = output["clauses"] or output["discussion_items"]
         target[0]["scenario_id"] = UNKNOWN_SCENARIO_ID
-    elif variant == "limit_first":
-        if output["clauses"]:
-            output["clauses"][0]["basis"] = "limit"
-    elif variant == "memo_quote":
-        target = output["clauses"] or output["discussion_items"]
-        target[0]["text"] = memo_quote_text(model_input) + " " + target[0]["text"]
     return output
-
-
-def memo_quote_text(model_input):
-    for response in model_input["responses"]:
-        memo = response.get("memo")
-        if isinstance(memo, str) and len(memo) >= QUOTE_LENGTH:
-            return memo[:QUOTE_LENGTH]
-    raise ValueError("15자 이상인 메모가 없어 메모 인용 변형을 만들 수 없다")
 
 
 def pact_raw(model_input, variant="ready"):
@@ -128,8 +113,13 @@ def sample_pact_input(scenarios, participants, memo=True):
             if memo:
                 response["memo"] = f"메모표지{participant_id}{s_index} 보라색 우산을 든 고양이 이야기"
             responses.append(response)
+    judgments = [
+        {"scenario_id": scenario["scenario_id"], "result": "talk", "sides": ["한쪽", "다른 쪽"]} if i == 0
+        else {"scenario_id": scenario["scenario_id"], "result": "rule", "rule": "정해진 규칙!"}
+        for i, scenario in enumerate(scenario_list)
+    ]
     return {"participant_ids": list(participants), "scenarios": scenario_list, "responses": responses,
-            "request": "각자의 조건을 보존하는 추천 조항을 만들어줘."}
+            "request": "일행의 응답과 승부처 결과로 협약서를 만들어줘.", "judgments": judgments}
 
 
 def original_conditions(output):

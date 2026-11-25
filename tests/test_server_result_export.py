@@ -106,7 +106,7 @@ def test_exp_p05_process_panel(srv, expect):
     app = srv.app
     ready = expect.at("ready")
     _, room = app.create_room()
-    _early_result(app, room, po.pact_item("limit_first"))
+    _early_result(app, room, po.pact_item())
     result = app.result(room)
     assert result.status_code == 200, result.text[:300]
     body = result.json()
@@ -115,10 +115,9 @@ def test_exp_p05_process_panel(srv, expect):
     assert bool(process) is ready["has_process"]
     assert len(process) == len(body["clauses"]) + len(body["discussion_items"])
     for item in process:
-        assert {"label", "scenario_id", "title", "decision"} <= set(item), item
+        assert set(item) == {"label", "scenario_id", "title", "decision"}, item
     assert process[0]["label"] == "제1조"
-    assert process[0]["decision"] == ready["limit_decision"]
-    assert "first_tally" not in process[0] and "challenge_tally" not in process[0], "한계 반영 조항에 인원이 보인다"
+    assert process[0]["decision"] == ready["plain_decision"]
     assert "humor" not in json.dumps(body, ensure_ascii=False)
     failed = expect.at("failed")
     _, room = app.create_room()

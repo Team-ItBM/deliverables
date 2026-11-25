@@ -1,6 +1,6 @@
 {
   "source": {
-    "note": "수기 작성 fixture. 모델 출력이 아니다. 추천 프롬프트 v14 예시 2(채택된 제출 건 안의 응답 누락)를 옮겼다.",
+    "note": "수기 작성 fixture. 모델 출력이 아니다. 추천 프롬프트 v15 예시 2(응답 누락)를 옮겼다.",
     "based_on": "src/travel/prompts/generate_pact.md 예시"
   },
   "input": {
@@ -50,12 +50,13 @@
         "option_id": "settlement_timing_3"
       }
     ],
-    "request": "일행의 응답과 판정으로 협약서를 만들어줘.",
+    "request": "일행의 응답과 승부처 결과로 협약서를 만들어줘.",
     "judgments": [
       {
         "scenario_id": "settlement_timing",
         "outcome": "agreed",
-        "decided_label": "여행이 끝난 뒤 한 번에 정산하고 싶어요"
+        "result": "rule",
+        "rule": "정산은 여행 끝나고 한 번에!"
       }
     ]
   },

@@ -19,10 +19,9 @@ export const MOCK_COUNT = "dowon.mock.count";
 const SCENARIO_DELAY = 2000;
 const GENERATE_DELAY = 2500;
 
-type Basis = "agreed" | "majority" | "challenge" | "limit";
 interface TplClause {
   scenario_id: string;
-  basis: Basis;
+  decision: string;
   text: string;
 }
 interface Tpl {
@@ -179,12 +178,6 @@ function participantNames(room: Room): Record<string, string> {
   return names;
 }
 
-const DECISIONS: Record<Basis, string> = {
-  agreed: "의견이 같아 정함",
-  majority: "다수결로 정함",
-  challenge: "챌린지로 정함",
-  limit: "일행의 조건을 반영해 정함",
-};
 const TITLES: Record<string, string> = {
   free_time: "남는 시간 보내기",
   sunset: "노을과 쇼핑",
@@ -196,7 +189,7 @@ function makeTpl(v: MockVariant, _pids: string[], count: number): Tpl {
   if (v === "discussion") {
     return {
       pact_status: "ready",
-      clauses: [{ scenario_id: "free_time", basis: "agreed", text: "남는 시간에는 일행이 함께 쉬면서 다음 일정을 정한다." }],
+      clauses: [{ scenario_id: "free_time", decision: "의견이 같아 정함", text: "남는 시간에는 일행이 함께 쉬면서 다음 일정을 정한다." }],
       discussion_items: [
         { scenario_id: "sunset", text: "노을 감상과 쇼핑 중 무엇을 우선할지는 당사자 간 직접 논의하여 정한다." },
         { scenario_id: "budget", text: "저녁 식비를 얼마까지 쓸지는 당사자 간 직접 논의하여 정한다." },
@@ -207,35 +200,27 @@ function makeTpl(v: MockVariant, _pids: string[], count: number): Tpl {
   return {
     pact_status: "ready",
     clauses: [
-      { scenario_id: "free_time", basis: "challenge", text: "남는 시간에는 카페에서 쉬는 시간을 반드시 포함한다." },
-      { scenario_id: "budget", basis: "limit", text: "식당은 일행 모두가 부담할 수 있는 가격대로 고른다." },
-      ...extra.map((s) => ({ scenario_id: s.scenario_id, basis: "majority" as Basis, text: "일정이 밀리면 다음 일정을 먼저 조정하는 것을 원칙으로 한다." })),
+      { scenario_id: "free_time", decision: "승부처에서 가위바위보로 정함", text: "남는 시간에는 카페에서 쉬는 시간을 반드시 포함한다." },
+      { scenario_id: "budget", decision: "중간 안으로 정함", text: "저녁 식사는 일행 모두가 부담할 수 있는 가격대에서 고른다." },
+      ...extra.map((s) => ({ scenario_id: s.scenario_id, decision: "기본 절충안으로 정함", text: "일정이 밀리면 다음 일정을 먼저 조정하는 것을 원칙으로 한다." })),
     ],
     discussion_items: [{ scenario_id: "sunset", text: "노을 감상과 쇼핑 중 무엇을 우선할지는 당사자 간 직접 논의하여 정한다." }],
   };
 }
 
-function processOf(tpl: Tpl, included: number) {
-  const tally = [
-    { label: "일정대로 함께 움직이고 싶어요", count: Math.max(included - 1, 1) },
-    { label: "시간을 나눠 각자 움직이고 싶어요", count: 1 },
-  ];
+function processOf(tpl: Tpl) {
   const items = tpl.clauses.map((c, i) => ({
     label: `제${i + 1}조`,
     scenario_id: c.scenario_id,
     title: TITLES[c.scenario_id] ?? "비슷한 상황",
-    decision: DECISIONS[c.basis],
-    ...(c.basis === "limit" ? {} : { first_tally: tally }),
-    ...(c.basis === "challenge" ? { challenge_tally: [{ label: tally[0]!.label, count: included }] } : {}),
+    decision: c.decision,
   }));
   for (const d of tpl.discussion_items) {
     items.push({
       label: "협의 사항",
       scenario_id: d.scenario_id,
       title: TITLES[d.scenario_id] ?? "비슷한 상황",
-      decision: "챌린지에서도 갈려 직접 논의",
-      first_tally: tally,
-      challenge_tally: tally,
+      decision: "승부처에서 직접 논의하기로 함",
     });
   }
   return items;
@@ -262,7 +247,7 @@ function shared(room: Room, o: Original, version?: Original["edits"][number]): S
     excluded_names: room.profiles.filter((p) => !includedProfiles.has(p.profile_id)).map((p) => p.display_name),
     clauses: tpl.clauses.map((c, i) => ({ article: i + 1, scenario_id: c.scenario_id, text: r(c.text) })),
     discussion_items: tpl.discussion_items.map((d) => ({ scenario_id: d.scenario_id, text: r(d.text) })),
-    process: processOf(tpl, o.included.length),
+    process: processOf(tpl),
     ...(tpl.message ? { message: tpl.message } : {}),
   };
 }

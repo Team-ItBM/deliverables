@@ -66,7 +66,7 @@ export function Landing() {
           <br />
           서로의 마음을 한 장에.
         </h1>
-        <p className="secondary">각자 답하고 갈린 것만 한 번 더 고르면, 협약서에 담겨요.</p>
+        <p className="secondary">각자 답하고 갈린 것은 승부처에서 정하면, 협약서에 담겨요.</p>
       </div>
 
       <figure className="sample" aria-label="예시 협약서">

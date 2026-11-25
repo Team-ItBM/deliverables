@@ -159,13 +159,18 @@ PUBLIC_TRIP_KEYS = ("destination", "duration_days", "party_size")
 GROUP_NAME = "일행"
 DECISIONS = {
     "agreed": "의견이 같아 정함",
-    "majority": "다수결로 정함",
-    "challenge": "챌린지로 정함",
-    "limit": "일행의 조건을 반영해 정함",
+    "middle": "중간 안으로 정함",
+    "fallback": "기본 절충안으로 정함",
+    "open": "그때 정하기로 함",
 }
-DISCUSSION_CHALLENGED = "챌린지에서도 갈려 직접 논의"
+SHOWDOWN_DECISIONS = {
+    "compromise": "승부처에서 절충안으로 정함",
+    "duel": "승부처에서 가위바위보로 정함",
+    "lottery": "승부처에서 제비뽑기로 정함",
+    "talk": "승부처에서 직접 논의하기로 함",
+}
+CLAUSE_PLAIN = "응답을 정리해 정함"
 DISCUSSION_PLAIN = "의견이 갈려 직접 논의"
-DISCUSSION_LIMIT = "일행의 조건이 서로 달라 직접 논의"
 
 
 def public_trip(trip):
@@ -188,49 +193,31 @@ def _scenario_title(scenario_id, scenario):
     return _generic_profile_text((scenario or {}).get("question") or scenario_id)
 
 
-def _public_tally(items):
-    if not items:
-        return None
-    return [{"label": _generic_profile_text(t["label"]), "count": t["count"]} for t in items]
+def _decision(record, default):
+    if not record:
+        return default
+    if record.get("outcome") == "showdown":
+        return SHOWDOWN_DECISIONS.get(record.get("how"), default)
+    return DECISIONS.get(record.get("outcome"), default)
 
 
-def process_items(output, model_input):
-    if not isinstance(model_input, dict):
-        return []
-    records = {
-        r["scenario_id"]: r for r in model_input.get("judgments") or [] if isinstance(r, dict) and "scenario_id" in r
-    }
+def process_items(output, model_input, judgments=None):
+    model_input = model_input if isinstance(model_input, dict) else {}
+    records = {r["scenario_id"]: r for r in judgments or [] if isinstance(r, dict) and "scenario_id" in r}
     scenarios = {s.get("scenario_id", s.get("template_id")): s for s in model_input.get("scenarios") or []}
-    items = []
 
-    def entry(label, scenario_id, decision, show_counts):
-        record = records.get(scenario_id) or {}
-        item = {"label": label, "scenario_id": scenario_id, "title": _scenario_title(scenario_id, scenarios.get(scenario_id)),
-                "decision": decision}
-        if show_counts:
-            first = _public_tally(record.get("first_tally"))
-            if first:
-                item["first_tally"] = first
-            challenge = _public_tally(record.get("challenge_tally"))
-            if challenge:
-                item["challenge_tally"] = challenge
-        return item
+    def entry(label, scenario_id, default):
+        return {"label": label, "scenario_id": scenario_id,
+                "title": _scenario_title(scenario_id, scenarios.get(scenario_id)),
+                "decision": _decision(records.get(scenario_id), default)}
 
-    for i, clause in enumerate(output.get("clauses") or []):
-        basis = clause.get("basis")
-        items.append(entry(f"제{i + 1}조", clause["scenario_id"], DECISIONS.get(basis, ""), basis != "limit"))
-    for item in output.get("discussion_items") or []:
-        record = records.get(item["scenario_id"]) or {}
-        if record.get("outcome") != "discussion":
-            items.append(entry("협의 사항", item["scenario_id"], DISCUSSION_LIMIT, False))
-        else:
-            decision = DISCUSSION_CHALLENGED if record.get("challenged") else DISCUSSION_PLAIN
-            items.append(entry("협의 사항", item["scenario_id"], decision, True))
+    items = [entry(f"제{i + 1}조", c["scenario_id"], CLAUSE_PLAIN) for i, c in enumerate(output.get("clauses") or [])]
+    items.extend(entry("협의 사항", d["scenario_id"], DISCUSSION_PLAIN) for d in output.get("discussion_items") or [])
     return items
 
 
 def shared_result(output, roster, *, result_id, kind, source_result_id, draft, included_count, excluded_names, trip,
-                  model_input=None):
+                  model_input=None, judgments=None):
     def text(value):
         return render_participant_tokens(value, roster)
 
@@ -254,7 +241,7 @@ def shared_result(output, roster, *, result_id, kind, source_result_id, draft, i
         "trip": public_trip(trip),
         "clauses": clauses,
         "discussion_items": discussion,
-        "process": process_items(output, model_input) if output["status"] == "ready" else [],
+        "process": process_items(output, model_input, judgments) if output["status"] == "ready" else [],
     }
     if isinstance(output.get("message"), str):
         result["message"] = text(output["message"])

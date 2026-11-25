@@ -7,7 +7,6 @@ import type { ResultEntry, ResultsList, RoomView, SharedResult } from "../api/ty
 import { EditForm } from "../components/EditForm";
 import { HostPanel } from "../components/HostPanel";
 import { PushOptIn } from "../components/PushOptIn";
-import { ShowdownRules } from "../components/ShowdownRules";
 import { PetalDrift } from "../components/PactBranch";
 import { hasPaper, issueItemCount, ProcessToggle, ResultSheet } from "../components/PactSheet";
 import { BottomBar, ErrorMessage, ICON, RoomNotFound, ShareButton } from "../components/ui";
@@ -484,7 +483,6 @@ export function Result() {
           {submitted && <PushOptIn code={code} role="participant" sessionId={submitted.session_id} />}
         </>
       )}
-      {showdownGate.board && <ShowdownRules board={showdownGate.board} />}
       {!reduced && hasPaper(result?.pact_status) && <PetalDrift />}
     </main>
   );

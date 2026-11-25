@@ -21,7 +21,7 @@ JUDGMENT_KEYS = {
     "included_count", "excluded_names_count", "excluded_names_include_profiles", "duplicate_name_notice",
     "has_submission", "result_attempts", "normal_results", "failed_results", "result_kind", "result_label",
     "source_result", "shared_result", "new_result_rows", "repair_error_codes", "waits", "backoff_waits",
-    "has_process", "limit_decision", "push_sent", "host_push_text",
+    "has_process", "plain_decision", "push_sent", "host_push_text",
     "subscription_by_send_status", "notification_records_per_pair", "push_payload_keys", "draft",
 }
 REQUIRED_KEYS = {"id", "case_id", "kind", "ac", "basis", "note"}

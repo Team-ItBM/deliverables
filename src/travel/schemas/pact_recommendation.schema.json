@@ -16,14 +16,14 @@
       "items": {
         "$ref": "#/definitions/PactClause"
       },
-      "description": "확정되거나 한계를 반영한 문항의 조항. 문항 순서대로 쓴다."
+      "description": "승부처까지 거쳐 정해진 문항의 조항. 문항 순서대로 쓴다."
     },
     "discussion_items": {
       "type": "array",
       "items": {
         "$ref": "#/definitions/DiscussionItem"
       },
-      "description": "챌린지 뒤에도 갈렸거나 한계가 서로 부딪혀 당사자가 직접 논의할 문항."
+      "description": "승부처에서 직접 논의하기로 한 문항."
     },
     "message": {
       "type": "string",
@@ -45,16 +45,6 @@
           "type": "string",
           "description": "조항의 근거 문항 ID."
         },
-        "basis": {
-          "type": "string",
-          "enum": [
-            "agreed",
-            "majority",
-            "challenge",
-            "limit"
-          ],
-          "description": "입력 judgments의 outcome을 그대로 쓴다. 메모의 한계를 반영해 판정을 바꾼 경우에만 limit."
-        },
         "text": {
           "type": "string",
           "minLength": 1,
@@ -63,7 +53,6 @@
       },
       "required": [
         "scenario_id",
-        "basis",
         "text"
       ],
       "additionalProperties": false

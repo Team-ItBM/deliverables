@@ -87,7 +87,7 @@ describe("협약서 종이", () => {
     expect(container.querySelector(".stamp")).toBeTruthy();
     const footer = container.querySelector(".pact-footer")!.textContent ?? "";
     expect(footer).toContain("협약 체결");
-    expect(footer).toContain("본 협약서는 일행의 응답과 챌린지 결과를 정리한 것이다.");
+    expect(footer).toContain("본 협약서는 일행의 응답과 승부처 결과를 정리한 것이다.");
   });
 });
 

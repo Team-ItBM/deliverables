@@ -54,7 +54,7 @@ ERROR_TABLE = {
     "not_found": {"DUP-N04", "EDT-N08", "REG-N03"},
     "room_closed": {"CLS-N02", "CLS-N03", "CLS-N04", "PRV-N01", "PRV-N04"},
     "no_submissions": {"CLS-N01"},
-    "invalid_state": {"INP-N07", "REG-N02", "REG-N03", "REG-N04", "OUT-N01", "OUT-N04", "PRV-N03"},
+    "invalid_state": {"INP-N07", "REG-N02", "REG-N03", "REG-N04", "OUT-N01", "OUT-N04"},
     "regeneration_limit": {"REG-N01"},
     "session_used": {"DUP-N02"},
     "idempotency_conflict": {"DUP-N01"},

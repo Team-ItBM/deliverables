@@ -272,13 +272,9 @@ cases:
     case_id: response_privacy
     kind: fail
     ac: ["AC3", "AC10"]
-    basis: "AC3, AC10, ARCHITECTURE 6절 후처리 위반"
-    repair_error_codes: ["memo_quote"]
-    room_status: "failed"
-    failure_reason: "output_invalid"
-    http_status: 409
-    error_code: "invalid_state"
-    note: "두 번 모두 검증기 `memo_quote`, `room_status: failed`(`output_invalid`). 결과 조회는 409 `invalid_state`이고 그 문장은 어떤 응답에도 없다"
+    basis: "AC3, AC10, 협약서 생성 프롬프트 v15 A절(메모는 모델에 보내지 않는다)"
+    room_status: "ready"
+    note: "추천 호출의 model_input 응답에 memo 키가 없고 메모 표지가 없다. 검증기에는 메모가 든 고정 입력이 가서 메모 인용 검사는 그대로 한다"
   - id: PRV-N04
     case_id: response_privacy
     kind: fail
@@ -765,11 +761,11 @@ cases:
     case_id: result_export
     kind: pass
     ac: ["AC13", "AC3"]
-    basis: "협약서 재설계안 4.1.1절(정해진 과정 더보기). 2026-11-25 팀 결정"
+    basis: "협약서 재설계안 4.1.1절(정해진 과정 더보기). 2026-11-25 팀 결정, 2026-11-26 승부처 방식(인원 비공개)"
     checkpoints:
-      - {"at": "ready", "has_process": true, "limit_decision": "일행의 조건을 반영해 정함"}
+      - {"at": "ready", "has_process": true, "plain_decision": "응답을 정리해 정함"}
       - {"at": "failed", "has_process": false}
-    note: "ready 공유 결과에는 조항·협의 사항마다 `process` 항목(label, title, decision)이 있다. 한계 반영 조항은 선택 인원(first_tally)을 숨기고 decision만 있다. 나머지 항목에는 선택지별 인원이 있다. 이름·메모는 없다. 유머 필드(humor)는 어떤 결과에도 없다. `failed`에는 process가 비어 있다"
+    note: "ready 공유 결과에는 조항·협의 사항마다 `process` 항목(label, scenario_id, title, decision)만 있다. 선택 인원은 어떤 항목에도 없다. 승부처 규칙 데이터에 없는 문항이면 decision은 고정 문구다. 이름·메모는 없다. 유머 필드(humor)는 어떤 결과에도 없다. `failed`에는 process가 비어 있다"
   - id: EXP-N01
     case_id: result_export
     kind: fail

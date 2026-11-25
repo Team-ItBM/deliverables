@@ -19,28 +19,9 @@ function base(over: Partial<SharedResult> = {}): SharedResult {
     ],
     discussion_items: [{ scenario_id: "sunset", text: "노을 감상과 소품숍 구경 중 무엇을 우선할지는 당사자 간 직접 논의하여 정한다." }],
     process: [
-      {
-        label: "제1조",
-        scenario_id: "meal",
-        title: "점심 메뉴",
-        decision: "챌린지로 정함",
-        first_tally: [
-          { label: "고기국수 식당", count: 1 },
-          { label: "갈치조림 식당", count: 1 },
-        ],
-        challenge_tally: [{ label: "고기국수 식당", count: 2 }],
-      },
-      { label: "제2조", scenario_id: "ride", title: "놀이기구", decision: "일행의 조건을 반영해 정함" },
-      {
-        label: "협의 사항",
-        scenario_id: "sunset",
-        title: "노을과 소품숍",
-        decision: "챌린지에서도 갈려 직접 논의",
-        first_tally: [
-          { label: "바로 해변", count: 1 },
-          { label: "소품숍 들르기", count: 1 },
-        ],
-      },
+      { label: "제1조", scenario_id: "meal", title: "점심 메뉴", decision: "승부처에서 가위바위보로 정함" },
+      { label: "제2조", scenario_id: "ride", title: "놀이기구", decision: "중간 안으로 정함" },
+      { label: "협의 사항", scenario_id: "sunset", title: "노을과 소품숍", decision: "승부처에서 직접 논의하기로 함" },
     ],
     ...over,
   };
@@ -82,8 +63,8 @@ describe("협약서 렌더러", () => {
 
   it("정해진 과정 칸에는 조항·협의 사항이 들어가지 않는다", () => {
     const { container } = render(<ResultSheet result={base()} />);
-    expect(container.textContent).not.toContain("챌린지로 정함");
-    expect(container.textContent).not.toContain("1차");
+    expect(container.textContent).not.toContain("가위바위보로 정함");
+    expect(container.textContent).not.toContain("점심 메뉴");
   });
 
   it("needs_information은 도장 없이 안내만 보여 준다", () => {
@@ -96,22 +77,20 @@ describe("협약서 렌더러", () => {
 });
 
 describe("정해진 과정 더보기", () => {
-  it("처음에는 접혀 있고 버튼을 누르면 펼쳐지며 한계 반영 조항에는 인원이 없다", () => {
+  it("처음에는 접혀 있고 버튼을 누르면 문항과 결정 방식만 펼쳐진다", () => {
     render(<ProcessToggle result={base()} />);
     const button = screen.getByRole("button", { name: "정해진 과정 더보기" });
     expect(button.getAttribute("aria-expanded")).toBe("false");
-    expect(screen.queryByText("챌린지로 정함")).toBeNull();
+    expect(screen.queryByText("승부처에서 가위바위보로 정함")).toBeNull();
     fireEvent.click(button);
     expect(screen.getByRole("button", { name: "정해진 과정 접기" }).getAttribute("aria-expanded")).toBe("true");
-    expect(screen.getByText("챌린지로 정함")).toBeTruthy();
     const meal = screen.getByText("제1조 · 점심 메뉴").parentElement!;
-    expect(meal.textContent).toContain("1차고기국수 식당1명갈치조림 식당1명");
-    expect(meal.textContent).toContain("챌린지고기국수 식당2명");
-    const limit = screen.getByText("제2조 · 놀이기구").parentElement!;
-    expect(limit.textContent).toContain("일행의 조건을 반영해 정함");
-    expect(limit.textContent).not.toContain("1차");
+    expect(meal.textContent).toBe("제1조 · 점심 메뉴승부처에서 가위바위보로 정함");
+    expect(screen.getByText("중간 안으로 정함")).toBeTruthy();
+    expect(screen.getByText("승부처에서 직접 논의하기로 함")).toBeTruthy();
+    expect(document.body.textContent).not.toMatch(/\d명/);
     fireEvent.click(screen.getByRole("button", { name: "정해진 과정 접기" }));
-    expect(screen.queryByText("챌린지로 정함")).toBeNull();
+    expect(screen.queryByText("승부처에서 가위바위보로 정함")).toBeNull();
   });
 
   it("ready가 아니거나 과정이 없으면 버튼을 그리지 않는다", () => {

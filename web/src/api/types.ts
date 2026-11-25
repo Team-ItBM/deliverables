@@ -111,18 +111,11 @@ export interface DiscussionItem {
   text: string;
 }
 
-export interface TallyItem {
-  label: string;
-  count: number;
-}
-
 export interface ProcessItem {
   label: string;
   scenario_id: string;
   title: string;
   decision: string;
-  first_tally?: TallyItem[];
-  challenge_tally?: TallyItem[];
 }
 
 export interface SharedResult {

@@ -1,9 +1,9 @@
-# 협약서 출력 검증기 골든 케이스 (추천 프롬프트 v14, 스키마 v6)
+# 협약서 출력 검증기 골든 케이스 (추천 프롬프트 v15, 스키마 v7)
 #
 # 대상 함수
 #   src/travel/pact.py 의 validate_pact_output(pact_input, raw_output) -> {valid, errors[{code, path, detail}]}
-#   pact_input은 고정 입력에 챌린지 단계가 넣은 판정(judgments)이 있는 것이다(generate_pact.md A절 계약).
-#   판정 계산(누가 몇 명 골랐는지, 챌린지 결과)은 챌린지 단계의 몫이며 여기서 검사하지 않는다.
+#   pact_input은 고정 입력(메모 포함)에 서버가 승부처 결과로 만든 판정(judgments)을 더한 것이다(generate_pact.md A절).
+#   승부처 분류와 승부 결과 계산은 src/travel/showdown.py의 몫이며 여기서 검사하지 않는다.
 #   건강 이유를 조항에 썼는지 같은 의미 판정은 범위 밖이다.
 #
 # 케이스 입력
@@ -16,13 +16,13 @@
 #
 # 오류 코드
 #   json_invalid          JSON으로 파싱되지 않는다.
-#   schema_violation      스키마 v6 위반: 추가 키, enum 밖 status·basis, 필수 필드 누락.
+#   schema_violation      스키마 v7 위반: 추가 키(지운 basis 포함), enum 밖 status, 필수 필드 누락.
 #   status_combination    ready에 message가 있거나 두 배열이 모두 비었다. 다른 상태에 배열 항목이 있거나 message가 없다.
 #   input_status_mismatch 채택 제출 건 안의 응답 누락이 있는데 ready이거나, 누락이 없는데 needs_information이다.
 #   unknown_reference     입력에 없는 문항 ID.
 #   coverage_mismatch     문항이 조항·협의 사항 어디에도 없거나 두 번 나온다.
-#   judgment_mismatch     basis가 판정과 다르다. 협의 판정 문항을 조항으로 썼다. 메모 없는 문항을 limit로 쓰거나
-#                         확정 판정 문항을 협의 사항으로 옮겼다.
+#   judgment_mismatch     직접 논의(result talk) 문항을 조항으로 썼거나, 정해진 문항(result rule·open)을 협의 사항으로 옮겼다.
+#                         판정이 없으면 검사하지 않는다.
 #   sentence_limit        한 항목이 두 문장을 넘는다.
 #   style_violation       "다."로 끝나지 않거나 해요체·물음표·느낌표가 있다.
 #   number_in_text        조항·협의 사항에 아라비아 숫자가 있다.
@@ -32,7 +32,7 @@
 #   particle_pair         참여자 토큰 뒤에 조사 쌍 대신 한쪽 조사만 붙었다.
 #
 # fixture
-#   ready_full       : 프롬프트 예시 1. 3명, 5문항. 일치·다수결·챌린지·한계·협의 사항이 모두 있다.
+#   ready_full       : 프롬프트 예시 1. 3명, 5문항. 기본 절충안·중간 안·승부처 직접 논의·의견 일치·그때 정함이 모두 있다.
 #   missing_response : 프롬프트 예시 2. B의 응답이 없다.
 error_codes: [json_invalid, schema_violation, status_combination, input_status_mismatch, unknown_reference, coverage_mismatch, judgment_mismatch, sentence_limit, style_violation, number_in_text, discussion_phrase, memo_quote, token_invalid, particle_pair]
 cases:
@@ -40,8 +40,8 @@ cases:
     fixture: ready_full
     expect_valid: true
     note: >-
-      정상. 챌린지로 정한 메뉴, 다수결 숙소, 메모 한계를 반영한 놀이기구(limit), 의견이 같은 정산, 챌린지에서도 갈린 노을을
-      조항 넷과 협의 사항 하나로 썼다.
+      정상. 기본 절충안으로 정한 식사, 중간 안으로 정한 숙소, 의견이 같은 정산, 그때 정하기로 한 노을을 조항 넷으로,
+      승부처에서 직접 논의하기로 한 놀이기구를 협의 사항 하나로 썼다.
   - name: missing_response_valid
     fixture: missing_response
     expect_valid: true
@@ -67,13 +67,13 @@ cases:
     expect_valid: false
     must_include_errors: [schema_violation]
     note: 금지 행동. 이전 스키마의 상태값.
-  - name: unknown_basis_rejected
+  - name: basis_key_rejected
     fixture: ready_full
     patch:
-      - {op: replace, path: /output/clauses/1/basis, value: compromise}
+      - {op: add, path: /output/clauses/1/basis, value: middle}
     expect_valid: false
     must_include_errors: [schema_violation]
-    note: 금지 행동. 절충안 같은 새 근거를 만들었다.
+    note: 금지 행동. 스키마 v7에서 지운 근거 필드를 붙였다.
   - name: ready_with_message
     fixture: ready_full
     patch:
@@ -84,7 +84,7 @@ cases:
   - name: needs_information_with_clause
     fixture: missing_response
     patch:
-      - {op: add, path: /output/clauses/-, value: {scenario_id: settlement_timing, basis: agreed, text: "공동 비용은 여행이 끝난 뒤 한 번에 정산한다."}}
+      - {op: add, path: /output/clauses/-, value: {scenario_id: settlement_timing, text: "공동 비용은 여행이 끝난 뒤 한 번에 정산한다."}}
     expect_valid: false
     must_include_errors: [status_combination]
     note: 금지 행동. 응답이 빠졌는데 조항을 만들었다.
@@ -109,7 +109,7 @@ cases:
     expect_valid: false
     must_include_errors: [coverage_mismatch]
     must_not_include_errors: [judgment_mismatch]
-    note: 금지 행동. 갈린 문항을 협약서에서 지웠다.
+    note: 금지 행동. 직접 논의하기로 한 문항을 협약서에서 지웠다.
   - name: scenario_twice
     fixture: ready_full
     patch:
@@ -124,46 +124,40 @@ cases:
     expect_valid: false
     must_include_errors: [unknown_reference, coverage_mismatch]
     note: 금지 행동. 입력에 없는 문항.
-  - name: basis_differs_from_judgment
-    fixture: ready_full
-    patch:
-      - {op: replace, path: /output/clauses/1/basis, value: agreed}
-    expect_valid: false
-    must_include_errors: [judgment_mismatch]
-    note: 금지 행동. 다수결로 정한 문항을 의견이 같았다고 썼다.
   - name: discussion_written_as_clause
     fixture: ready_full
     patch:
       - {op: remove, path: /output/discussion_items/0}
-      - {op: add, path: /output/clauses/-, value: {scenario_id: sunset_window, basis: challenge, text: "노을 감상을 우선한다."}}
+      - {op: add, path: /output/clauses/-, value: {scenario_id: ride_participation, text: "놀이기구는 잔잔한 기구를 우선한다."}}
     expect_valid: false
     must_include_errors: [judgment_mismatch]
     must_not_include_errors: [coverage_mismatch]
-    note: 금지 행동. 챌린지에서도 갈린 문항을 모델이 임의로 정했다.
-  - name: limit_without_memo
-    fixture: ready_full
-    patch:
-      - {op: replace, path: /output/clauses/3/basis, value: limit}
-    expect_valid: false
-    must_include_errors: [judgment_mismatch]
-    note: 금지 행동. 메모가 없는 정산 문항을 한계 반영으로 바꿨다.
+    note: 금지 행동. 승부처에서 직접 논의하기로 한 문항을 모델이 임의로 정했다.
   - name: confirmed_moved_to_discussion
     fixture: ready_full
     patch:
-      - {op: remove, path: /output/clauses/3}
-      - {op: add, path: /output/discussion_items/0, value: {scenario_id: settlement_timing, text: "정산 시점은 당사자 간 직접 논의하여 정한다."}}
+      - {op: remove, path: /output/clauses/2}
+      - {op: add, path: /output/discussion_items/-, value: {scenario_id: settlement_timing, text: "정산 시점은 당사자 간 직접 논의하여 정한다."}}
     expect_valid: false
     must_include_errors: [judgment_mismatch]
-    note: 금지 행동. 의견이 같은데 메모도 없는 문항을 협의 사항으로 옮겼다.
-  - name: limit_on_discussion_with_memo_valid
+    note: 금지 행동. 의견이 같아 정해진 문항을 협의 사항으로 옮겼다.
+  - name: open_moved_to_discussion
     fixture: ready_full
     patch:
+      - {op: remove, path: /output/clauses/3}
+      - {op: add, path: /output/discussion_items/-, value: {scenario_id: sunset_window, text: "노을 감상과 구경 중 무엇을 우선할지는 당사자 간 직접 논의하여 정한다."}}
+    expect_valid: false
+    must_include_errors: [judgment_mismatch]
+    note: 금지 행동. 그때 정하기로 한 문항을 협의 사항으로 옮겼다.
+  - name: no_judgments_skips_check_valid
+    fixture: ready_full
+    patch:
+      - {op: remove, path: /input/judgments}
       - {op: remove, path: /output/discussion_items/0}
-      - {op: add, path: /output/clauses/-, value: {scenario_id: sunset_window, basis: limit, text: "해 질 무렵에는 노을 감상을 우선한다."}}
+      - {op: add, path: /output/clauses/2, value: {scenario_id: ride_participation, text: "놀이기구는 잔잔한 기구를 우선한다."}}
     expect_valid: true
     note: >-
-      경계. 협의 판정 문항이라도 메모가 있으면 한계 반영 조항으로 쓸 수 있다. 메모가 실제 한계인지는 의미 판정이라
-      검사기는 메모 유무만 본다.
+      경계. 문항이 승부처 규칙 데이터에 없어 판정이 없으면 검사기는 조항과 협의 사항의 구분을 대조하지 않는다.
   - name: polite_style
     fixture: ready_full
     patch:
@@ -181,34 +175,41 @@ cases:
   - name: three_sentences
     fixture: ready_full
     patch:
-      - {op: replace, path: /output/clauses/1/text, value: "숙소는 한 객실을 함께 쓴다. 대화는 공용 공간에서 한다. 잠은 각자 침대에서 잔다."}
+      - {op: replace, path: /output/clauses/1/text, value: "객실은 각자 따로 쓴다. 숙소는 저렴한 곳을 고른다. 대화는 공용 공간에서 한다."}
     expect_valid: false
     must_include_errors: [sentence_limit]
     note: 금지 행동. 한 조항이 세 문장이다.
+  - name: rule_tone_copied
+    fixture: ready_full
+    patch:
+      - {op: replace, path: /output/clauses/2/text, value: "정산은 여행 끝나고 한 번에!"}
+    expect_valid: false
+    must_include_errors: [style_violation]
+    note: 금지 행동. 승부처 규칙 문장의 말투와 느낌표를 그대로 옮겼다.
   - name: two_sentences_valid
     fixture: ready_full
     patch:
-      - {op: replace, path: /output/clauses/1/text, value: "숙소는 일행이 한 객실을 함께 쓰는 곳으로 고른다. 대화는 공용 공간에서 나눈다."}
+      - {op: replace, path: /output/clauses/1/text, value: "객실은 각자 따로 쓴다. 숙소는 비용이 더 낮은 곳을 우선한다."}
     expect_valid: true
     note: 경계. 두 문장까지는 허용한다.
   - name: number_in_clause
     fixture: ready_full
     patch:
-      - {op: replace, path: /output/clauses/0/text, value: "여행 중 하루 1번은 고기국수를 먹는다."}
+      - {op: replace, path: /output/clauses/0/text, value: "식사는 일행이 함께 하며 메뉴는 1끼마다 번갈아 정한다."}
     expect_valid: false
     must_include_errors: [number_in_text]
     note: 금지 행동. 숫자로 일정을 정했다.
   - name: discussion_without_phrase
     fixture: ready_full
     patch:
-      - {op: replace, path: /output/discussion_items/0/text, value: "노을 감상과 소품숍 구경 중 무엇을 우선할지는 나중에 정한다."}
+      - {op: replace, path: /output/discussion_items/0/text, value: "놀이기구를 어떻게 탈지는 나중에 정한다."}
     expect_valid: false
     must_include_errors: [discussion_phrase]
     note: 금지 행동. 협의 사항의 고정 맺음말이 없다.
   - name: memo_quote_rejected
     fixture: ready_full
     patch:
-      - {op: replace, path: /output/clauses/0/text, value: "고기국수는 꼭 먹어 보고 싶어하는 마음을 존중한다."}
+      - {op: replace, path: /output/clauses/0/text, value: "고기국수는 꼭 먹어 보고 싶어하는 마음을 존중해 식사는 함께 한다."}
     expect_valid: false
     must_include_errors: [memo_quote]
     note: 금지 행동. 메모 원문 15자 이상을 그대로 옮겼다.
