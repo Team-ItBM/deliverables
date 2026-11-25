@@ -148,7 +148,7 @@ class OpenAIClient:
 
     def request_kwargs(self, spec, items, tools_on):
         kwargs = {
-            "model": spec["model"],
+            "model": self.config.model,
             "instructions": spec["body"],
             "input": items,
             "text": {"format": {"type": "json_schema", "name": spec["schema_name"], "schema": spec["schema"],
