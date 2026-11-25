@@ -83,6 +83,7 @@ def build_settings(env, llm_config):
         public_base_url=env.get("PUBLIC_BASE_URL", "http://localhost:5173").rstrip("/"),
         vapid_public_key=env.get("VAPID_PUBLIC_KEY", ""),
         model_id=llm_config.model,
+        stage_models={stage: spec["model"] for stage, spec in llm_config.prompts.items()},
         prompt_versions={stage: spec["version"] for stage, spec in llm_config.prompts.items()},
         schema_versions={stage: spec["schema_version"] for stage, spec in llm_config.prompts.items()},
         maintenance_interval_seconds=float(job.get("maintenance_interval_seconds", 30)),

@@ -1,6 +1,6 @@
 # 모델 호출 설정(ARCHITECTURE 2·5절). 코드에 값을 넣지 않고 여기서 바꾼다.
 # 전송부 해시가 다르면 서버가 시작할 때 멈춘다. 프롬프트 전송부를 바꾸면 prompt_version과 해시를 함께 올린다(AGENTS 5절).
-model: gpt-6.1-sol
+model: gpt-6.2-sol
 reasoning_effort: low           # 스파이크·회귀 점검과 같은 값
 store: false                    # 응답을 OpenAI 서버에 저장하지 않는다(처리방침 제6조)
 include: ["reasoning.encrypted_content"]   # store: false에서 도구 결과를 돌려줄 때 앞 차례의 추론 항목을 다시 넣기 위한 값(실제 호출로 확인)
@@ -8,6 +8,7 @@ parallel_tool_calls: false      # 스파이크 결정 11
 timeout_seconds: 90             # 호출 타임아웃
 prompts:
   scenarios:
+    web_search: true
     path: src/travel/prompts/prepare_scenarios.md
     version: 9
     body_sha256: 26219ab99fadf0ce4d1de7f6e558884b8abe1346e526694d4a971ad7c7d3af2e
@@ -37,7 +38,9 @@ job:
   stall_limit_seconds: 600      # 멈춤 판정(결정 12)
   maintenance_interval_seconds: 30
 cost:
-  # 2026-11-05 확인한 Standard 단가(1M 토큰당 USD). 캐시 쓰기 토큰은 일반 입력 단가로 센다(스파이크 기록).
+  # OpenAI Standard, 2026-11-25: https://developers.openai.com/api/docs/pricing
+  web_search_per_call: 0.01
+  cache_write_per_million: 2.50
   input_per_million: 2.0
   cached_input_per_million: 0.10
   output_per_million: 10.0

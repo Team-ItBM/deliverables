@@ -61,7 +61,8 @@ class LLMConfig:
                 raise ValueError(f"{stage} 프롬프트 전송부 해시가 설정과 다르다: {digest[:12]}… (설정 {spec['body_sha256'][:12]}…). "
                                  f"프롬프트를 바꿨으면 prompt_version과 해시를 함께 올린다")
             schema = json.loads((self.root / spec["schema_path"]).read_text(encoding="utf-8"))
-            self.prompts[stage] = {"body": body, "version": str(spec["version"]), "schema": schema,
+            self.prompts[stage] = {"model": spec.get("model", self.model), "web_search": spec.get("web_search", False),
+                                   "body": body, "version": str(spec["version"]), "schema": schema,
                                    "schema_name": spec["schema_name"], "schema_version": str(spec["schema_version"])}
 
     @classmethod
@@ -79,7 +80,10 @@ class LLMConfig:
         input_tokens = (getattr(usage, "input_tokens", 0) or 0) - cached
         output_tokens = getattr(usage, "output_tokens", 0) or 0
         rate = self.cost
-        return round(input_tokens * rate.get("input_per_million", 0) / 1e6
+        writes = getattr(details, "cache_write_tokens", 0) if not isinstance(details, dict) else details.get("cache_write_tokens", 0)
+        write_rate = rate.get("cache_write_per_million", rate.get("input_per_million", 0))
+        write_premium = (writes or 0) * (write_rate - rate.get("input_per_million", 0)) / 1e6
+        return round(write_premium + input_tokens * rate.get("input_per_million", 0) / 1e6
                      + cached * rate.get("cached_input_per_million", 0) / 1e6
                      + output_tokens * rate.get("output_per_million", 0) / 1e6, 6)
 
@@ -144,7 +148,7 @@ class OpenAIClient:
 
     def request_kwargs(self, spec, items, tools_on):
         kwargs = {
-            "model": self.config.model,
+            "model": spec["model"],
             "instructions": spec["body"],
             "input": items,
             "text": {"format": {"type": "json_schema", "name": spec["schema_name"], "schema": spec["schema"],
@@ -156,6 +160,9 @@ class OpenAIClient:
             kwargs["include"] = self.config.include
         if tools_on:
             kwargs["tools"] = [tool_definition()]
+            if spec["web_search"]:
+                kwargs["tools"].append({"type": "web_search"})
+                kwargs["include"] = [*self.config.include, "web_search_call.action.sources"]
             kwargs["tool_choice"] = "auto"
             kwargs["parallel_tool_calls"] = self.config.parallel_tool_calls
         return kwargs
@@ -174,13 +181,14 @@ class OpenAIClient:
             log("llm_call_error", kind=error.kind, retry_after=error.retry_after, error=type(exc).__name__)
             raise error from exc
         usage = response.usage
+        measured = self._usage(response)
         if meter is not None and usage is not None:
             meter.add(getattr(usage, "input_tokens", 0) or 0, getattr(usage, "output_tokens", 0) or 0,
-                      self.config.estimate_cost(usage) or 0.0)
+                      measured["cost_usd"])
         log("llm_response", model=response.model, status=response.status,
             latency_ms=int((time.monotonic() - started) * 1000),
             input_tokens=getattr(usage, "input_tokens", None), output_tokens=getattr(usage, "output_tokens", None),
-            tools_on=tools_on)
+            tools_on=tools_on, web_search_calls=measured["web_search_calls"])
         return response
 
     # ---- 응답 해석
@@ -211,14 +219,25 @@ class OpenAIClient:
 
     def _usage(self, response, extra_usage=None, tool_calls=0):
         usage = response.usage
-        total = {"model": response.model, "tool_calls": tool_calls,
+        searches = [item for item in self._output_items(response) if item.get("type") == "web_search_call"]
+        sources = []
+        for search in searches:
+            action = search.get("action") or {}
+            if action.get("url"):
+                sources.append(action["url"])
+            sources.extend(source["url"] for source in action.get("sources") or [] if source.get("url"))
+        search_cost = sum((item.get("action") or {}).get("type") == "search" for item in searches) * self.config.cost.get("web_search_per_call", 0)
+        total = {"web_search_calls": len(searches), "web_sources": sources, "model": response.model, "tool_calls": tool_calls,
                  "input_tokens": getattr(usage, "input_tokens", 0) or 0,
                  "output_tokens": getattr(usage, "output_tokens", 0) or 0,
-                 "cost_usd": self.config.estimate_cost(usage) or 0.0}
+                 "cost_usd": round((self.config.estimate_cost(usage) or 0.0) + search_cost, 6)}
         for prev in extra_usage or []:
+            total["web_search_calls"] += prev["web_search_calls"]
+            sources.extend(prev["web_sources"])
             total["input_tokens"] += prev["input_tokens"]
             total["output_tokens"] += prev["output_tokens"]
             total["cost_usd"] = round(total["cost_usd"] + prev["cost_usd"], 6)
+        total["web_sources"] = list(dict.fromkeys(sources))
         return total
 
     def _final(self, response, opened, tool_calls, extra_usage=None):

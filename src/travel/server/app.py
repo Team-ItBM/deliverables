@@ -78,7 +78,8 @@ class Settings:
     expires_days: int = 30
     public_base_url: str = "http://localhost:5173"
     vapid_public_key: str = ""
-    model_id: str = "gpt-6.1-sol"
+    model_id: str = "gpt-6.2-sol"
+    stage_models: dict = field(default_factory=dict)
     prompt_versions: dict = field(default_factory=lambda: {"scenarios": "9", "pact": "12"})
     schema_versions: dict = field(default_factory=lambda: {"scenarios": "2", "pact": "4"})
     maintenance_interval_seconds: float = 0
