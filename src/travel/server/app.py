@@ -26,6 +26,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from travel import showdown
 from travel.pact import InputIndex, check_memo_quotes
 
 from . import db, render
@@ -39,6 +40,7 @@ ERROR_STATUS = {
     "invalid_input": 422, "needs_information": 422, "host_forbidden": 403, "not_found": 404, "room_closed": 409,
     "no_submissions": 409, "invalid_state": 409, "regeneration_limit": 409, "session_used": 409,
     "idempotency_conflict": 409, "edit_not_allowed": 422, "memo_quote": 422, "render_failed": 500,
+    "showdown_forbidden": 403,
 }
 MESSAGES = {
     "invalid_input": "입력 형식이나 범위가 맞지 않아요.",
@@ -54,6 +56,7 @@ MESSAGES = {
     "edit_not_allowed": "조항 문구만 고칠 수 있어요.",
     "memo_quote": "다른 사람의 메모 원문을 그대로 넣을 수 없어요.",
     "render_failed": "결과를 표시할 수 없어요.",
+    "showdown_forbidden": "이 방에 답을 제출한 기기에서만 할 수 있어요.",
 }
 OPTIONAL_PROFILE_KEYS = ("gender", "age_band", "mbti")
 
@@ -732,6 +735,98 @@ def _register_routes(app, settings, jobs, notifier, clock, pool_source):
         return shared(new_row, room, roster, draft=room["selected_result_id"] != origin["result_id"])
 
     # 12. 푸시
+    # 승부처(docs/SHOWDOWN.md). 고정된 응답을 코드로 분류하고 모델을 부르지 않는다. 상태는 rooms.showdown에 둔다.
+    SHOWDOWN_ERRORS = {"not_found": "not_found", "forbidden": "showdown_forbidden",
+                       "invalid_input": "invalid_input", "invalid_state": "invalid_state"}
+
+    def showdown_board(room):
+        """입력이 고정된 방의 분류 결과. 규칙 데이터에 없는 문항이 있으면 None이다."""
+        frozen = room["frozen_input"]
+        if not frozen:
+            raise ApiError("invalid_state")
+        try:
+            return showdown.build_board(db.as_json(frozen)["model_input"])
+        except (KeyError, ValueError):
+            return None
+
+    def showdown_titles(board):
+        titles = {}
+        for item in board["items"]:
+            try:
+                titles[item["template_id"]] = pool_source.lookup(item["template_id"]).get("title")
+            except KeyError:
+                titles[item["template_id"]] = None
+        return titles
+
+    async def showdown_viewer(conn, room, session_id):
+        """세션으로 제출한 참여자 ID를 찾는다. 없으면 None이다."""
+        if session_id is None:
+            return None
+        cur = await conn.execute("SELECT participant_id FROM submissions WHERE session_id = %s AND room_id = %s",
+                                 (session_id, room["room_id"]))
+        row = await cur.fetchone()
+        return str(row["participant_id"]) if row else None
+
+    def showdown_response(board, state, viewer, roster):
+        if board is None:
+            return {"available": False}
+        names = {r["participant_id"]: r["display_name"] for r in roster}
+        return showdown.build_view(board, state, viewer_id=viewer, titles=showdown_titles(board), names=names)
+
+    @app.get("/api/rooms/{room_code}/showdown")
+    async def get_showdown(room_code: str, request: Request):
+        session_id = parse_uuid(request.headers.get("X-Session-Id"))
+        async with pool().connection() as conn:
+            room = await load_room(conn, room_code)
+            board = showdown_board(room)
+            viewer = await showdown_viewer(conn, room, session_id)
+            roster = await roster_of(conn, room)
+        return showdown_response(board, db.as_json(room["showdown"]) or {}, viewer, roster)
+
+    async def showdown_action(room_code, request, scenario_id, act, host_only=False):
+        """방 행을 잠그고 승부처 상태를 한 번 고친 뒤 갱신된 화면 응답을 돌려준다."""
+        body = None if host_only else await read_json(request)
+        if not host_only and not isinstance(body, dict):
+            raise ApiError("invalid_input")
+        async with pool().transaction() as conn:
+            room = await load_room(conn, room_code, for_update=True)
+            board = showdown_board(room)
+            if board is None:
+                raise ApiError("invalid_state")
+            if host_only:
+                require_host(room, request)
+                viewer = await showdown_viewer(conn, room, parse_uuid(request.headers.get("X-Session-Id")))
+            else:
+                viewer = await showdown_viewer(conn, room, parse_uuid(body.get("session_id")))
+                if viewer is None:
+                    raise ApiError("showdown_forbidden")
+            state = db.as_json(room["showdown"]) or {}
+            try:
+                act(board, state, scenario_id, viewer, body)
+            except showdown.ShowdownError as exc:
+                raise ApiError(SHOWDOWN_ERRORS[exc.code])
+            await conn.execute("UPDATE rooms SET showdown = %s WHERE room_id = %s", (db.jsonb(state), room["room_id"]))
+            roster = await roster_of(conn, room)
+        return showdown_response(board, state, viewer, roster)
+
+    @app.post("/api/rooms/{room_code}/showdown/{scenario_id}/pick")
+    async def showdown_pick(room_code: str, scenario_id: str, request: Request):
+        return await showdown_action(
+            room_code, request, scenario_id,
+            lambda board, state, sid, viewer, body: showdown.pick(board, state, sid, viewer, body.get("choice")))
+
+    @app.post("/api/rooms/{room_code}/showdown/{scenario_id}/move")
+    async def showdown_move(room_code: str, scenario_id: str, request: Request):
+        return await showdown_action(
+            room_code, request, scenario_id,
+            lambda board, state, sid, viewer, body: showdown.move(board, state, sid, viewer, body.get("move")))
+
+    @app.post("/api/rooms/{room_code}/showdown/{scenario_id}/close")
+    async def showdown_close(room_code: str, scenario_id: str, request: Request):
+        return await showdown_action(
+            room_code, request, scenario_id,
+            lambda board, state, sid, viewer, body: showdown.close_voting(board, state, sid), host_only=True)
+
     @app.get("/api/push/vapid-public-key")
     async def vapid_public_key():
         return {"public_key": settings.vapid_public_key}

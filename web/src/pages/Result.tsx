@@ -7,12 +7,13 @@ import type { ResultEntry, ResultsList, RoomView, SharedResult } from "../api/ty
 import { EditForm } from "../components/EditForm";
 import { HostPanel } from "../components/HostPanel";
 import { PushOptIn } from "../components/PushOptIn";
+import { ShowdownRules } from "../components/ShowdownRules";
 import { PetalDrift } from "../components/PactBranch";
 import { hasPaper, issueItemCount, ResultSheet } from "../components/PactSheet";
 import { BottomBar, ErrorMessage, ICON, RoomNotFound, ShareButton } from "../components/ui";
 import { useHeaderBack } from "../lib/back";
 import { displaySegments, setAtPointer } from "../lib/editable";
-import { useHostToken, usePolling, usePrefersReducedMotion } from "../lib/hooks";
+import { useHostToken, usePolling, usePrefersReducedMotion, useShowdownGate } from "../lib/hooks";
 import { canSharePaperImage, downloadPaperImage, preparePaperImage, sharePaperImage } from "../lib/saveImage";
 import { loadSubmitted } from "../lib/answerSession";
 import { serviceShare } from "../lib/shareText";
@@ -433,6 +434,9 @@ export function Result() {
   const submitted = loadSubmitted(code);
 
   const notReady = error instanceof ApiError && error.code === "invalid_state";
+  // 정하지 않은 승부처가 남아 있으면 협약서보다 승부처를 먼저 보여 준다(docs/SHOWDOWN.md 흐름).
+  const showdownGate = useShowdownGate(code);
+  const showdownFirst = (showdownGate.open ?? 0) > 0;
 
   // 결과 화면은 표면색을 바탕으로 써서 종이가 한 단계 떠 보이게 한다.
   useEffect(() => {
@@ -441,6 +445,23 @@ export function Result() {
   }, []);
 
   if (isNotFound(error)) return <RoomNotFound />;
+
+  if (showdownFirst) {
+    return (
+      <main className="page">
+        <h1 className="t-headline-lg">추천 협약서</h1>
+        <section className="status-block">
+          <p>협약서를 보기 전에 승부처 {showdownGate.open}개를 먼저 정해 주세요.</p>
+          <p className="secondary">의견이 갈린 문항을 각자 기기에서 정한 뒤 전체 협약서를 볼 수 있어요.</p>
+        </section>
+        <BottomBar>
+          <Link className="btn btn-primary" to={`/r/${encodeURIComponent(code)}/showdown`}>
+            승부처 확인하기
+          </Link>
+        </BottomBar>
+      </main>
+    );
+  }
 
   return (
     <main className="page">
@@ -462,6 +483,7 @@ export function Result() {
           {submitted && <PushOptIn code={code} role="participant" sessionId={submitted.session_id} />}
         </>
       )}
+      {showdownGate.board && <ShowdownRules board={showdownGate.board} />}
       {!reduced && hasPaper(result?.pact_status) && <PetalDrift />}
     </main>
   );

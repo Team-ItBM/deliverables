@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS rooms (
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS scenario_started_at timestamptz;
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS scenario_attempt_id uuid;
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS scenario_attempt_count integer NOT NULL DEFAULT 0;
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS showdown jsonb;
 CREATE TABLE IF NOT EXISTS profiles (
     room_id uuid NOT NULL REFERENCES rooms(room_id) ON DELETE CASCADE,
     profile_id text NOT NULL,

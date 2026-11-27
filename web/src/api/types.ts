@@ -185,3 +185,55 @@ export interface PushSubscriptionStatus {
   subscribed: boolean;
   room_subscribed: boolean;
 }
+
+/** 승부처(docs/SHOWDOWN.md). 누가 무엇을 골랐는지와 입장별 인원수는 응답에 없다. */
+export type ShowdownChoice = "c0" | "c1" | "duel" | "talk";
+export type ShowdownMove = "rock" | "paper" | "scissors";
+export type ShowdownOutcome = "agreed" | "middle" | "open" | "showdown" | "fallback";
+
+export interface ShowdownResult {
+  how: "compromise" | "duel" | "lottery" | "talk";
+  rule: string | null;
+  /** 가위바위보·제비뽑기에서 이긴 사람의 이름. 모두에게 온다. */
+  winner_name?: string;
+  /** 승부에 참여한 본인에게만 온다. */
+  won?: boolean;
+  my_move?: ShowdownMove;
+  other_move?: ShowdownMove;
+}
+
+export interface ShowdownCard {
+  sides: string[];
+  compromises: string[];
+  phase: "voting" | "duel" | "done";
+  mode: "rps" | "lottery";
+  voter_count: number;
+  picked_count: number;
+  can_pick: boolean;
+  my_pick: ShowdownChoice | null;
+  duel?: {
+    is_player: boolean;
+    round: number;
+    moved_count: number;
+    my_move: ShowdownMove | null;
+    last_tie: ShowdownMove | null;
+  };
+  result?: ShowdownResult;
+}
+
+export interface ShowdownItem {
+  scenario_id: string;
+  title: string | null;
+  outcome: ShowdownOutcome;
+  rule: string | null;
+  showdown?: ShowdownCard;
+}
+
+export interface ShowdownBoard {
+  available: true;
+  is_participant: boolean;
+  summary: { total: number; settled: number; showdown: number; showdown_open: number };
+  items: ShowdownItem[];
+}
+
+export type ShowdownView = ShowdownBoard | { available: false };

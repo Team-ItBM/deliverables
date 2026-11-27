@@ -1,0 +1,1451 @@
+{
+  "rules_version": 1,
+  "pool_version": 3,
+  "templates": {
+    "paid_activity": {
+      "options": {
+        "paid_activity_1": {
+          "kind": "side",
+          "tag": "유료 체험",
+          "rule": "3만 원 체험, 다 같이 하기!"
+        },
+        "paid_activity_2": {
+          "kind": "side",
+          "tag": "무료 산책",
+          "rule": "유료 체험은 패스, 무료 산책하기!"
+        },
+        "paid_activity_3": {
+          "kind": "side",
+          "tag": "함께할 무료 활동",
+          "rule": "돈 드는 체험 대신 다 같이 무료 활동 찾기!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "split",
+          "rule": "체험은 원하는 사람만, 끝나면 바로 합류!"
+        },
+        {
+          "type": "alternate",
+          "rule": "이번엔 무료로, 다음 유료 체험은 다 같이!"
+        }
+      ]
+    },
+    "priority_round": {
+      "options": {
+        "priority_round_1": {
+          "kind": "side",
+          "tag": "전부 같이",
+          "rule": "각자 고른 활동, 전부 같이 하기!"
+        },
+        "priority_round_2": {
+          "kind": "middle",
+          "tag": "모두 원하는 것만 같이",
+          "rule": "다 같이 원하는 것만 함께, 나머지는 각자!"
+        },
+        "priority_round_3": {
+          "kind": "side",
+          "tag": "공동 활동 하나만",
+          "rule": "같이 하는 건 딱 하나, 나머지는 자유!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "다 같이 원하는 것만 함께, 나머지는 각자!"
+        },
+        {
+          "type": "alternate",
+          "rule": "하루는 전부 같이, 하루는 자유!"
+        }
+      ]
+    },
+    "daily_reunion": {
+      "options": {
+        "daily_reunion_1": {
+          "kind": "side",
+          "tag": "점심·저녁 같이",
+          "rule": "따로 다녀도 점심·저녁은 같이!"
+        },
+        "daily_reunion_2": {
+          "kind": "middle",
+          "tag": "저녁만 같이",
+          "rule": "낮엔 자유, 저녁은 꼭 같이!"
+        },
+        "daily_reunion_3": {
+          "kind": "split",
+          "tag": "식사도 따로",
+          "rule": "따로 다니는 날은 밥도 각자!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "낮엔 자유, 저녁은 꼭 같이!"
+        },
+        {
+          "type": "alternate",
+          "rule": "하루는 식사 같이, 하루는 각자!"
+        }
+      ]
+    },
+    "shared_bed": {
+      "options": {
+        "shared_bed_1": {
+          "kind": "side",
+          "tag": "침대 같이 쓰기",
+          "rule": "침대는 나눠 쓰고 숙박비 아끼기!"
+        },
+        "shared_bed_2": {
+          "kind": "side",
+          "tag": "개인 침대",
+          "rule": "돈 더 내도 침대는 1인 1개!"
+        },
+        "shared_bed_3": {
+          "kind": "middle",
+          "tag": "다른 숙소 찾기",
+          "rule": "둘 다 만족할 숙소를 더 찾아보기!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "divide",
+          "rule": "개인 침대가 필요한 사람만 차액 더 내기!"
+        },
+        {
+          "type": "middle",
+          "rule": "개인 침대 있는 더 싼 숙소 찾아보기!"
+        }
+      ]
+    },
+    "private_room": {
+      "options": {
+        "private_room_1": {
+          "kind": "side",
+          "tag": "같은 객실",
+          "rule": "방은 다 같이 한 객실!"
+        },
+        "private_room_2": {
+          "kind": "side",
+          "tag": "별도 객실",
+          "rule": "돈 더 내도 방은 따로!"
+        },
+        "private_room_3": {
+          "kind": "middle",
+          "tag": "더 싼 숙소에서 따로",
+          "rule": "방은 따로 쓰되 더 싼 숙소 찾기!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "방은 따로 쓰되 더 싼 숙소 찾기!"
+        },
+        {
+          "type": "divide",
+          "rule": "따로 쓰고 싶은 사람만 차액 내고 별도 객실!"
+        }
+      ]
+    },
+    "sleep_noise": {
+      "options": {
+        "sleep_noise_1": {
+          "kind": "side",
+          "tag": "같은 방에서 해결",
+          "rule": "잠 설치면 자리 바꾸고 귀마개부터!"
+        },
+        "sleep_noise_2": {
+          "kind": "side",
+          "tag": "별도 방",
+          "rule": "잠 설치면 3만 원 내고 방 따로!"
+        },
+        "sleep_noise_3": {
+          "kind": "middle",
+          "tag": "먼저 이야기",
+          "rule": "방 바꾸기 전에 소리부터 같이 해결해 보기!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "하룻밤은 귀마개로, 그래도 안 되면 방 따로!"
+        },
+        {
+          "type": "divide",
+          "rule": "힘든 사람만 추가금 내고 별도 방!"
+        }
+      ]
+    },
+    "meal_splurge": {
+      "options": {
+        "meal_splurge_1": {
+          "kind": "side",
+          "tag": "전부 가성비",
+          "rule": "밥은 전부 가성비로!"
+        },
+        "meal_splurge_2": {
+          "kind": "middle",
+          "tag": "한 끼만 특별하게",
+          "rule": "특별한 식사는 딱 한 끼만!"
+        },
+        "meal_splurge_3": {
+          "kind": "side",
+          "tag": "전부 특별하게",
+          "rule": "여행 왔으니 매 끼 제대로!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "특별한 식사는 딱 한 끼만!"
+        },
+        {
+          "type": "divide",
+          "rule": "비싼 식당은 두 끼까지, 나머지는 가성비!"
+        }
+      ]
+    },
+    "drink_bill": {
+      "options": {
+        "drink_bill_1": {
+          "kind": "side",
+          "tag": "전부 n분의 1",
+          "rule": "밥값도 술값도 전부 n분의 1!"
+        },
+        "drink_bill_2": {
+          "kind": "side",
+          "tag": "술값은 마신 사람",
+          "rule": "밥값은 n분의 1, 술값은 마신 사람이!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "첫 잔까지는 같이 내고, 그다음은 마신 사람이!"
+        },
+        {
+          "type": "alternate",
+          "rule": "술 마시는 날만 주문한 만큼, 나머지는 n분의 1!"
+        }
+      ]
+    },
+    "walk_or_ride": {
+      "options": {
+        "walk_or_ride_1": {
+          "kind": "side",
+          "tag": "걷기",
+          "rule": "25분쯤은 걸어서 가기!"
+        },
+        "walk_or_ride_2": {
+          "kind": "side",
+          "tag": "차 타기",
+          "rule": "돈 들어도 차 타고 가기!"
+        },
+        "walk_or_ride_3": {
+          "kind": "split",
+          "tag": "각자 이동",
+          "rule": "이동은 각자 편한 대로, 도착해서 만나기!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "divide",
+          "rule": "갈 땐 걷고, 돌아올 땐 차 타기!"
+        },
+        {
+          "type": "alternate",
+          "rule": "이번엔 걷고, 다음 이동은 차 타기!"
+        }
+      ]
+    },
+    "booking_deadline": {
+      "options": {
+        "booking_deadline_1": {
+          "kind": "side",
+          "tag": "오늘 예약",
+          "rule": "숙소는 오늘 바로 예약!"
+        },
+        "booking_deadline_2": {
+          "kind": "side",
+          "tag": "하루 더 비교",
+          "rule": "숙소는 내일까지 더 비교하기!"
+        },
+        "booking_deadline_3": {
+          "kind": "middle",
+          "tag": "조건부터 정리",
+          "rule": "꼭 필요한 조건부터 정하고 후보 좁히기!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "무료 취소되는 곳을 오늘 잡아 두고, 내일까지 더 보기!"
+        },
+        {
+          "type": "divide",
+          "rule": "내일 밤까지만 비교하고 그때 무조건 예약!"
+        }
+      ]
+    },
+    "route_depth": {
+      "options": {
+        "route_depth_1": {
+          "kind": "side",
+          "tag": "세 곳 짧게",
+          "rule": "오후엔 세 곳을 짧게 돌기!"
+        },
+        "route_depth_2": {
+          "kind": "side",
+          "tag": "한 곳 오래",
+          "rule": "오후엔 한 곳에서 느긋하게!"
+        },
+        "route_depth_3": {
+          "kind": "middle",
+          "tag": "두 곳과 자유 시간",
+          "rule": "오후엔 두 곳만, 남는 시간은 자유!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "오후엔 두 곳만, 남는 시간은 자유!"
+        },
+        {
+          "type": "alternate",
+          "rule": "하루는 여러 곳, 하루는 한 곳 오래!"
+        }
+      ]
+    },
+    "restaurant_full": {
+      "options": {
+        "restaurant_full_1": {
+          "kind": "side",
+          "tag": "바로 먹기",
+          "rule": "만석이면 바로 들어갈 수 있는 곳으로!"
+        },
+        "restaurant_full_2": {
+          "kind": "side",
+          "tag": "더 찾아보기",
+          "rule": "만석이면 다른 맛집을 더 찾아보기!"
+        },
+        "restaurant_full_3": {
+          "kind": "split",
+          "tag": "따로 먹기",
+          "rule": "만석이면 각자 먹고 다시 만나기!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "딱 15분만 더 찾아보고, 없으면 바로 되는 곳으로!"
+        },
+        {
+          "type": "alternate",
+          "rule": "이번엔 바로 먹고, 다음 끼니는 맛집 찾아가기!"
+        }
+      ]
+    },
+    "trail_closed": {
+      "options": {
+        "trail_closed_1": {
+          "kind": "side",
+          "tag": "실내 전시",
+          "rule": "길이 막히면 실내 전시 보기!"
+        },
+        "trail_closed_2": {
+          "kind": "side",
+          "tag": "쉬어 가기",
+          "rule": "길이 막히면 그 자리에서 쉬어 가기!"
+        },
+        "trail_closed_3": {
+          "kind": "side",
+          "tag": "다른 곳으로",
+          "rule": "길이 막히면 다른 곳으로 바로 이동!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "divide",
+          "rule": "전시 먼저 보고, 남는 시간엔 쉬기!"
+        },
+        {
+          "type": "split",
+          "rule": "볼 사람은 전시, 쉴 사람은 쉬고 다시 만나기!"
+        }
+      ]
+    },
+    "quiet_evening": {
+      "options": {
+        "quiet_evening_1": {
+          "kind": "side",
+          "tag": "숙소에서 조용히",
+          "rule": "밤 10시 이후엔 숙소에서 조용히!"
+        },
+        "quiet_evening_2": {
+          "kind": "side",
+          "tag": "밖에서 더 놀기",
+          "rule": "밤엔 8천 원 내고 밖에서 더 놀기!"
+        },
+        "quiet_evening_3": {
+          "kind": "split",
+          "tag": "각자 쉬기",
+          "rule": "밤에는 각자 편하게, 내일 만나기!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "alternate",
+          "rule": "밤은 번갈아! 하루는 밖에서 놀고, 하루는 조용히 쉬기"
+        },
+        {
+          "type": "split",
+          "rule": "놀 사람은 밖에서, 쉴 사람은 숙소에서!"
+        }
+      ]
+    },
+    "checkout_buffer": {
+      "options": {
+        "checkout_buffer_1": {
+          "kind": "middle",
+          "tag": "짐 먼저, 남으면 카페",
+          "rule": "짐부터 싸고, 시간 남으면 카페!"
+        },
+        "checkout_buffer_2": {
+          "kind": "side",
+          "tag": "카페 먼저",
+          "rule": "퇴실 전 카페부터 다녀오기!"
+        },
+        "checkout_buffer_3": {
+          "kind": "side",
+          "tag": "카페 건너뛰기",
+          "rule": "퇴실 날 아침엔 카페 건너뛰기!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "짐부터 싸고, 시간 남으면 카페!"
+        },
+        {
+          "type": "split",
+          "rule": "짐은 전날 밤에 싸 두고, 카페는 갈 사람만!"
+        }
+      ]
+    },
+    "afternoon_rest": {
+      "options": {
+        "afternoon_rest_1": {
+          "kind": "side",
+          "tag": "끝까지 같이",
+          "rule": "오후도 저녁도 끝까지 같이!"
+        },
+        "afternoon_rest_2": {
+          "kind": "middle",
+          "tag": "쉬고 저녁에 합류",
+          "rule": "오후엔 쉬고, 저녁에 다시 뭉치기!"
+        },
+        "afternoon_rest_3": {
+          "kind": "side",
+          "tag": "먼저 돌아가기",
+          "rule": "힘들면 먼저 돌아가도 OK!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "오후엔 쉬고, 저녁에 다시 뭉치기!"
+        },
+        {
+          "type": "alternate",
+          "rule": "하루는 풀코스, 하루는 오후 휴식!"
+        }
+      ]
+    },
+    "planning_roles": {
+      "options": {
+        "planning_roles_1": {
+          "kind": "side",
+          "tag": "나눠 맡기",
+          "rule": "준비는 일을 나눠서 각자 맡기!"
+        },
+        "planning_roles_2": {
+          "kind": "side",
+          "tag": "한 사람이 취합",
+          "rule": "한 사람이 모으고, 나머지는 후보 보내기!"
+        },
+        "planning_roles_3": {
+          "kind": "side",
+          "tag": "모여서 같이",
+          "rule": "준비는 한 번 모여서 같이 끝내기!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "한 번 모여서 일을 나누고, 취합은 한 명이!"
+        },
+        {
+          "type": "divide",
+          "rule": "예약은 한 사람이, 조사는 나눠서!"
+        }
+      ]
+    },
+    "sunset_window": {
+      "options": {
+        "sunset_window_1": {
+          "kind": "side",
+          "tag": "바로 노을",
+          "rule": "노을이 먼저! 바로 해변으로"
+        },
+        "sunset_window_2": {
+          "kind": "middle",
+          "tag": "20분만 구경",
+          "rule": "구경은 20분만, 그다음 노을!"
+        },
+        "sunset_window_3": {
+          "kind": "side",
+          "tag": "구경 여유롭게",
+          "rule": "노을 대신 구경을 여유롭게!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "구경은 20분만, 그다음 노을!"
+        },
+        {
+          "type": "alternate",
+          "rule": "오늘은 노을, 못 본 곳은 내일 다시!"
+        }
+      ]
+    },
+    "separate_menu": {
+      "options": {
+        "separate_menu_1": {
+          "kind": "side",
+          "tag": "생선 요리",
+          "rule": "메뉴가 갈려도 밥은 무조건 같이!"
+        },
+        "separate_menu_2": {
+          "kind": "side",
+          "tag": "면 요리",
+          "rule": "메뉴가 갈려도 밥은 무조건 같이!"
+        },
+        "separate_menu_3": {
+          "kind": "split",
+          "tag": "각자 먹기",
+          "rule": "메뉴가 갈리면 각자 먹고 다시 만나기!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "alternate",
+          "rule": "밥은 무조건 같이! 메뉴는 끼니마다 돌아가며 정하기"
+        },
+        {
+          "type": "divide",
+          "rule": "둘 다 파는 식당을 찾아서 같이 먹기!"
+        }
+      ]
+    },
+    "ride_participation": {
+      "options": {
+        "ride_participation_1": {
+          "kind": "side",
+          "tag": "빠른 기구도 같이",
+          "rule": "무서운 놀이기구도 다 같이!"
+        },
+        "ride_participation_2": {
+          "kind": "side",
+          "tag": "잔잔한 것만",
+          "rule": "놀이기구는 잔잔한 것만!"
+        },
+        "ride_participation_3": {
+          "kind": "side",
+          "tag": "안 타고 쉬기",
+          "rule": "놀이기구는 패스, 구경하고 쉬기!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "split",
+          "rule": "탈 사람만 타고, 안 타는 사람은 기다려 주기!"
+        },
+        {
+          "type": "divide",
+          "rule": "무서운 건 딱 하나만 같이, 나머지는 잔잔하게!"
+        }
+      ]
+    },
+    "swim_cleanup": {
+      "options": {
+        "swim_cleanup_1": {
+          "kind": "side",
+          "tag": "숙소 수영장",
+          "rule": "물놀이는 편하게 숙소 수영장에서!"
+        },
+        "swim_cleanup_2": {
+          "kind": "side",
+          "tag": "해변",
+          "rule": "시간 더 써도 물놀이는 해변에서!"
+        },
+        "swim_cleanup_3": {
+          "kind": "side",
+          "tag": "쉬기",
+          "rule": "물놀이 대신 쉬기!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "alternate",
+          "rule": "하루는 해변, 하루는 숙소 수영장!"
+        },
+        {
+          "type": "split",
+          "rule": "놀 사람은 물놀이, 쉴 사람은 근처에서 쉬기!"
+        }
+      ]
+    },
+    "barbecue_cancelled": {
+      "options": {
+        "barbecue_cancelled_1": {
+          "kind": "side",
+          "tag": "같이 요리",
+          "rule": "저녁 계획이 틀어지면 같이 요리하기!"
+        },
+        "barbecue_cancelled_2": {
+          "kind": "side",
+          "tag": "식당",
+          "rule": "저녁 계획이 틀어지면 근처 식당으로!"
+        },
+        "barbecue_cancelled_3": {
+          "kind": "middle",
+          "tag": "포장",
+          "rule": "저녁 계획이 틀어지면 포장해서 숙소에서!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "저녁 계획이 틀어지면 포장해서 숙소에서!"
+        },
+        {
+          "type": "alternate",
+          "rule": "오늘은 사 먹고, 내일은 같이 요리!"
+        }
+      ]
+    },
+    "settlement_timing": {
+      "options": {
+        "settlement_timing_1": {
+          "kind": "side",
+          "tag": "그때그때",
+          "rule": "돈은 쓸 때마다 바로 정산!"
+        },
+        "settlement_timing_2": {
+          "kind": "middle",
+          "tag": "하루 끝에",
+          "rule": "정산은 매일 밤 한 번에!"
+        },
+        "settlement_timing_3": {
+          "kind": "side",
+          "tag": "여행 끝나고",
+          "rule": "정산은 여행 끝나고 한 번에!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "정산은 매일 밤 한 번에!"
+        },
+        {
+          "type": "divide",
+          "rule": "큰돈은 바로, 잔돈은 여행 끝나고 한 번에!"
+        }
+      ]
+    },
+    "unfamiliar_food": {
+      "options": {
+        "unfamiliar_food_1": {
+          "kind": "side",
+          "tag": "새로운 메뉴",
+          "rule": "현지에선 안 먹어 본 메뉴 도전!"
+        },
+        "unfamiliar_food_2": {
+          "kind": "side",
+          "tag": "익숙한 메뉴",
+          "rule": "밥은 익숙한 메뉴로 안전하게!"
+        },
+        "unfamiliar_food_3": {
+          "kind": "middle",
+          "tag": "확인하고 고르기",
+          "rule": "재료 확인하고 각자 고르기!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "split",
+          "rule": "메뉴는 각자 먹고 싶은 걸로!"
+        },
+        {
+          "type": "divide",
+          "rule": "새 메뉴 하나 시켜서 다 같이 한 입씩!"
+        }
+      ]
+    },
+    "night_planning": {
+      "options": {
+        "night_planning_1": {
+          "kind": "side",
+          "tag": "오늘 밤에",
+          "rule": "내일 일정은 자기 전에 정하기!"
+        },
+        "night_planning_2": {
+          "kind": "middle",
+          "tag": "첫 활동만",
+          "rule": "내일 첫 일정만 정하고, 나머지는 가서!"
+        },
+        "night_planning_3": {
+          "kind": "side",
+          "tag": "내일 아침에",
+          "rule": "일정은 푹 쉬고 아침에 정하기!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "내일 첫 일정만 정하고, 나머지는 가서!"
+        },
+        {
+          "type": "divide",
+          "rule": "밤엔 딱 10분만 얘기하고 쉬기!"
+        }
+      ]
+    },
+    "advance_ticket": {
+      "options": {
+        "advance_ticket_1": {
+          "kind": "side",
+          "tag": "미리 예약",
+          "rule": "보고 싶은 건 미리 예약!"
+        },
+        "advance_ticket_2": {
+          "kind": "middle",
+          "tag": "현장에서",
+          "rule": "예약 없이 가 보고, 표 있으면 보기!"
+        },
+        "advance_ticket_3": {
+          "kind": "side",
+          "tag": "빼고 자유롭게",
+          "rule": "예약 필요한 건 빼고 자유롭게!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "예약 없이 가 보고, 표 있으면 보기!"
+        },
+        {
+          "type": "split",
+          "rule": "볼 사람만 예약하고, 나머지는 근처 구경!"
+        }
+      ]
+    },
+    "ticket_exchange": {
+      "options": {
+        "ticket_exchange_1": {
+          "kind": "side",
+          "tag": "기다려서 하기",
+          "rule": "예약한 건 기다려서라도 하기!"
+        },
+        "ticket_exchange_2": {
+          "kind": "side",
+          "tag": "취소하고 쉬기",
+          "rule": "오래 기다려야 하면 취소하고 쉬기!"
+        },
+        "ticket_exchange_3": {
+          "kind": "side",
+          "tag": "다른 활동",
+          "rule": "오래 기다려야 하면 다른 걸로 갈아타기!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "split",
+          "rule": "할 사람만 하고, 나머지는 근처에서 쉬기!"
+        },
+        {
+          "type": "middle",
+          "rule": "30분까지는 기다리고, 넘으면 취소!"
+        }
+      ]
+    },
+    "shared_vehicle": {
+      "options": {
+        "shared_vehicle_1": {
+          "kind": "side",
+          "tag": "한 곳 같이",
+          "rule": "차가 한 대면 한 곳 정해서 다 같이!"
+        },
+        "shared_vehicle_2": {
+          "kind": "split",
+          "tag": "돈 내고 따로",
+          "rule": "가고 싶은 곳은 추가금 내고 따로!"
+        },
+        "shared_vehicle_3": {
+          "kind": "side",
+          "tag": "새 장소 찾기",
+          "rule": "둘 다 접고 다 같이 갈 새 장소 찾기!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "alternate",
+          "rule": "오늘은 한 곳 같이, 다른 곳은 내일!"
+        },
+        {
+          "type": "split",
+          "rule": "따로 갈 사람만 추가금 내고, 저녁에 합류!"
+        }
+      ]
+    },
+    "missed_preference": {
+      "options": {
+        "missed_preference_1": {
+          "kind": "side",
+          "tag": "바로 말하기",
+          "rule": "아쉬운 건 그 자리에서 짧게 말하기!"
+        },
+        "missed_preference_2": {
+          "kind": "middle",
+          "tag": "저녁 뒤에",
+          "rule": "아쉬운 건 저녁 먹고 차분히 얘기하기!"
+        },
+        "missed_preference_3": {
+          "kind": "side",
+          "tag": "넘어가기",
+          "rule": "지나간 일정 얘기는 그날 넘기기!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "아쉬운 건 저녁 먹고 차분히 얘기하기!"
+        },
+        {
+          "type": "divide",
+          "rule": "아쉬운 건 자기 전에 한마디씩만!"
+        }
+      ]
+    },
+    "morning_departure": {
+      "options": {
+        "morning_departure_1": {
+          "kind": "side",
+          "tag": "쉬다가 출발",
+          "rule": "아침엔 10시까지 쉬고 같이 출발!"
+        },
+        "morning_departure_2": {
+          "kind": "middle",
+          "tag": "각자 자유 뒤 합류",
+          "rule": "10시 전은 각자 자유, 10시에 모여 출발!"
+        },
+        "morning_departure_3": {
+          "kind": "side",
+          "tag": "더 일찍 출발",
+          "rule": "아침엔 10시 전에 다 같이 출발!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "10시 전은 각자 자유, 10시에 모여 출발!"
+        },
+        {
+          "type": "alternate",
+          "rule": "하루는 일찍, 하루는 느긋하게 출발!"
+        }
+      ]
+    },
+    "luggage_drop": {
+      "options": {
+        "luggage_drop_1": {
+          "kind": "side",
+          "tag": "바로 식당",
+          "rule": "도착하면 짐 들고 바로 밥부터!"
+        },
+        "luggage_drop_2": {
+          "kind": "side",
+          "tag": "짐부터",
+          "rule": "도착하면 짐부터 맡기기!"
+        },
+        "luggage_drop_3": {
+          "kind": "middle",
+          "tag": "가까운 보관소",
+          "rule": "가까운 짐 보관소부터 찾아보기!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "가까운 짐 보관소부터 찾아보기!"
+        },
+        {
+          "type": "divide",
+          "rule": "큰 짐만 맡기고, 작은 가방은 들고 밥부터!"
+        }
+      ]
+    },
+    "dine_out_or_in": {
+      "options": {
+        "dine_out_or_in_1": {
+          "kind": "side",
+          "tag": "나가서",
+          "rule": "저녁은 나가서 먹기!"
+        },
+        "dine_out_or_in_2": {
+          "kind": "side",
+          "tag": "배달",
+          "rule": "저녁은 숙소에서 배달로!"
+        },
+        "dine_out_or_in_3": {
+          "kind": "split",
+          "tag": "각자",
+          "rule": "저녁은 각자 편한 방식으로!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "alternate",
+          "rule": "하루는 나가서, 하루는 숙소에서!"
+        },
+        {
+          "type": "divide",
+          "rule": "포장해 와서 숙소에서 같이 먹기!"
+        }
+      ]
+    },
+    "reunion_delay": {
+      "options": {
+        "reunion_delay_1": {
+          "kind": "side",
+          "tag": "근처에서 기다리기",
+          "rule": "먼저 끝나면 약속 장소에서 기다리기!"
+        },
+        "reunion_delay_2": {
+          "kind": "side",
+          "tag": "구경하다 만나기",
+          "rule": "먼저 끝나면 근처 구경하다 만나기!"
+        },
+        "reunion_delay_3": {
+          "kind": "side",
+          "tag": "숙소로 먼저",
+          "rule": "먼저 끝나면 숙소에서 만나기!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "split",
+          "rule": "먼저 끝난 사람은 편한 대로, 위치만 공유!"
+        },
+        {
+          "type": "middle",
+          "rule": "30분까지는 근처에서, 더 늦으면 숙소에서 만나기!"
+        }
+      ]
+    },
+    "meal_before_sights": {
+      "options": {
+        "meal_before_sights_1": {
+          "kind": "side",
+          "tag": "밥 먼저",
+          "rule": "배고프면 밥부터!"
+        },
+        "meal_before_sights_2": {
+          "kind": "side",
+          "tag": "구경 먼저",
+          "rule": "밥은 미루고 구경부터!"
+        },
+        "meal_before_sights_3": {
+          "kind": "middle",
+          "tag": "간식 먹고 구경",
+          "rule": "간식으로 버티고, 구경한 뒤 제대로 먹기!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "간식으로 버티고, 구경한 뒤 제대로 먹기!"
+        },
+        {
+          "type": "alternate",
+          "rule": "이번엔 밥 먼저, 다음엔 구경 먼저!"
+        }
+      ]
+    },
+    "large_luggage": {
+      "options": {
+        "large_luggage_1": {
+          "kind": "side",
+          "tag": "가져온 사람이 부담",
+          "rule": "큰 짐은 가져온 사람이 추가금 내기!"
+        },
+        "large_luggage_2": {
+          "kind": "side",
+          "tag": "같이 상의",
+          "rule": "큰 짐 비용은 먼저 얘기하고 정하기!"
+        },
+        "large_luggage_3": {
+          "kind": "side",
+          "tag": "두고 가기",
+          "rule": "차에 안 들어가는 짐은 두고 가기!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "divide",
+          "rule": "추가금은 짐 주인이 절반, 나머지는 n분의 1!"
+        },
+        {
+          "type": "middle",
+          "rule": "다 같이 쓸 짐이면 같이 내고, 아니면 두고 가기!"
+        }
+      ]
+    },
+    "unequal_beds": {
+      "options": {
+        "unequal_beds_1": {
+          "kind": "side",
+          "tag": "추첨",
+          "rule": "안 좋은 자리는 추첨으로!"
+        },
+        "unequal_beds_2": {
+          "kind": "side",
+          "tag": "덜 내기",
+          "rule": "좁은 자리 쓰는 사람은 숙박비 덜 내기!"
+        },
+        "unequal_beds_3": {
+          "kind": "middle",
+          "tag": "하루씩 교대",
+          "rule": "잠자리는 하루씩 바꿔 쓰기!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "잠자리는 하루씩 바꿔 쓰기!"
+        },
+        {
+          "type": "divide",
+          "rule": "좁은 자리는 지원자 우선, 없으면 추첨!"
+        }
+      ]
+    },
+    "grocery_amount": {
+      "options": {
+        "grocery_amount_1": {
+          "kind": "side",
+          "tag": "기본만",
+          "rule": "장은 기본만 보기!"
+        },
+        "grocery_amount_2": {
+          "kind": "side",
+          "tag": "넉넉하게",
+          "rule": "장은 넉넉하게 보기!"
+        },
+        "grocery_amount_3": {
+          "kind": "middle",
+          "tag": "기본은 같이, 추가는 각자",
+          "rule": "기본은 같이 사고, 더 먹을 건 각자!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "기본은 같이 사고, 더 먹을 건 각자!"
+        },
+        {
+          "type": "divide",
+          "rule": "기본에 다 같이 먹을 것 하나만 추가!"
+        }
+      ]
+    },
+    "shared_side": {
+      "options": {
+        "shared_side_1": {
+          "kind": "side",
+          "tag": "먹는 사람끼리 똑같이",
+          "rule": "사이드는 먹는 사람끼리 n분의 1!"
+        },
+        "shared_side_2": {
+          "kind": "side",
+          "tag": "조금 먹고 덜 내기",
+          "rule": "조금만 먹으면 조금만 내기!"
+        },
+        "shared_side_3": {
+          "kind": "side",
+          "tag": "빠지기",
+          "rule": "안 먹는 사람은 계산에서 빼기!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "먹는 사람끼리 n분의 1, 맛만 본 건 봐주기!"
+        },
+        {
+          "type": "divide",
+          "rule": "사이드는 시킨 사람이 내고, 한 입은 서비스!"
+        }
+      ]
+    },
+    "lodging_amenities": {
+      "options": {
+        "lodging_amenities_1": {
+          "kind": "side",
+          "tag": "기본 숙소",
+          "rule": "숙소는 잠만 자는 곳, 기본으로!"
+        },
+        "lodging_amenities_2": {
+          "kind": "side",
+          "tag": "쉬기 좋은 숙소",
+          "rule": "돈 더 내도 숙소는 쉬기 좋은 곳!"
+        },
+        "lodging_amenities_3": {
+          "kind": "middle",
+          "tag": "중간 가격대",
+          "rule": "숙소는 중간 가격대로 더 찾아보기!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "숙소는 중간 가격대로 더 찾아보기!"
+        },
+        {
+          "type": "alternate",
+          "rule": "하루는 기본 숙소, 하루는 좋은 숙소!"
+        }
+      ]
+    },
+    "photo_queue": {
+      "options": {
+        "photo_queue_1": {
+          "kind": "side",
+          "tag": "다시 줄 서기",
+          "rule": "인생샷은 다시 줄 서서라도!"
+        },
+        "photo_queue_2": {
+          "kind": "middle",
+          "tag": "다른 자리에서",
+          "rule": "줄 없는 다른 자리에서 한 번 더!"
+        },
+        "photo_queue_3": {
+          "kind": "side",
+          "tag": "마무리",
+          "rule": "사진은 한 번이면 충분, 다음 장소로!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "줄 없는 다른 자리에서 한 번 더!"
+        },
+        {
+          "type": "split",
+          "rule": "찍을 사람은 줄 서고, 나머지는 근처 구경하다 합류!"
+        }
+      ]
+    },
+    "unused_shared_snack": {
+      "options": {
+        "unused_shared_snack_1": {
+          "kind": "side",
+          "tag": "똑같이",
+          "rule": "같이 산 건 누가 먹든 n분의 1!"
+        },
+        "unused_shared_snack_2": {
+          "kind": "side",
+          "tag": "먹은 사람이",
+          "rule": "혼자 먹은 건 먹은 사람이 내기!"
+        },
+        "unused_shared_snack_3": {
+          "kind": "middle",
+          "tag": "절반씩",
+          "rule": "절반은 공동, 절반은 먹은 사람이!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "절반은 공동, 절반은 먹은 사람이!"
+        },
+        {
+          "type": "divide",
+          "rule": "1만 원 이하는 n분의 1, 넘으면 먹은 사람이!"
+        }
+      ]
+    },
+    "bill_discrepancy": {
+      "options": {
+        "bill_discrepancy_1": {
+          "kind": "side",
+          "tag": "전체 확인",
+          "rule": "정산은 전체 내역 같이 확인하고 보내기!"
+        },
+        "bill_discrepancy_2": {
+          "kind": "middle",
+          "tag": "안 맞는 것만",
+          "rule": "안 맞는 항목만 확인하고 보내기!"
+        },
+        "bill_discrepancy_3": {
+          "kind": "side",
+          "tag": "먼저 보내기",
+          "rule": "일단 보내고, 차이는 나중에 확인!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "안 맞는 항목만 확인하고 보내기!"
+        },
+        {
+          "type": "divide",
+          "rule": "맞는 금액은 먼저 보내고, 안 맞는 건 확인 뒤에!"
+        }
+      ]
+    },
+    "phone_during_meal": {
+      "options": {
+        "phone_during_meal_1": {
+          "kind": "middle",
+          "tag": "필요할 때만",
+          "rule": "밥 먹을 땐 폰은 꼭 필요할 때만!"
+        },
+        "phone_during_meal_2": {
+          "kind": "side",
+          "tag": "자유롭게",
+          "rule": "밥 먹을 때 폰은 자유!"
+        },
+        "phone_during_meal_3": {
+          "kind": "side",
+          "tag": "넣어 두기",
+          "rule": "밥 먹을 땐 폰 금지!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "밥 먹을 땐 폰은 꼭 필요할 때만!"
+        },
+        {
+          "type": "divide",
+          "rule": "음식 사진 찍고 나면 폰 내려놓기!"
+        }
+      ]
+    },
+    "bathroom_tidy": {
+      "options": {
+        "bathroom_tidy_1": {
+          "kind": "side",
+          "tag": "쓴 사람이 바로",
+          "rule": "욕실은 쓴 사람이 바로 정리!"
+        },
+        "bathroom_tidy_2": {
+          "kind": "side",
+          "tag": "한 사람이 마지막에",
+          "rule": "욕실 정리는 한 명이, 대신 다른 일은 면제!"
+        },
+        "bathroom_tidy_3": {
+          "kind": "side",
+          "tag": "둘이 마지막에",
+          "rule": "욕실은 마지막에 둘이 같이 정리!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "alternate",
+          "rule": "욕실 마무리 정리는 하루씩 돌아가며!"
+        },
+        {
+          "type": "middle",
+          "rule": "물기는 각자 바로, 마무리 정리는 돌아가며!"
+        }
+      ]
+    },
+    "shared_fund": {
+      "options": {
+        "shared_fund_1": {
+          "kind": "side",
+          "tag": "미리 모으기",
+          "rule": "공동 경비는 미리 걷기!"
+        },
+        "shared_fund_2": {
+          "kind": "side",
+          "tag": "그때그때",
+          "rule": "공동 비용은 쓸 때마다 나눠 내기!"
+        },
+        "shared_fund_3": {
+          "kind": "side",
+          "tag": "번갈아 결제",
+          "rule": "결제는 번갈아, 기록해 두고 한 번에 정산!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "숙소·교통 같은 큰돈만 미리 걷고, 나머지는 그때그때!"
+        },
+        {
+          "type": "alternate",
+          "rule": "결제는 번갈아, 기록해 두고 한 번에 정산!"
+        }
+      ]
+    },
+    "food_centered_day": {
+      "options": {
+        "food_centered_day_1": {
+          "kind": "side",
+          "tag": "먹거리 위주",
+          "rule": "하루는 먹으러 다니기!"
+        },
+        "food_centered_day_2": {
+          "kind": "side",
+          "tag": "구경 위주",
+          "rule": "밥은 간단히, 구경을 많이!"
+        },
+        "food_centered_day_3": {
+          "kind": "middle",
+          "tag": "식당 하나, 관광 하나",
+          "rule": "식당 한 곳, 관광 한 곳만 정하고 나머지는 비워 두기!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "식당 한 곳, 관광 한 곳만 정하고 나머지는 비워 두기!"
+        },
+        {
+          "type": "alternate",
+          "rule": "하루는 먹거리 위주, 하루는 구경 위주!"
+        }
+      ]
+    },
+    "breakfast_difference": {
+      "options": {
+        "breakfast_difference_1": {
+          "kind": "side",
+          "tag": "숙소에서 간단히",
+          "rule": "아침은 숙소에서 간단히!"
+        },
+        "breakfast_difference_2": {
+          "kind": "side",
+          "tag": "식당에서",
+          "rule": "아침은 식당에서 제대로!"
+        },
+        "breakfast_difference_3": {
+          "kind": "side",
+          "tag": "건너뛰기",
+          "rule": "아침은 건너뛰고 바로 출발!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "split",
+          "rule": "아침은 먹을 사람만, 출발 시간은 꼭 지키기!"
+        },
+        {
+          "type": "alternate",
+          "rule": "하루는 숙소에서, 하루는 식당에서!"
+        }
+      ]
+    },
+    "itinerary_feedback": {
+      "options": {
+        "itinerary_feedback_1": {
+          "kind": "side",
+          "tag": "한 번에 전부",
+          "rule": "일정표 의견은 한 번에 모아서 보내기!"
+        },
+        "itinerary_feedback_2": {
+          "kind": "side",
+          "tag": "꼭 할 것·피할 것만",
+          "rule": "꼭 할 것, 피할 것만 추려서 보내기!"
+        },
+        "itinerary_feedback_3": {
+          "kind": "side",
+          "tag": "같이 보면서",
+          "rule": "일정표는 시간 잡고 같이 보면서 정하기!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "꼭 할 것·피할 것만 먼저 보내고, 한 번 모여 확정!"
+        },
+        {
+          "type": "divide",
+          "rule": "의견은 하루 안에 보내고, 안 보내면 OK로 치기!"
+        }
+      ]
+    },
+    "remote_lodging_food": {
+      "options": {
+        "remote_lodging_food_1": {
+          "kind": "side",
+          "tag": "전부 공동",
+          "rule": "먹을 건 전부 공동 비용으로!"
+        },
+        "remote_lodging_food_2": {
+          "kind": "side",
+          "tag": "전부 각자",
+          "rule": "먹을 건 각자 사기!"
+        },
+        "remote_lodging_food_3": {
+          "kind": "middle",
+          "tag": "식사는 같이, 간식은 각자",
+          "rule": "식사는 같이 사고, 간식은 각자!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "식사는 같이 사고, 간식은 각자!"
+        },
+        {
+          "type": "divide",
+          "rule": "기본 장은 n분의 1, 술·간식은 먹는 사람이!"
+        }
+      ]
+    },
+    "unplanned_stop": {
+      "options": {
+        "unplanned_stop_1": {
+          "kind": "middle",
+          "tag": "잠깐 보고 일정 줄이기",
+          "rule": "끌리는 곳은 20분만, 대신 다음 일정 줄이기!"
+        },
+        "unplanned_stop_2": {
+          "kind": "side",
+          "tag": "원래 계획대로",
+          "rule": "계획에 없던 곳은 지나치기!"
+        },
+        "unplanned_stop_3": {
+          "kind": "side",
+          "tag": "계획 바꿔서 보기",
+          "rule": "끌리는 곳이 있으면 계획 바꿔서 보기!"
+        }
+      },
+      "compromises": [
+        {
+          "type": "middle",
+          "rule": "끌리는 곳은 20분만, 대신 다음 일정 줄이기!"
+        },
+        {
+          "type": "split",
+          "rule": "볼 사람은 20분 보고, 나머지는 먼저 가다가 합류!"
+        }
+      ]
+    }
+  }
+}
