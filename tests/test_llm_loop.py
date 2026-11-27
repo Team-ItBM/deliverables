@@ -42,7 +42,7 @@ def usage(input_tokens=100, output_tokens=20, cached=0):
 
 
 def response_body(output, status="completed", **extra):
-    body = {"id": "resp_x", "object": "response", "created_at": 0, "model": "gpt-6.1-sol", "status": status,
+    body = {"id": "resp_x", "object": "response", "created_at": 0, "model": "gpt-6.2-sol", "status": status,
             "output": output, "usage": usage(), "parallel_tool_calls": False, "tool_choice": "auto", "tools": []}
     body.update(extra)
     return body
@@ -176,16 +176,16 @@ def test_f_request_body_contract():
     api = FakeAPI([response_body([message()])])
     run(api.client(config).generate("scenarios", MODEL_INPUT))
     req = api.requests[0]
-    assert req["model"] == "gpt-6.1-sol"
+    assert req["model"] == "gpt-6.2-sol"
     assert req["text"]["format"] == {"type": "json_schema", "name": "ScenarioSet", "strict": False,
                                      "schema": json.loads((ROOT / "src/travel/schemas/scenario_set.schema.json").read_text(encoding="utf-8"))}
     assert req["tools"] == [{"type": "function", "name": "get_scenario_template",
                              "description": req["tools"][0]["description"], "parameters": req["tools"][0]["parameters"],
-                             "strict": True}]
+                             "strict": True}, {"type": "web_search"}]
     assert req["tools"][0]["parameters"]["required"] == ["template_id"]
     assert "enum" not in json.dumps(req["tools"][0]["parameters"])
     assert req["tool_choice"] == "auto" and req["parallel_tool_calls"] is False and req["store"] is False
-    assert req["include"] == ["reasoning.encrypted_content"] and req["reasoning"] == {"effort": "low"}
+    assert req["include"] == ["reasoning.encrypted_content", "web_search_call.action.sources"] and req["reasoning"] == {"effort": "low"}
     assert req["instructions"] == config.prompts["scenarios"]["body"]
     assert json.loads(req["input"][0]["content"]) == MODEL_INPUT
 
@@ -208,7 +208,26 @@ def test_h_pact_single_call_without_tools():
     result = run(api.client().generate("pact", PACT_INPUT, repair_errors=[{"code": "json_invalid", "path": "", "detail": ""}]))
     assert len(api.requests) == 1
     req = api.requests[0]
+    assert req["model"] == "gpt-6.2-sol"
     assert "tools" not in req and req["text"]["format"]["name"] == "PactRecommendation"
     assert req["instructions"].startswith("\n\n너는 여행 전 가상 장면에 답한 일행의 응답을")
     assert "json_invalid" in req["input"][1]["content"], "repair_errors를 두 번째 사용자 메시지로 보낸다"
     assert result.raw_output == '{"status":"proposed"}' and result.opened_template_ids == []
+
+
+def test_web_search_and_lookup_are_accounted_separately():
+    url = "https://example.com/market"
+    search = {"type": "web_search_call", "id": "ws_1", "status": "completed",
+              "action": {"type": "search", "query": "지역 시장", "sources": [{"type": "url", "url": url}]}}
+    open_page = {"type": "web_search_call", "id": "ws_2", "status": "completed",
+                 "action": {"type": "open_page", "url": url}}
+    api = FakeAPI([response_body([search, function_call("paid_activity")]), response_body([open_page, message()])])
+    result = run(api.client().generate("scenarios", MODEL_INPUT))
+    assert outputs_of(api.requests[1], "web_search_call") == [search]
+    assert len(outputs_of(api.requests[1], "function_call_output")) == 1
+    assert result.opened_template_ids == ["paid_activity"]
+    assert result.raw_output == FINAL_TEXT
+    assert result.usage["tool_calls"] == 1
+    assert result.usage["web_search_calls"] == 2
+    assert result.usage["web_sources"] == [url]
+    assert result.usage["cost_usd"] == pytest.approx(0.0108)

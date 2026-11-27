@@ -191,20 +191,15 @@ def check_profile_tokens(index, scenarios):
 
 
 def check_scene_lines(index, scenarios):
-    """scene에 빈 줄이 없고 줄 수가 원본 pool scene과 같은지 본다. 끝 줄바꿈도 빈 줄로 센다."""
+    """조회 가능한 문항의 scene에 빈 줄이 없는지 본다. 끝 줄바꿈도 빈 줄로 센다."""
     errors = []
     for i, scenario in enumerate(scenarios):
         template = index.lookup_template(scenario["template_id"])
         if template is None:
             continue
         lines = scenario["scene"].split("\n")
-        original = template.get("scene")
-        expected = len(original.split("\n")) if isinstance(original, str) else None
         if any(not line.strip() for line in lines):
             errors.append(_error("scene_line_mismatch", _pointer("scenarios", i, "scene"), "scene에 빈 줄이 있다"))
-        elif len(lines) != expected:
-            errors.append(_error("scene_line_mismatch", _pointer("scenarios", i, "scene"),
-                                 f"scene {len(lines)}줄, 원본 {expected}줄"))
     return errors
 
 

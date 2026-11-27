@@ -16,6 +16,7 @@ from harness.server import scenario_outputs as so
 from harness.server.api import default_profiles
 from test_llm_loop import FakeAPI, function_call, message, reasoning_item, response_body, usage
 
+from travel.server.app import ScenarioPool
 from travel.server.jobs import input_hash
 from travel.server.llm_openai import CostGuard
 
@@ -138,19 +139,25 @@ def test_stopped_job_keeps_used_cost(srv):
     assert float(rows[0]["cost_usd"]) == COST
 
 
-def test_successful_loop_records_all_fields(srv):
-    api = FakeAPI([tool_turn(), final_turn()])
-    app = open_with(srv, api)
+def test_unopened_selection_requires_repair_and_records_both_attempts(srv):
+    selected = [s["template_id"] for s in so.ex1_output()["scenarios"]]
+    lookups = [response_body([function_call(template, str(i))], usage=BIG) for i, template in enumerate(selected)]
+    first_lookup = response_body([function_call(selected[0])], usage=BIG)
+    api = FakeAPI([first_lookup, final_turn(), *lookups, final_turn()])
+    client = api.client()
+    client.lookup = ScenarioPool(srv.pool_path).lookup
+    app = srv.open_app(replay=client)
     _, room = app.create_room(push_scenario=False)
     assert app.room(room)["scenario_status"] == "ready"
-    row = scenario_rows(srv)[0]
+    row, repaired = sorted(scenario_rows(srv), key=lambda r: r["repair"])
+    assert repaired["violation_codes"] == [] and repaired["unopened_selection"] == []
+    assert repaired["tool_call_count"] == len(selected)
     assert row["usage_status"] == "reported"
     assert float(row["cost_usd"]) == COST * 2
     assert row["output_status"] == "ready"
-    assert row["violation_codes"] == []
+    assert row["violation_codes"] == ["unopened_selection"]
     assert row["tool_call_count"] == 1
-    selected = [s["template_id"] for s in so.ex1_output()["scenarios"]]
-    assert row["unopened_selection"] == [t for t in selected if t != TEMPLATE]
+    assert row["unopened_selection"] == selected[1:]
     assert len(row["input_hash"]) == 64
 
 

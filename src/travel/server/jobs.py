@@ -292,7 +292,7 @@ class JobManager:
                 usage_status = "not_called" if error_kind == "budget_exceeded" else ("reported" if usage else "unknown")
             row = {
                 "room_id": job.room_id, "attempt_id": job.attempt_id, "stage": stage,
-                "model": usage.get("model") or self.settings.model_id,
+                "model": usage.get("model") or self.settings.stage_models.get(stage, self.settings.model_id),
                 "prompt_version": self.settings.prompt_versions.get(stage),
                 "schema_version": self.settings.schema_versions.get(stage),
                 "pool_version": str(self.pool_source.version) if stage == "scenarios" else None,
@@ -336,10 +336,15 @@ class JobManager:
                 if verdict["valid"]:
                     output = json.loads(result.raw_output)
                     unopened = self._unopened(job, stage, result, output, meter)
-                    await finish(output_status, [], unopened)
-                    return ("ready", output)
-                repair_errors = verdict["errors"]
-                await finish(output_status, [e.get("code") for e in repair_errors if isinstance(e, dict)])
+                    if not unopened:
+                        await finish(output_status, [], unopened)
+                        return ("ready", output)
+                    repair_errors = [{"code": "unopened_selection", "path": "/scenarios",
+                                      "detail": "선정할 원본을 조회해야 합니다: " + ", ".join(unopened)}]
+                    await finish(output_status, ["unopened_selection"], unopened)
+                else:
+                    repair_errors = verdict["errors"]
+                    await finish(output_status, [e.get("code") for e in repair_errors if isinstance(e, dict)])
             codes = [e.get("code") for e in repair_errors if isinstance(e, dict)]
             log("output_invalid", room_code=job.room_code, stage=stage, round=round_no, codes=codes)
             if round_no == 0:
