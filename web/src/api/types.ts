@@ -10,13 +10,7 @@ export type ScenarioStatus =
   | "unsupported"
   | "invalid_input"
   | "failed";
-export type PactStatus =
-  | "proposed"
-  | "conditional_only"
-  | "needs_information"
-  | "unresolved"
-  | "unsupported"
-  | "invalid_input";
+export type PactStatus = "ready" | "needs_information" | "unsupported" | "invalid_input";
 
 export interface Trip {
   destination: string;
@@ -107,19 +101,21 @@ export interface SubmissionResponse {
 }
 
 export interface Clause {
+  article: number;
   scenario_id: string;
-  participant_names: string[];
-  action: string;
-  proposed_conditions: string[];
+  text: string;
 }
 
-export interface ConditionalAlternative extends Clause {
-  proposed_changes: string[];
+export interface DiscussionItem {
+  scenario_id: string;
+  text: string;
 }
 
-export interface UnresolvedCondition {
+export interface ProcessItem {
+  label: string;
   scenario_id: string;
-  description: string;
+  title: string;
+  decision: string;
 }
 
 export interface SharedResult {
@@ -132,11 +128,10 @@ export interface SharedResult {
   included_count: number;
   excluded_names: string[];
   trip?: PublicTrip | null;
-  clauses: Clause[] | null;
-  conditional_alternatives: ConditionalAlternative[] | null;
-  unresolved_conditions: UnresolvedCondition[] | null;
+  clauses: Clause[];
+  discussion_items: DiscussionItem[];
+  process: ProcessItem[];
   message?: string | null;
-  humor?: { text: string; explanation: string } | null;
 }
 
 export interface TextSegment {

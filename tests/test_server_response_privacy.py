@@ -7,10 +7,9 @@ import json
 
 import pytest
 
-from travel.pact import validate_pact_output
 
 from harness.server import pact_outputs as po
-from harness.server.api import assert_error, assert_status, error_codes_of
+from harness.server.api import assert_error, assert_status
 from harness.server.privacy import scan_private
 
 case = pytest.mark.server_case
@@ -59,7 +58,7 @@ def _ready_and_scan(srv, targets, closed):
     _, room = app.create_room()
     payloads = _visible_payloads(app, room, closed)
     srv.collect_original_conditions()
-    assert srv.ctx.memos and srv.ctx.original_conditions, "메모 표지와 original_condition이 준비되지 않았다"
+    assert srv.ctx.memos, "메모 표지가 준비되지 않았다"
     problems = []
     for where, payload, is_result in payloads:
         problems += scan_private(payload, targets, srv.ctx, where, result_payload=is_result)
@@ -102,33 +101,23 @@ def test_prv_n02_no_submission_read_route(srv, expect):
 
 
 @case("PRV-N03")
-def test_prv_n03_memo_quote_output_never_used(srv, expect):
+def test_prv_n03_memos_are_not_sent_to_model(srv, expect):
     app = srv.app
     _, room = app.create_room()
-    app.replay.push("pact", po.pact_item("memo_quote"), po.pact_item("memo_quote"))
-    for profile in room.profiles:
-        assert app.submit_new(room, profile["profile_id"]).resp.status_code == 201
+    app.replay.push("pact", po.pact_item())
+    submitted = [app.submit_new(room, profile["profile_id"]) for profile in room.profiles]
+    for s in submitted:
+        assert s.resp.status_code == 201
     app.join()
     calls = app.replay.calls_for("pact")
-    # note: "두 번 모두 검증기 memo_quote": 두 출력 모두 검증기가 memo_quote로 거부하는지 확인하고,
-    # 두 번째 호출의 repair_errors로 서버가 첫 출력의 검증 결과를 넘겼는지 본다
+    assert calls, "추천 호출이 없다"
+    memos = [a["memo"] for s in submitted for a in s.answers if a.get("memo")]
+    assert memos, "메모가 든 응답이 없다"
     for call in calls:
-        codes = {e["code"] for e in validate_pact_output(call.model_input, call.raw_output)["errors"]}
-        assert "memo_quote" in codes, f"재생 출력이 memo_quote로 거부되지 않는다: {codes}"
-    assert len(calls) >= 2, f"추천 호출 {len(calls)}회"
-    missing = set(expect["repair_error_codes"]) - error_codes_of(calls[1].repair_errors)
-    assert not missing, f"두 번째 호출 repair_errors에 {sorted(missing)}가 없다"
-    view = app.room(room)
-    assert view["room_status"] == expect["room_status"]
-    assert view["failure_reason"] == expect["failure_reason"]
-    resp = app.result(room)
-    assert_error(resp, expect["http_status"], expect["error_code"])
-    # note: "그 문장은 어떤 응답에도 없다"
-    quotes = {po.memo_quote_text(c.model_input) for c in calls}
-    payloads = [resp.text, json.dumps(view, ensure_ascii=False), json.dumps(app.room(room, host=True), ensure_ascii=False),
-                app.results(room).text]
-    for quote in quotes:
-        assert not any(quote in p for p in payloads), "거부된 출력의 메모 인용 문장이 응답에 있다"
+        assert all("memo" not in r for r in call.model_input["responses"]), "추천 model_input 응답에 memo 키가 있다"
+        text = json.dumps(call.model_input, ensure_ascii=False)
+        assert not any(memo in text for memo in memos), "추천 model_input에 메모 원문이 있다"
+    assert app.room(room)["room_status"] == expect["room_status"]
 
 
 @case("PRV-N04")

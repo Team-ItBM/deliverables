@@ -17,11 +17,11 @@ prompts:
     schema_version: 2
   pact:
     path: src/travel/prompts/generate_pact.md
-    version: 12
-    body_sha256: bf9f038fbe7bb881c3043da6a816f4c34c2897392aa64427e4f9e7d8303fd215
+    version: 15
+    body_sha256: 2ffbb685b338488b23fe2272b432f37317e2f56a748d082bb3c9c84c40810750
     schema_path: src/travel/schemas/pact_recommendation.schema.json
     schema_name: PactRecommendation
-    schema_version: 4
+    schema_version: 7
 pool:
   path: src/travel/data/scenario_pool.json
   version: 4

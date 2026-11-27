@@ -54,7 +54,7 @@ ERROR_TABLE = {
     "not_found": {"DUP-N04", "EDT-N08", "REG-N03"},
     "room_closed": {"CLS-N02", "CLS-N03", "CLS-N04", "PRV-N01", "PRV-N04"},
     "no_submissions": {"CLS-N01"},
-    "invalid_state": {"INP-N07", "REG-N02", "REG-N03", "REG-N04", "OUT-N01", "OUT-N04", "PRV-N03"},
+    "invalid_state": {"INP-N07", "REG-N02", "REG-N03", "REG-N04", "OUT-N01", "OUT-N04"},
     "regeneration_limit": {"REG-N01"},
     "session_used": {"DUP-N02"},
     "idempotency_conflict": {"DUP-N01"},
@@ -355,14 +355,11 @@ def test_pact_helper_default_passes_validator(label):
     result = validate_pact_output(model_input, raw)
     assert result["valid"], result["errors"]
     output = json.loads(raw)
-    assert output["status"] == "proposed"
-    assert len(output["clauses"]) == 2 and len(output["conditional_alternatives"]) == 1
-    change = output["conditional_alternatives"][0]["required_changes"][0]
-    memos = {r["response_id"]: r.get("memo") for r in model_input["responses"]}
-    assert change["original_condition"] in memos[change["source_response_id"]], "original_condition이 메모 발췌가 아니다"
+    assert output["status"] == "ready"
+    assert len(output["clauses"]) + len(output["discussion_items"]) == len(model_input["scenarios"])
 
 
-@pytest.mark.parametrize("variant", [v for v in po.VARIANTS if v != "proposed"])
+@pytest.mark.parametrize("variant", [v for v in po.VARIANTS if v != "ready"])
 def test_pact_helper_variants_give_intended_errors(variant):
     for label, model_input in PACT_INPUTS.items():
         raw = po.pact_raw(model_input, variant)
@@ -373,7 +370,6 @@ def test_pact_helper_variants_give_intended_errors(variant):
             assert intended <= codes, f"{label}: {variant} → {codes}"
         else:
             assert result["valid"], f"{label}: {variant} → {result['errors']}"
-            assert json.loads(raw)["status"] == variant
 
 
 def test_pact_helper_incomplete_item():
@@ -473,35 +469,33 @@ def test_privacy_scan_detects_keys_and_memo_windows():
 def test_editable_helpers():
     """편집용 응답 도우미(결정 29·34): 조각 형식 검사, 이은 문자열, 토큰 복원, 위치 목록."""
     shared = {
-        "clauses": [{"action": "비슷한 상황이 오면 민준은 쉬어요, 지수와 걸어요.", "proposed_conditions": ["먼저 말해요."]}],
-        "conditional_alternatives": [{"action": "바꿔 봐요.", "proposed_conditions": [], "proposed_changes": ["줄여요."]}],
+        "clauses": [{"text": "비슷한 상황이 오면 민준은 쉬고, 지수와 걷는다."}],
+        "discussion_items": [{"text": "무엇을 우선할지는 당사자 간 직접 논의하여 정한다."}],
     }
     segments = [{"text": "비슷한 상황이 오면 "}, {"participant_id": "A", "display": "민준은", "pair": "은/는"},
-                {"text": " 쉬어요, "}, {"participant_id": "B", "display": "지수와", "pair": "과/와"}, {"text": " 걸어요."}]
+                {"text": " 쉬고, "}, {"participant_id": "B", "display": "지수와", "pair": "과/와"}, {"text": " 걷는다."}]
     entry = {"editable": [
-        {"path": "/clauses/0/action", "segments": segments},
-        {"path": "/clauses/0/proposed_conditions/0", "segments": [{"text": "먼저 말해요."}]},
-        {"path": "/conditional_alternatives/0/action", "segments": [{"text": "바꿔 봐요."}]},
-        {"path": "/conditional_alternatives/0/proposed_changes/0", "segments": [{"text": "줄여요."}]},
+        {"path": "/clauses/0/text", "segments": segments},
+        {"path": "/discussion_items/0/text", "segments": [{"text": "무엇을 우선할지는 당사자 간 직접 논의하여 정한다."}]},
     ]}
     mapping = editable_map(entry)
     assert editable_problems(mapping, shared) == []
-    assert segments_template(segments) == "비슷한 상황이 오면 {{participant:A}}은/는 쉬어요, {{participant:B}}과/와 걸어요."
-    assert segments_template(segments, drop_participant="B") == "비슷한 상황이 오면 {{participant:A}}은/는 쉬어요, 과/와 걸어요."
+    assert segments_template(segments) == "비슷한 상황이 오면 {{participant:A}}은/는 쉬고, {{participant:B}}과/와 걷는다."
+    assert segments_template(segments, drop_participant="B") == "비슷한 상황이 오면 {{participant:A}}은/는 쉬고, 과/와 걷는다."
     changed = replace_in_text_segments(segments, "비슷한 상황이 오면", "같은 상황이 다시 오면")
-    assert segments_display(changed) == "같은 상황이 다시 오면 민준은 쉬어요, 지수와 걸어요."
-    assert segments_display(segments) == shared["clauses"][0]["action"], "원본 조각이 바뀌었다"
+    assert segments_display(changed) == "같은 상황이 다시 오면 민준은 쉬고, 지수와 걷는다."
+    assert segments_display(segments) == shared["clauses"][0]["text"], "원본 조각이 바뀌었다"
     with pytest.raises(AssertionError):
-        replace_in_text_segments(segments, "민준은", "누군가는")  # 참여자 조각 안의 글자는 바꾸지 않는다
-    assert editable_problems({"/clauses/0/action": segments}, shared), "빠진 위치를 찾지 못했다"
-    wrong = dict(mapping, **{"/clauses/0/proposed_conditions/0": [{"text": "다른 문장"}]})
+        replace_in_text_segments(segments, "민준은", "누군가는")
+    assert editable_problems({"/clauses/0/text": segments}, shared), "빠진 위치를 찾지 못했다"
+    wrong = dict(mapping, **{"/discussion_items/0/text": [{"text": "다른 문장"}]})
     assert editable_problems(wrong, shared), "공유 결과와 다른 문장을 찾지 못했다"
     for bad in ({"text": "a", "display": "b"}, {"participant_id": "A", "display": "민준"},
                 {"participant_id": "A", "display": "민준은", "pair": "은"}):
         with pytest.raises(AssertionError):
-            editable_map({"editable": [{"path": "/clauses/0/action", "segments": [bad]}]})
+            editable_map({"editable": [{"path": "/clauses/0/text", "segments": [bad]}]})
     with pytest.raises(AssertionError):
-        editable_map({"editable": [{"path": "/clauses/0/action", "segments": segments, "memo": "x"}]})
+        editable_map({"editable": [{"path": "/clauses/0/text", "segments": segments, "memo": "x"}]})
 
 
 # 4. DB fixture 검사

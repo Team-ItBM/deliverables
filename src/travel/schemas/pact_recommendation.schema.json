@@ -2,279 +2,77 @@
   "type": "object",
   "properties": {
     "status": {
+      "type": "string",
       "enum": [
-        "proposed",
-        "conditional_only",
+        "ready",
         "needs_information",
-        "unresolved",
         "unsupported",
         "invalid_input"
       ],
-      "type": "string"
+      "description": "ready이면 모든 문항이 조항 또는 협의 사항 중 하나에 정확히 한 번 들어간다. 다른 상태는 두 배열이 비고 message가 있다."
     },
     "clauses": {
-      "type": [
-        "array",
-        "null"
-      ],
+      "type": "array",
       "items": {
         "$ref": "#/definitions/PactClause"
       },
-      "minItems": 1,
-      "description": "proposed이면 적용 대상의 원래 조건을 지키는 조항. 일부 상황·동행자의 조항만 있어도 가능하며 제외한 응답은 unresolved_conditions에 연결한다. 다른 상태는 null."
+      "description": "승부처까지 거쳐 정해진 문항의 조항. 문항 순서대로 쓴다."
     },
-    "conditional_alternatives": {
+    "discussion_items": {
       "type": "array",
       "items": {
-        "$ref": "#/definitions/ConditionalAlternative"
+        "$ref": "#/definitions/DiscussionItem"
       },
-      "minItems": 1
-    },
-    "unresolved_conditions": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/UnresolvedCondition"
-      },
-      "minItems": 1
+      "description": "승부처에서 직접 논의하기로 한 문항."
     },
     "message": {
       "type": "string",
-      "minLength": 1
-    },
-    "positions": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/ResponsePosition"
-      },
-      "description": "응답별 입장 추출. 원본과 대조하는 서버 내부 자료이며 공유하지 않는다. 입력 오류·지원 밖·채택 응답 누락이면 빈 배열."
+      "minLength": 1,
+      "description": "ready가 아닐 때 이유를 알리는 짧은 설명."
     }
   },
   "required": [
     "status",
     "clauses",
-    "positions"
+    "discussion_items"
   ],
   "additionalProperties": false,
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "PactRecommendation",
-  "description": "가상 상황 응답에서 도출한 여행 조율 규칙의 추천. 가능한 일부 조항과 제외 사유를 함께 반환하며 실제 합의·일정 확정과 구분한다.",
   "definitions": {
     "PactClause": {
       "type": "object",
       "properties": {
         "scenario_id": {
           "type": "string",
-          "minLength": 1,
-          "description": "근거가 된 가상 문항 ID."
+          "description": "조항의 근거 문항 ID."
         },
-        "action": {
+        "text": {
           "type": "string",
           "minLength": 1,
-          "description": "비슷한 상황에서 누구의 바람을 어떻게 조율할지 제안한다. 가상 일정의 실행 지시를 쓰지 않는다."
-        },
-        "participant_ids": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 1
-          },
-          "minItems": 1,
-          "uniqueItems": true
-        },
-        "source_response_ids": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 1
-          },
-          "minItems": 1,
-          "uniqueItems": true
-        },
-        "proposed_conditions": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 1
-          },
-          "minItems": 0,
-          "description": "응답에 없고 AI가 제안한 조율 절차·약속. 없으면 빈 배열."
+          "description": "협약서체 조항 한두 문장. 여행 전체의 원칙으로 쓰며 실제 일정·숫자·이유·이름을 쓰지 않는다."
         }
       },
       "required": [
         "scenario_id",
-        "action",
-        "participant_ids",
-        "source_response_ids",
-        "proposed_conditions"
+        "text"
       ],
       "additionalProperties": false
     },
-    "ConditionalAlternative": {
+    "DiscussionItem": {
       "type": "object",
       "properties": {
         "scenario_id": {
           "type": "string",
-          "minLength": 1,
-          "description": "근거가 된 가상 문항 ID."
+          "description": "협의 사항의 근거 문항 ID."
         },
-        "action": {
+        "text": {
           "type": "string",
           "minLength": 1,
-          "description": "비슷한 상황에서 누구의 바람을 어떻게 조율할지 제안한다. 가상 일정의 실행 지시를 쓰지 않는다."
-        },
-        "participant_ids": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 1
-          },
-          "minItems": 1,
-          "uniqueItems": true
-        },
-        "source_response_ids": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 1
-          },
-          "minItems": 1,
-          "uniqueItems": true
-        },
-        "proposed_conditions": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 1
-          },
-          "minItems": 0,
-          "description": "응답에 없고 AI가 제안한 조율 절차·약속. 없으면 빈 배열."
-        },
-        "required_changes": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ConditionChange"
-          },
-          "minItems": 1
+          "description": "무엇이 갈렸는지 한 문장으로 쓰고 \"당사자 간 직접 논의하여 정한다.\"로 끝낸다."
         }
       },
       "required": [
         "scenario_id",
-        "action",
-        "participant_ids",
-        "source_response_ids",
-        "proposed_conditions",
-        "required_changes"
-      ],
-      "additionalProperties": false
-    },
-    "ConditionChange": {
-      "type": "object",
-      "properties": {
-        "source_response_id": {
-          "type": "string",
-          "minLength": 1
-        },
-        "original_condition": {
-          "type": "string",
-          "minLength": 1,
-          "description": "서버 검증용 원문 인용. 해당 응답의 선택지 문구 또는 메모에서 가져오며 메모가 수정한 선택지 조건은 사용하지 않는다. 공유 응답·화면·이미지에서는 제외한다."
-        },
-        "proposed_change": {
-          "type": "string",
-          "minLength": 1
-        }
-      },
-      "required": [
-        "source_response_id",
-        "original_condition",
-        "proposed_change"
-      ],
-      "additionalProperties": false
-    },
-    "UnresolvedCondition": {
-      "type": "object",
-      "properties": {
-        "scenario_id": {
-          "type": "string",
-          "minLength": 1
-        },
-        "source_response_ids": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 1
-          },
-          "minItems": 1,
-          "uniqueItems": true
-        },
-        "description": {
-          "type": "string",
-          "minLength": 1
-        }
-      },
-      "required": [
-        "scenario_id",
-        "source_response_ids",
-        "description"
-      ],
-      "additionalProperties": false
-    },
-    "ParticipantPosition": {
-      "type": "object",
-      "description": "인터뷰 ParticipantPosition의 네 속성. 현재 선택은 desired_action으로, 명시된 컨디션·이유·실제 전달 발언은 원문에서 추출한다.",
-      "properties": {
-        "condition": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "minLength": 1,
-          "description": "본인의 피로·컨디션을 설명한 메모 원문. 시간·예산 제한을 이 필드로 넓히지 않는다."
-        },
-        "desired_action": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "minLength": 1,
-          "description": "선택과 수정 메모에 따른 현재 희망 행동과 그 제한. 확정할 수 없으면 null."
-        },
-        "reason": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "minLength": 1,
-          "description": "본인이 명시한 선택 이유의 메모 원문. 행동에서 이유를 추정하지 않는다."
-        },
-        "expressed_content": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "minLength": 1,
-          "description": "본인이 동행에게 실제 전달했다고 명시한 관련 발언의 메모 원문. 앱 메모 자체·타인 발언·가상 예시는 제외하며 전달을 수락으로 해석하지 않는다."
-        }
-      },
-      "required": [
-        "desired_action"
-      ],
-      "additionalProperties": false
-    },
-    "ResponsePosition": {
-      "type": "object",
-      "properties": {
-        "response_id": {
-          "type": "string",
-          "minLength": 1
-        },
-        "position": {
-          "$ref": "#/definitions/ParticipantPosition"
-        }
-      },
-      "required": [
-        "response_id",
-        "position"
+        "text"
       ],
       "additionalProperties": false
     }

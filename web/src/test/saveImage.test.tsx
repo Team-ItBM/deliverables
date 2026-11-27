@@ -11,9 +11,9 @@ vi.mock("html-to-image", () => ({ toBlob: vi.fn() }));
 
 const paper: SharedResult = {
   result_id: "r1", kind: "ai_original", source_result_id: null, label: null, draft: false,
-  pact_status: "proposed", included_count: 2, excluded_names: [],
-  clauses: [{ scenario_id: "q1", participant_names: ["민준"], action: "함께 쉬어요", proposed_conditions: [] }],
-  conditional_alternatives: [], unresolved_conditions: [],
+  pact_status: "ready", included_count: 2, excluded_names: [],
+  clauses: [{ article: 1, scenario_id: "q1", text: "함께 쉬어요" }],
+  discussion_items: [], process: [],
 };
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -125,7 +125,7 @@ describe("결과 이미지 준비와 동작", () => {
     vi.mocked(toBlob).mockReset().mockReturnValueOnce(old.promise).mockReturnValueOnce(next.promise);
     const view = render(sheet());
     await waitFor(() => expect(toBlob).toHaveBeenCalledTimes(1));
-    view.rerender(sheet({ ...paper, message: "새 문구" }));
+    view.rerender(sheet({ ...paper, clauses: [{ ...paper.clauses[0]!, text: "새 문구" }] }));
     await waitFor(() => expect(toBlob).toHaveBeenCalledTimes(2));
     await act(async () => next.resolve(png()));
     expect(download().disabled).toBe(false);
@@ -133,7 +133,7 @@ describe("결과 이미지 준비와 동작", () => {
     expect(createUrl).toHaveBeenCalledTimes(1);
     const late = deferred<Blob | null>();
     vi.mocked(toBlob).mockReturnValueOnce(late.promise);
-    view.rerender(sheet({ ...paper, message: "마지막 문구" }));
+    view.rerender(sheet({ ...paper, clauses: [{ ...paper.clauses[0]!, text: "마지막 문구" }] }));
     await waitFor(() => expect(toBlob).toHaveBeenCalledTimes(3));
     view.unmount();
     await act(async () => late.resolve(png()));

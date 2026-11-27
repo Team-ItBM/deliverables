@@ -32,15 +32,10 @@ export function changedEdits(
   return edits;
 }
 
-/** "/clauses/0/proposed_conditions/1" → "제1조 제안 조건 2" */
 export function pathLabel(path: string): string {
   const p = path.split("/").filter(Boolean);
-  const n = (i: string | undefined) => Number(i ?? 0) + 1;
-  const head = p[0] === "clauses" ? `제${n(p[1])}조` : `조건부 대안 ${n(p[1])}`;
-  if (p[2] === "action") return `${head} 문장`;
-  if (p[2] === "proposed_conditions") return `${head} 제안 조건 ${n(p[3])}`;
-  if (p[2] === "proposed_changes") return `${head} 필요한 변경 ${n(p[3])}`;
-  return `${head} ${p.slice(2).join(" ")}`;
+  const n = Number(p[1] ?? 0) + 1;
+  return p[0] === "clauses" ? `제${n}조` : `협의 사항 ${n}`;
 }
 
 /** 공유 결과 사본의 path 위치 문장을 바꾼다(JSON Pointer, 배열·객체만). */

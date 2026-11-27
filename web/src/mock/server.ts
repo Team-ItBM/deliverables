@@ -2,7 +2,6 @@
 // 실제 모델·AWS·푸시를 부르지 않는다. 상태는 같은 브라우저의 탭끼리 나눠 쓰도록 localStorage에 둔다.
 import type { Transport, TransportRequest, TransportResponse } from "../api/client";
 import type {
-  ConditionalAlternative,
   EditableItem,
   PactStatus,
   ProfileInput,
@@ -13,7 +12,7 @@ import type {
 } from "../api/types";
 import { renderText, toSegments, tokenSignature } from "./render";
 
-export type MockVariant = "proposed" | "unresolved" | "fail";
+export type MockVariant = "ready" | "discussion" | "fail";
 export const MOCK_DB = "dowon.mock.db";
 export const MOCK_VARIANT = "dowon.mock.variant";
 export const MOCK_COUNT = "dowon.mock.count";
@@ -22,17 +21,14 @@ const GENERATE_DELAY = 2500;
 
 interface TplClause {
   scenario_id: string;
-  pids: string[];
-  action: string;
-  proposed_conditions: string[];
+  decision: string;
+  text: string;
 }
 interface Tpl {
   pact_status: PactStatus;
-  clauses: TplClause[] | null;
-  conditional_alternatives: (TplClause & { proposed_changes: string[] })[] | null;
-  unresolved_conditions: { scenario_id: string; description: string }[] | null;
+  clauses: TplClause[];
+  discussion_items: { scenario_id: string; text: string }[];
   message?: string;
-  humor?: { text: string; explanation: string };
 }
 interface Original {
   result_id: string;
@@ -83,9 +79,9 @@ const save = (db: DB) => {
 function variant(): MockVariant {
   try {
     const v = localStorage.getItem(MOCK_VARIANT);
-    return v === "unresolved" || v === "fail" ? v : "proposed";
+    return v === "discussion" || v === "fail" ? v : "ready";
   } catch {
-    return "proposed";
+    return "ready";
   }
 }
 
@@ -182,56 +178,52 @@ function participantNames(room: Room): Record<string, string> {
   return names;
 }
 
-function makeTpl(v: MockVariant, pids: string[], count: number): Tpl {
-  const a = pids[0]!;
-  const b = pids[1] ?? a;
-  if (v === "unresolved") {
+const TITLES: Record<string, string> = {
+  free_time: "남는 시간 보내기",
+  sunset: "노을과 쇼핑",
+  budget: "저녁 식비",
+};
+
+function makeTpl(v: MockVariant, _pids: string[], count: number): Tpl {
+  const extra = EXTRA.slice(0, Math.max(count - SCENARIOS.length, 0));
+  if (v === "discussion") {
     return {
-      pact_status: "unresolved",
-      clauses: null,
-      conditional_alternatives: null,
-      unresolved_conditions: [
-        { scenario_id: "budget", description: "하루 식비 상한이 서로 달라 함께 갈 식당을 정하지 못했어요." },
-        { scenario_id: "sunset", description: "노을과 쇼핑 중 무엇을 먼저 할지, 시간을 나누는 안도 맞지 않았어요." },
+      pact_status: "ready",
+      clauses: [{ scenario_id: "free_time", decision: "의견이 같아 정함", text: "남는 시간에는 일행이 함께 쉬면서 다음 일정을 정한다." }],
+      discussion_items: [
+        { scenario_id: "sunset", text: "노을 감상과 쇼핑 중 무엇을 우선할지는 당사자 간 직접 논의하여 정한다." },
+        { scenario_id: "budget", text: "저녁 식비를 얼마까지 쓸지는 당사자 간 직접 논의하여 정한다." },
+        ...extra.map((s) => ({ scenario_id: s.scenario_id, text: "이 상황에서 무엇을 우선할지는 당사자 간 직접 논의하여 정한다." })),
       ],
-      humor: { text: "너네 조합 꽝이니 여행 가지 마세요!", explanation: "이번 응답 조건에서는 추천안을 찾지 못했습니다." },
     };
   }
   return {
-    pact_status: "proposed",
+    pact_status: "ready",
     clauses: [
-      {
-        scenario_id: "free_time",
-        pids,
-        action: "남는 시간에는 카페에서 한 시간 쉬고 나서 함께 구경해요.",
-        proposed_conditions: [`{{participant:${a}}}이/가 더 쉬고 싶다고 하면 숙소로 먼저 돌아가요.`],
-      },
-      {
-        scenario_id: "sunset",
-        pids,
-        action: "노을을 먼저 보고, 쇼핑은 다음 날 오전에 해요.",
-        proposed_conditions: [],
-      },
-      ...EXTRA.slice(0, Math.max(count - SCENARIOS.length, 0)).map((s) => ({
-        scenario_id: s.scenario_id,
-        pids,
-        action: "비슷한 상황이 오면 먼저 각자 원하는 것을 말하고, 시간을 나눌 수 있는지부터 살펴요.",
-        proposed_conditions: ["일정이 밀리면 다음 일정을 먼저 조정해요."],
-      })),
+      { scenario_id: "free_time", decision: "승부처에서 가위바위보로 정함", text: "남는 시간에는 카페에서 쉬는 시간을 반드시 포함한다." },
+      { scenario_id: "budget", decision: "중간 안으로 정함", text: "저녁 식사는 일행 모두가 부담할 수 있는 가격대에서 고른다." },
+      ...extra.map((s) => ({ scenario_id: s.scenario_id, decision: "기본 절충안으로 정함", text: "일정이 밀리면 다음 일정을 먼저 조정하는 것을 원칙으로 한다." })),
     ],
-    conditional_alternatives: [
-      {
-        scenario_id: "sunset",
-        pids: [a, b],
-        action: `{{participant:${b}}}은/는 쇼핑을 하고 {{participant:${a}}}은/는 노을을 본 뒤 저녁에 만나요.`,
-        proposed_conditions: ["저녁 식사 시간에는 다시 모여요."],
-        proposed_changes: [`{{participant:${a}}}과/와 함께 노을을 보는 대신 따로 시간을 보내요.`],
-      },
-    ],
-    unresolved_conditions: [
-      { scenario_id: "budget", description: "둘째 날 저녁 식당은 예산 조건이 달라 아직 정하지 못했어요." },
-    ],
+    discussion_items: [{ scenario_id: "sunset", text: "노을 감상과 쇼핑 중 무엇을 우선할지는 당사자 간 직접 논의하여 정한다." }],
   };
+}
+
+function processOf(tpl: Tpl) {
+  const items = tpl.clauses.map((c, i) => ({
+    label: `제${i + 1}조`,
+    scenario_id: c.scenario_id,
+    title: TITLES[c.scenario_id] ?? "비슷한 상황",
+    decision: c.decision,
+  }));
+  for (const d of tpl.discussion_items) {
+    items.push({
+      label: "협의 사항",
+      scenario_id: d.scenario_id,
+      title: TITLES[d.scenario_id] ?? "비슷한 상황",
+      decision: "승부처에서 직접 논의하기로 함",
+    });
+  }
+  return items;
 }
 
 function publicTrip(t: Trip): PublicTrip {
@@ -242,12 +234,6 @@ function shared(room: Room, o: Original, version?: Original["edits"][number]): S
   const names = participantNames(room);
   const tpl = version?.tpl ?? o.tpl!;
   const r = (t: string) => renderText(t, names);
-  const clause = (c: TplClause) => ({
-    scenario_id: c.scenario_id,
-    participant_names: c.pids.map((p) => names[p] ?? "?"),
-    action: r(c.action),
-    proposed_conditions: c.proposed_conditions.map(r),
-  });
   const includedProfiles = new Set(room.submissions.filter((s) => o.included.includes(s.participant_id)).map((s) => s.profile_id));
   return {
     result_id: version?.result_id ?? o.result_id,
@@ -259,29 +245,18 @@ function shared(room: Room, o: Original, version?: Original["edits"][number]): S
     pact_status: tpl.pact_status,
     included_count: o.included.length,
     excluded_names: room.profiles.filter((p) => !includedProfiles.has(p.profile_id)).map((p) => p.display_name),
-    clauses: tpl.clauses?.map(clause) ?? null,
-    conditional_alternatives:
-      tpl.conditional_alternatives?.map(
-        (c): ConditionalAlternative => ({ ...clause(c), proposed_changes: c.proposed_changes.map(r) })
-      ) ?? null,
-    unresolved_conditions: tpl.unresolved_conditions,
+    clauses: tpl.clauses.map((c, i) => ({ article: i + 1, scenario_id: c.scenario_id, text: r(c.text) })),
+    discussion_items: tpl.discussion_items.map((d) => ({ scenario_id: d.scenario_id, text: r(d.text) })),
+    process: processOf(tpl),
     ...(tpl.message ? { message: tpl.message } : {}),
-    ...(tpl.pact_status === "unresolved" && tpl.humor ? { humor: tpl.humor } : {}),
   };
 }
 
 function editablePaths(tpl: Tpl): string[] {
-  const out: string[] = [];
-  tpl.clauses?.forEach((c, i) => {
-    out.push(`/clauses/${i}/action`);
-    c.proposed_conditions.forEach((_, j) => out.push(`/clauses/${i}/proposed_conditions/${j}`));
-  });
-  tpl.conditional_alternatives?.forEach((c, i) => {
-    out.push(`/conditional_alternatives/${i}/action`);
-    c.proposed_conditions.forEach((_, j) => out.push(`/conditional_alternatives/${i}/proposed_conditions/${j}`));
-    c.proposed_changes.forEach((_, j) => out.push(`/conditional_alternatives/${i}/proposed_changes/${j}`));
-  });
-  return out;
+  return [
+    ...tpl.clauses.map((_, i) => `/clauses/${i}/text`),
+    ...tpl.discussion_items.map((_, i) => `/discussion_items/${i}/text`),
+  ];
 }
 
 function getAt(tpl: Tpl, path: string): string | undefined {
@@ -324,12 +299,12 @@ function advance(room: Room) {
       room.failure_reason = "call_error";
       // 다음 재시도는 성공하도록 되돌린다.
       try {
-        localStorage.setItem(MOCK_VARIANT, "proposed");
+        localStorage.setItem(MOCK_VARIANT, "ready");
       } catch {
         /* 무시 */
       }
     } else {
-      room.originals.push({ ...base, state: "normal", tpl: makeTpl(room.variant ?? "proposed", room.included!, room.scenarioCount ?? SCENARIOS.length) });
+      room.originals.push({ ...base, state: "normal", tpl: makeTpl(room.variant ?? "ready", room.included!, room.scenarioCount ?? SCENARIOS.length) });
       room.status = "ready";
     }
     room.generatingUntil = undefined;

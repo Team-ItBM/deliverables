@@ -1,36 +1,27 @@
-"""추천 단계 후처리: 모델이 낸 PactRecommendation을 공유 전에 결정적으로 검사한다.
-
-함수 이름과 인자는 src/travel/prompts/generate_pact.md "필드와 함수 인자" 표를 따른다.
-오류 코드와 판정 규칙은 tests/harness/golden_cases.yaml 머리말을 따른다.
-조율 내용의 품질(의미 판정)은 검사하지 않는다.
-입력·출력 문자열은 데이터로만 다루며, 그 내용이 검사 규칙을 바꾸지 않는다.
-"""
-
 import json
 import re
 from pathlib import Path
 
 from jsonschema import Draft7Validator
 
+from travel import showdown
+
 SCHEMA_PATH = Path(__file__).resolve().parent / "schemas" / "pact_recommendation.schema.json"
 
-HUMOR_TEXT = "너네 조합 꽝이니 여행 가지 마세요!"
 PARTICIPANT_TOKEN = re.compile(r"\{\{participant:([^{}]*)\}\}")
 PARTICLE_PAIRS = ("은/는", "이/가", "을/를", "과/와", "으로/로")
-# 쌍 표기가 아닐 때 한쪽 조사만 붙었는지 본다. "으로"는 "으"보다 먼저 확인한다.
 SINGLE_PARTICLES = ("으로", "은", "는", "이", "가", "을", "를", "과", "와", "로")
-# 공유 문장에 memo가 이 길이 이상 그대로 있으면 거부한다. 공백·문장부호도 한 글자로 센다(SPEC AC3).
 MEMO_QUOTE_MIN_LENGTH = 15
-
-# 상태별 처리 분기. needs_information의 positions 필요 여부는 출력의 positions로 정한다.
-STATUS_ROUTES = {
-    "proposed": {"check_evidence": True, "positions_required": True},
-    "conditional_only": {"check_evidence": True, "positions_required": True},
-    "needs_information": {"check_evidence": True, "positions_required": None},
-    "unresolved": {"check_evidence": True, "positions_required": True},
-    "unsupported": {"check_evidence": False, "positions_required": False},
-    "invalid_input": {"check_evidence": False, "positions_required": False},
-}
+MAX_SENTENCES = 2
+DISCUSSION_PHRASE = "당사자 간 직접 논의하여 정한다."
+SENTENCE_END = re.compile(r"[.?!]")
+POLITE = re.compile(r"[가-힣]요(?=[.,?!]|$)")
+DIGIT = re.compile(r"[0-9]")
+MODEL_JUDGMENT_KEYS = ("scenario_id", "result", "rule", "sides")
+RESULT_RULE = "rule"
+RESULT_OPEN = "open"
+RESULT_TALK = "talk"
+CLAUSE_RESULTS = (RESULT_RULE, RESULT_OPEN)
 
 _validator = None
 
@@ -52,77 +43,108 @@ def _pointer(*parts):
 
 
 class InputIndex:
-    """입력의 상황·참여자·응답 ID를 조회한다. 같은 ID가 여러 번 있으면 처음 항목을 쓴다."""
 
     def __init__(self, pact_input):
         pact_input = pact_input if isinstance(pact_input, dict) else {}
         self.participant_ids = [p for p in pact_input.get("participant_ids") or [] if isinstance(p, str)]
         self.scenarios = {}
+        self.scenario_order = []
         for scenario in pact_input.get("scenarios") or []:
             if not isinstance(scenario, dict):
                 continue
             scenario_id = scenario.get("scenario_id", scenario.get("template_id"))
-            if isinstance(scenario_id, str):
-                self.scenarios.setdefault(scenario_id, scenario)
+            if isinstance(scenario_id, str) and scenario_id not in self.scenarios:
+                self.scenarios[scenario_id] = scenario
+                self.scenario_order.append(scenario_id)
         self.responses = [r for r in pact_input.get("responses") or [] if isinstance(r, dict)]
         self.response_by_id = {}
         for response in self.responses:
             response_id = response.get("response_id")
             if isinstance(response_id, str):
                 self.response_by_id.setdefault(response_id, response)
+        self.judgments = {}
+        for item in pact_input.get("judgments") or []:
+            if isinstance(item, dict) and isinstance(item.get("scenario_id"), str):
+                self.judgments.setdefault(item["scenario_id"], item)
 
     def lookup_scenario(self, scenario_id):
         return self.scenarios.get(scenario_id)
 
-    def _option_label(self, response):
-        scenario = self.lookup_scenario(response.get("scenario_id"))
-        if scenario is None:
-            return None
-        for option in scenario.get("options") or []:
-            if isinstance(option, dict) and option.get("option_id") == response.get("option_id"):
-                label = option.get("label")
-                return label if isinstance(label, str) else None
-        return None
-
-    def lookup_response_evidence(self, ids):
-        """응답 ID 목록을 근거 기록으로 바꾼다. 입력에 없는 ID는 None이다."""
-        evidence = []
-        for response_id in ids:
-            response = self.response_by_id.get(response_id)
-            if response is None:
-                evidence.append(None)
-                continue
-            evidence.append({
-                "response_id": response_id,
-                "participant_id": response.get("participant_id"),
-                "scenario_id": response.get("scenario_id"),
-                "memo": response.get("memo"),
-                "option_label": self._option_label(response),
-            })
-        return evidence
-
     def missing_responses(self):
-        """채택된 제출 건 안에서 상황별 응답이 없는 (participant_id, scenario_id) 목록."""
         answered = {(r.get("participant_id"), r.get("scenario_id")) for r in self.responses}
         return [
             (participant_id, scenario_id)
             for participant_id in self.participant_ids
-            for scenario_id in self.scenarios
+            for scenario_id in self.scenario_order
             if (participant_id, scenario_id) not in answered
         ]
 
 
-def _is_excerpt(text, source):
-    return isinstance(text, str) and isinstance(source, str) and text in source
+
+def _showdown_judgment(item, state):
+    template_id = item["template_id"]
+    record = {"scenario_id": template_id, "outcome": item["outcome"]}
+    if item["outcome"] == showdown.OUTCOME_OPEN:
+        return {**record, "result": RESULT_OPEN}
+    if item["outcome"] != showdown.OUTCOME_SHOWDOWN:
+        return {**record, "result": RESULT_RULE, "rule": item["rule"]}
+    entry = state.get(template_id) if isinstance(state, dict) else None
+    result = entry.get("result") if isinstance(entry, dict) else None
+    if not isinstance(result, dict):
+        return None
+    record["how"] = result["how"]
+    if result["how"] == "talk":
+        return {**record, "result": RESULT_TALK, "sides": [side["tag"] for side in item["sides"]]}
+    return {**record, "result": RESULT_RULE, "rule": result["rule"]}
 
 
-def validate_original_condition(text, response):
-    """original_condition이 응답 memo 또는 고른 선택지 label의 정확한 부분 문자열인지 본다."""
-    return _is_excerpt(text, response.get("memo")) or _is_excerpt(text, response.get("option_label"))
+def showdown_board(model_input):
+    try:
+        return showdown.build_board(model_input)
+    except (KeyError, ValueError, TypeError):
+        return None
 
 
-def route_pact_result(status):
-    return STATUS_ROUTES[status]
+def pending_showdowns(board, state):
+    if board is None:
+        return 0
+    return sum(1 for item in board["items"] if _showdown_judgment(item, state or {}) is None)
+
+
+def judgments_from_showdown(model_input, state):
+    board = showdown_board(model_input)
+    if board is None:
+        return None
+    judgments = [_showdown_judgment(item, state or {}) for item in board["items"]]
+    if any(j is None for j in judgments):
+        return None
+    return judgments
+
+
+def with_judgments(model_input, state):
+    payload = dict(model_input)
+    judgments = judgments_from_showdown(model_input, state)
+    if judgments is None:
+        payload.pop("judgments", None)
+    else:
+        payload["judgments"] = judgments
+    return payload
+
+
+def model_input_for_pact(model_input):
+    payload = dict(model_input)
+    if isinstance(model_input.get("responses"), list):
+        payload["responses"] = [
+            {key: value for key, value in r.items() if key != "memo"} if isinstance(r, dict) else r
+            for r in model_input["responses"]
+        ]
+    if isinstance(model_input.get("judgments"), list):
+        payload["judgments"] = [
+            {key: item[key] for key in MODEL_JUDGMENT_KEYS if key in item}
+            for item in model_input["judgments"]
+            if isinstance(item, dict)
+        ]
+    return payload
 
 
 def parse_output(raw_output):
@@ -143,162 +165,94 @@ def validate_schema(output):
 
 
 def check_status_combination(output):
-    """generate_pact.md B절 상태별 필수·금지 필드 조합."""
     status = output["status"]
     errors = []
-
-    def need(key, detail):
-        if key not in output:
-            errors.append(_error("status_combination", _pointer(key), detail))
-
-    if status == "proposed":
-        if output["clauses"] is None:
-            errors.append(_error("status_combination", "/clauses", "proposed에는 조항이 하나 이상 필요하다"))
-    elif output["clauses"] is not None:
-        errors.append(_error("status_combination", "/clauses", f"{status}에서는 clauses=null이어야 한다"))
-
-    if "conditional_alternatives" in output and status not in ("proposed", "conditional_only"):
-        errors.append(_error("status_combination", "/conditional_alternatives",
-                             f"{status}에는 조건부 대안을 둘 수 없다"))
-
-    if status == "conditional_only":
-        need("conditional_alternatives", "conditional_only에는 conditional_alternatives가 필요하다")
-        need("unresolved_conditions", "conditional_only에는 unresolved_conditions가 필요하다")
-        need("message", "conditional_only에는 message가 필요하다")
-    elif status == "needs_information":
-        need("message", "needs_information에는 message가 필요하다")
-        if output["positions"]:
-            need("unresolved_conditions", "응답별 positions가 있는 needs_information에는 unresolved_conditions가 필요하다")
-    elif status == "unresolved":
-        need("unresolved_conditions", "unresolved에는 unresolved_conditions가 필요하다")
-        need("message", "unresolved에는 message가 필요하다")
-    elif status in ("unsupported", "invalid_input"):
-        need("message", f"{status}에는 message가 필요하다")
-        if output["positions"]:
-            errors.append(_error("status_combination", "/positions", f"{status}에서는 positions=[]이어야 한다"))
+    if status == "ready":
+        if "message" in output:
+            errors.append(_error("status_combination", "/message", "ready에는 message를 두지 않는다"))
+        if not output["clauses"] and not output["discussion_items"]:
+            errors.append(_error("status_combination", "/clauses", "ready에는 조항이나 협의 사항이 하나 이상 필요하다"))
+    else:
+        if "message" not in output:
+            errors.append(_error("status_combination", "/message", f"{status}에는 message가 필요하다"))
+        if output["clauses"] or output["discussion_items"]:
+            errors.append(_error("status_combination", "/clauses", f"{status}에서는 두 배열이 비어야 한다"))
     return errors
 
 
 def check_input_status(index, output):
     missing = index.missing_responses()
-    missing_form = output["status"] == "needs_information" and output["positions"] == []
-    if missing and not missing_form:
+    if missing and output["status"] == "ready":
         pairs = ", ".join(f"{p}/{s}" for p, s in missing)
-        return [_error("input_status_mismatch", "/status",
-                       f"채택 제출 건의 응답 누락({pairs})이 있으면 needs_information, positions=[]여야 한다")]
-    if not missing and missing_form:
-        return [_error("input_status_mismatch", "/status",
-                       "응답 누락이 없는데 needs_information, positions=[]이다")]
+        return [_error("input_status_mismatch", "/status", f"응답 누락({pairs})이 있으면 needs_information이어야 한다")]
+    if not missing and output["status"] == "needs_information":
+        return [_error("input_status_mismatch", "/status", "응답 누락이 없는데 needs_information이다")]
     return []
 
 
-def _evidence_items(output):
-    """(경로 접두사, 항목, 작성자 일치 검사 여부)를 출력 순서대로 낸다."""
-    for i, item in enumerate(output.get("clauses") or []):
-        yield ("clauses", i), item, True
-    for i, item in enumerate(output.get("conditional_alternatives") or []):
-        yield ("conditional_alternatives", i), item, True
-    for i, item in enumerate(output.get("unresolved_conditions") or []):
-        yield ("unresolved_conditions", i), item, False
+def _items(output):
+    for i, item in enumerate(output["clauses"]):
+        yield ("clauses", i), item
+    for i, item in enumerate(output["discussion_items"]):
+        yield ("discussion_items", i), item
 
 
-def check_evidence(index, output):
-    """참조(unknown_reference), 근거 일치(evidence_mismatch), original_condition 인용(quote_mismatch)."""
+def check_coverage(index, output):
     errors = []
-    known_participants = set(index.participant_ids)
-    for prefix, item, check_authors in _evidence_items(output):
+    seen = {}
+    for prefix, item in _items(output):
         scenario_id = item["scenario_id"]
-        if index.lookup_scenario(scenario_id) is None:
-            errors.append(_error("unknown_reference", _pointer(*prefix, "scenario_id"),
-                                 f"입력에 없는 상황 {scenario_id}"))
-        participant_ids = item.get("participant_ids")
-        if participant_ids is not None:
-            for j, participant_id in enumerate(participant_ids):
-                if participant_id not in known_participants:
-                    errors.append(_error("unknown_reference", _pointer(*prefix, "participant_ids", j),
-                                         f"입력에 없는 참여자 {participant_id}"))
-
-        source_ids = item["source_response_ids"]
-        evidence = index.lookup_response_evidence(source_ids)
-        authors = set()
-        for j, (response_id, record) in enumerate(zip(source_ids, evidence)):
-            if record is None:
-                errors.append(_error("unknown_reference", _pointer(*prefix, "source_response_ids", j),
-                                     f"입력에 없는 응답 {response_id}"))
-                continue
-            authors.add(record["participant_id"])
-            if record["scenario_id"] != scenario_id:
-                errors.append(_error("evidence_mismatch", _pointer(*prefix, "source_response_ids", j),
-                                     f"응답 {response_id}의 상황 {record['scenario_id']}이 항목 상황 {scenario_id}와 다르다"))
-        if check_authors and set(participant_ids) != authors:
-            errors.append(_error("evidence_mismatch", _pointer(*prefix, "participant_ids"),
-                                 f"적용 대상 {sorted(participant_ids)}이 근거 응답 작성자 {sorted(authors)}와 다르다"))
-
-        for j, change in enumerate(item.get("required_changes") or []):
-            response_id = change["source_response_id"]
-            (record,) = index.lookup_response_evidence([response_id])
-            if record is None:
-                errors.append(_error("unknown_reference", _pointer(*prefix, "required_changes", j, "source_response_id"),
-                                     f"입력에 없는 응답 {response_id}"))
-                continue
-            if response_id not in source_ids:
-                errors.append(_error("evidence_mismatch", _pointer(*prefix, "required_changes", j, "source_response_id"),
-                                     f"응답 {response_id}이 항목의 source_response_ids에 없다"))
-            if not validate_original_condition(change["original_condition"], record):
-                errors.append(_error("quote_mismatch", _pointer(*prefix, "required_changes", j, "original_condition"),
-                                     f"응답 {response_id}의 memo·선택지 label의 정확한 발췌가 아니다"))
-    return errors
-
-
-def validate_positions(input, output):
-    """positions가 입력 응답마다 정확히 하나인지, 인용 필드가 해당 memo의 정확한 발췌인지 본다."""
-    index = input if isinstance(input, InputIndex) else InputIndex(input)
-    errors = []
-    counts = {}
-    for i, entry in enumerate(output["positions"]):
-        response_id = entry["response_id"]
-        counts[response_id] = counts.get(response_id, 0) + 1
-        response = index.response_by_id.get(response_id)
-        if response is None:
-            errors.append(_error("positions_mismatch", _pointer("positions", i, "response_id"),
-                                 f"입력에 없는 응답 {response_id}"))
+        if scenario_id not in index.scenarios:
+            errors.append(_error("unknown_reference", _pointer(*prefix, "scenario_id"), f"입력에 없는 문항 {scenario_id}"))
             continue
-        if counts[response_id] > 1:
-            errors.append(_error("positions_mismatch", _pointer("positions", i, "response_id"),
-                                 f"응답 {response_id}의 입장이 중복됐다"))
-        for key in ("condition", "reason", "expressed_content"):
-            text = entry["position"].get(key)
-            if text is not None and not _is_excerpt(text, response.get("memo")):
-                errors.append(_error("quote_mismatch", _pointer("positions", i, "position", key),
-                                     f"응답 {response_id}의 memo의 정확한 발췌가 아니다"))
-    for response_id in index.response_by_id:
-        if response_id not in counts:
-            errors.append(_error("positions_mismatch", "/positions", f"응답 {response_id}의 입장이 없다"))
+        if scenario_id in seen:
+            errors.append(_error("coverage_mismatch", _pointer(*prefix, "scenario_id"), f"문항 {scenario_id}이 두 번 나온다"))
+        seen[scenario_id] = prefix
+    for scenario_id in index.scenario_order:
+        if scenario_id not in seen:
+            errors.append(_error("coverage_mismatch", "", f"문항 {scenario_id}이 조항과 협의 사항 어디에도 없다"))
     return errors
 
 
-def check_linked_responses(index, output):
-    linked = set()
-    for _, item, _ in _evidence_items(output):
-        linked.update(item["source_response_ids"])
-    return [
-        _error("unlinked_response", "", f"응답 {response_id}이 조항·조건부 대안·미해결 사유에 연결되지 않았다")
-        for response_id in index.response_by_id
-        if response_id not in linked
-    ]
+def check_judgments(index, output):
+    errors = []
+    for i, item in enumerate(output["clauses"]):
+        judgment = index.judgments.get(item["scenario_id"])
+        if judgment is not None and judgment.get("result") not in CLAUSE_RESULTS:
+            errors.append(_error("judgment_mismatch", _pointer("clauses", i, "scenario_id"),
+                                 f"문항 {item['scenario_id']}은 직접 논의로 정했는데 조항으로 썼다"))
+    for i, item in enumerate(output["discussion_items"]):
+        judgment = index.judgments.get(item["scenario_id"])
+        if judgment is not None and judgment.get("result") != RESULT_TALK:
+            errors.append(_error("judgment_mismatch", _pointer("discussion_items", i, "scenario_id"),
+                                 f"문항 {item['scenario_id']}은 정해진 문항인데 협의 사항으로 썼다"))
+    return errors
+
+
+def _sentences(text):
+    parts = [p for p in SENTENCE_END.split(text.strip()) if p.strip()]
+    return len(parts)
+
+
+def check_texts(output):
+    errors = []
+    for prefix, item in _items(output):
+        path = _pointer(*prefix, "text")
+        text = item["text"].strip()
+        if _sentences(text) > MAX_SENTENCES:
+            errors.append(_error("sentence_limit", path, f"{MAX_SENTENCES}문장을 넘는다"))
+        if not text.endswith("다.") or "?" in text or "!" in text or POLITE.search(text):
+            errors.append(_error("style_violation", path, "협약서체(~다.)가 아니다"))
+        if DIGIT.search(PARTICIPANT_TOKEN.sub("", text)):
+            errors.append(_error("number_in_text", path, "숫자가 들어 있다"))
+        if prefix[0] == "discussion_items" and not text.endswith(DISCUSSION_PHRASE):
+            errors.append(_error("discussion_phrase", path, f"\"{DISCUSSION_PHRASE}\"로 끝나지 않는다"))
+    return errors
 
 
 def _shared_sentences(output):
-    """공유 문장 = action, proposed_conditions[], proposed_change, unresolved_conditions[].description, message."""
-    for kind in ("clauses", "conditional_alternatives"):
-        for i, item in enumerate(output.get(kind) or []):
-            yield _pointer(kind, i, "action"), item["action"]
-            for j, text in enumerate(item["proposed_conditions"]):
-                yield _pointer(kind, i, "proposed_conditions", j), text
-            for j, change in enumerate(item.get("required_changes") or []):
-                yield _pointer(kind, i, "required_changes", j, "proposed_change"), change["proposed_change"]
-    for i, item in enumerate(output.get("unresolved_conditions") or []):
-        yield _pointer("unresolved_conditions", i, "description"), item["description"]
+    for prefix, item in _items(output):
+        yield _pointer(*prefix, "text"), item["text"]
     if "message" in output:
         yield "/message", output["message"]
 
@@ -308,21 +262,18 @@ def check_participant_tokens(index, output):
     known = set(index.participant_ids)
     for path, text in _shared_sentences(output):
         for match in PARTICIPANT_TOKEN.finditer(text):
-            participant_id = match.group(1)
-            if participant_id not in known:
+            if match.group(1) not in known:
                 errors.append(_error("token_invalid", path, f"입력에 없는 참여자 토큰 {match.group(0)}"))
             rest = text[match.end():]
             if rest.startswith(PARTICLE_PAIRS):
                 continue
             single = next((p for p in SINGLE_PARTICLES if rest.startswith(p)), None)
             if single is not None:
-                errors.append(_error("particle_pair", path,
-                                     f"{match.group(0)} 뒤에 조사 쌍 대신 '{single}'만 붙었다"))
+                errors.append(_error("particle_pair", path, f"{match.group(0)} 뒤에 조사 쌍 대신 '{single}'만 붙었다"))
     return errors
 
 
 def _public_texts(index):
-    """모든 참여자에게 보이는 문항 문구: scene, question, options.label."""
     texts = []
     for scenario in index.scenarios.values():
         texts.extend(t for t in (scenario.get("scene"), scenario.get("question")) if isinstance(t, str))
@@ -333,11 +284,6 @@ def _public_texts(index):
 
 
 def check_memo_quotes(index, output, min_length=MEMO_QUOTE_MIN_LENGTH):
-    """공유 문장에 memo의 연속 min_length자 이상이 그대로 있으면 memo_quote를 반환한다.
-
-    겹친 부분이 문항 공개 문구에도 있으면 제외한다. positions와 original_condition은
-    _shared_sentences에 포함되지 않으므로 검사하지 않는다. 오류 설명에는 memo 원문을 넣지 않는다.
-    """
     errors = []
     public = _public_texts(index)
     memos = [
@@ -356,47 +302,21 @@ def check_memo_quotes(index, output, min_length=MEMO_QUOTE_MIN_LENGTH):
     return errors
 
 
-def _strings(node, path=()):
-    if isinstance(node, str):
-        yield path, node
-    elif isinstance(node, dict):
-        for key, value in node.items():
-            yield from _strings(value, path + (key,))
-    elif isinstance(node, list):
-        for i, value in enumerate(node):
-            yield from _strings(value, path + (i,))
-
-
-def check_humor_text(output):
-    return [
-        _error("humor_text", _pointer(*path), "모델 출력에 고정 유머 문구가 있다")
-        for path, text in _strings(output)
-        if HUMOR_TEXT in text
-    ]
-
-
 def validate_pact_output(pact_input, raw_output):
-    """모델이 낸 PactRecommendation 문자열을 검사해 {valid, errors[{code, path, detail}]}를 반환한다."""
     output, errors = parse_output(raw_output)
     if errors:
         return {"valid": False, "errors": errors}
     errors = validate_schema(output)
     if errors:
         return {"valid": False, "errors": errors}
-
     index = InputIndex(pact_input)
-    route = route_pact_result(output["status"])
     errors.extend(check_status_combination(output))
-    if route["check_evidence"]:
+    if output["status"] in ("ready", "needs_information"):
         errors.extend(check_input_status(index, output))
-        errors.extend(check_evidence(index, output))
-        positions_required = route["positions_required"]
-        if positions_required is None:
-            positions_required = output["positions"] != []
-        if positions_required:
-            errors.extend(validate_positions(index, output))
-            errors.extend(check_linked_responses(index, output))
+    if output["status"] == "ready":
+        errors.extend(check_coverage(index, output))
+        errors.extend(check_judgments(index, output))
+        errors.extend(check_texts(output))
     errors.extend(check_participant_tokens(index, output))
     errors.extend(check_memo_quotes(index, output))
-    errors.extend(check_humor_text(output))
     return {"valid": not errors, "errors": errors}

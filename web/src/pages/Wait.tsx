@@ -28,7 +28,7 @@ export function Wait() {
   const hasResult = resultCheck.has;
   // 응답이 마감되면 협약서가 준비되기 전에도 승부처를 먼저 정할 수 있다. 협약서가 준비된 뒤에는 아래 주 버튼이 승부처로 보낸다.
   const closed = room !== null && room.room_status !== "open";
-  const showdownGate = useShowdownGate(code, closed);
+  const showdownGate = useShowdownGate(code, closed, room?.room_status);
   const showdownFirst = closed && (showdownGate.open ?? 0) > 0 && hasResult !== true;
 
   if (!room && isNotFound(error)) return <RoomNotFound />;
@@ -44,7 +44,7 @@ export function Wait() {
           <StatusLine room={room} host={token !== null} />
           {room.room_status === "failed" && room.failure_reason && <p className="secondary">{FAILURE_TEXT[room.failure_reason]}</p>}
           {room.room_status === "failed" && !token && <p className="secondary">방장이 같은 응답으로 다시 시도할 수 있어요.</p>}
-          {(room.room_status === "generating" || room.room_status === "closed") && (
+          {room.room_status === "generating" && (
             <div className="progress-track" aria-hidden="true">
               <div className="progress-flow" />
             </div>

@@ -366,6 +366,15 @@ async def close_and_freeze(conn, room, frozen_input, now):
     return attempt_id, row["attempt_count"]
 
 
+async def close_for_showdown(conn, room, frozen_input, now):
+    cur = await conn.execute(
+        "UPDATE rooms SET status = 'closed', closed_at = %s, frozen_input = %s WHERE room_id = %s AND status = 'open' "
+        "RETURNING room_id",
+        (now, jsonb(frozen_input), room["room_id"]))
+    if await cur.fetchone() is None:
+        raise StaleAttempt("방이 이미 마감됐다")
+
+
 async def finish_attempt(conn, room_id, attempt_id, attempt_no, outcome, now):
     """시도 결과를 한 트랜잭션 안에서 쓴다. outcome은 ("ready", output) 또는 ("failed", failure_reason)이다.
 

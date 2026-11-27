@@ -1,7 +1,7 @@
 """duplicate_name (AC16): 같은 이름의 새 제출은 허용하고 별도 ID로 저장한다. 전송 재시도는 같은 건이다.
 
-제출 내용을 읽는 API가 없으므로(§0-B), "처음 저장한 제출이 그대로다"는 조기 생성 뒤 추천 model_input의
-그 참여자 응답(option_id, memo)으로 확인한다.
+제출 내용을 읽는 API가 없으므로(§0-B), "처음 저장한 제출이 그대로다"는 조기 생성 뒤 고정 입력(rooms.frozen_input)의
+그 참여자 응답(option_id, memo)으로 확인한다. 추천 model_input에는 메모가 없다.
 """
 
 import pytest
@@ -13,12 +13,13 @@ from harness.server.privacy import scan_private
 case = pytest.mark.server_case
 
 
-def _stored_answers(app, room, participant_id):
-    """조기 생성으로 입력을 고정하고, 추천 model_input에 들어간 그 참여자 응답을 문항 순서로 돌려준다."""
+def _stored_answers(srv, app, room, participant_id):
+    """조기 생성으로 입력을 고정하고, 고정 입력에 들어간 그 참여자 응답을 문항 순서로 돌려준다."""
     app.replay.push("pact", po.pact_item())
     assert app.generate(room).status_code == 202
     app.join()
-    model_input = app.replay.calls_for("pact")[-1].model_input
+    frozen = srv.sql("SELECT frozen_input FROM rooms WHERE room_code = %s", (room.code,))[0]["frozen_input"]
+    model_input = frozen["model_input"]
     rows = [r for r in model_input["responses"] if r["participant_id"] == participant_id]
     return model_input, sorted((r["scenario_id"], r["option_id"], r.get("memo")) for r in rows)
 
@@ -90,7 +91,7 @@ def test_dup_n01_same_key_different_body(srv, expect):
     assert_error(resp, expect["http_status"], expect["error_code"])
 
     def submission():
-        _, stored = _stored_answers(app, room, first.body["participant_id"])
+        _, stored = _stored_answers(srv, app, room, first.body["participant_id"])
         assert stored == _sent(first.answers), "처음 저장한 제출이 바뀌었다"
 
     for name in expect["unchanged"]:
@@ -108,7 +109,7 @@ def test_dup_n02_used_session(srv, expect):
     assert_error(resp, expect["http_status"], expect["error_code"])
 
     def submission():
-        model_input, stored = _stored_answers(app, room, first.body["participant_id"])
+        model_input, stored = _stored_answers(srv, app, room, first.body["participant_id"])
         assert stored == _sent(first.answers), "기존 제출이 바뀌었다"
         assert model_input["participant_ids"] == [first.body["participant_id"]]
 

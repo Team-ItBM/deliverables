@@ -1,0 +1,69 @@
+{
+  "source": {
+    "note": "수기 작성 fixture. 모델 출력이 아니다. 추천 프롬프트 v15 예시 2(응답 누락)를 옮겼다.",
+    "based_on": "src/travel/prompts/generate_pact.md 예시"
+  },
+  "input": {
+    "participant_ids": [
+      "A",
+      "B"
+    ],
+    "scenarios": [
+      {
+        "scenario_id": "settlement_timing",
+        "template_id": "settlement_timing",
+        "scene": "여러 날 이어지는 여행에서 교통비와 공동 식비를 여러 사람이 번갈아 결제하게 됐어요\n영수증은 공유할 수 있어요\n개인 쇼핑은 공동 비용에서 빼요\n아직 정산 시점은 정하지 않았어요",
+        "question": "언제 정산하고 싶어요?",
+        "options": [
+          {
+            "option_id": "settlement_timing_1",
+            "label": "결제할 때마다 바로 나누고 싶어요"
+          },
+          {
+            "option_id": "settlement_timing_2",
+            "label": "하루가 끝날 때 모아 정산하고 싶어요"
+          },
+          {
+            "option_id": "settlement_timing_3",
+            "label": "여행이 끝난 뒤 한 번에 정산하고 싶어요"
+          },
+          {
+            "option_id": "settlement_timing_any",
+            "label": "어느 쪽이든 괜찮아요"
+          },
+          {
+            "option_id": "settlement_timing_other",
+            "label": "다른 의견이 있어요"
+          },
+          {
+            "option_id": "settlement_timing_info",
+            "label": "정보가 더 필요해요"
+          }
+        ]
+      }
+    ],
+    "responses": [
+      {
+        "response_id": "sA",
+        "participant_id": "A",
+        "scenario_id": "settlement_timing",
+        "option_id": "settlement_timing_3"
+      }
+    ],
+    "request": "일행의 응답과 승부처 결과로 협약서를 만들어줘.",
+    "judgments": [
+      {
+        "scenario_id": "settlement_timing",
+        "outcome": "agreed",
+        "result": "rule",
+        "rule": "정산은 여행 끝나고 한 번에!"
+      }
+    ]
+  },
+  "output": {
+    "status": "needs_information",
+    "clauses": [],
+    "discussion_items": [],
+    "message": "채택된 응답 중 빠진 문항이 있어 협약서를 만들지 않았다."
+  }
+}
